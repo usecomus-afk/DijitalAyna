@@ -6,21 +6,34 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let _ = (scene as? UIWindowScene) else { return }
+        guard let windowScene = (scene as? UIWindowScene) else { return }
+        
+        let window = UIWindow(windowScene: windowScene)
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let rootViewController = storyboard.instantiateInitialViewController() as? CAPBridgeViewController ?? CAPBridgeViewController()
+        
+        window.rootViewController = rootViewController
+        self.window = window
+        window.makeKeyAndVisible()
     }
 
-    func sceneDidDisconnect(_ scene: UIScene) {
+    func sceneDidDisconnect(_ scene: UIScene) {}
+
+    func sceneDidBecomeActive(_ scene: UIScene) {}
+
+    func sceneWillResignActive(_ scene: UIScene) {}
+
+    func sceneWillEnterForeground(_ scene: UIScene) {}
+
+    func sceneDidEnterBackground(_ scene: UIScene) {}
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        if let url = URLContexts.first?.url {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
+        }
     }
 
-    func sceneDidBecomeActive(_ scene: UIScene) {
-    }
-
-    func sceneWillResignActive(_ scene: UIScene) {
-    }
-
-    func sceneWillEnterForeground(_ scene: UIScene) {
-    }
-
-    func sceneDidEnterBackground(_ scene: UIScene) {
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
     }
 }

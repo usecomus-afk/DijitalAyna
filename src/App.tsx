@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './store/useAppStore';
 import { Header } from './components/layout/Header';
 import { Navbar } from './components/layout/Navbar';
@@ -25,7 +25,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-comus-bg text-comus-navy flex flex-col font-sans selection:bg-comus-copper/20 selection:text-comus-copper-dark">
         {/* Global Digital Mental Twin Avatar Modal */}
         <MentalTwinModal />
@@ -50,7 +50,7 @@ export const App: React.FC = () => {
         {/* Bottom Navigation */}
         <Navbar />
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 

@@ -5,28 +5,20 @@ const config: CapacitorConfig = {
   appName: 'Dijital Ayna',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    iosScheme: 'https'
-  },
-  ios: {
-    contentInset: 'always',
-    preferredContentMode: 'mobile',
-    scheme: 'ComusAI'
+    androidScheme: 'https'
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1500,
+      launchShowDuration: 1000,
       launchAutoHide: true,
-      backgroundColor: '#1E3A5F',
-      androidSplashResourceName: 'splash',
-      androidScaleType: 'CENTER_CROP',
+      backgroundColor: '#F2F0EB',
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true
     },
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#1E3A5F'
+      backgroundColor: '#F2F0EB'
     },
     LocalNotifications: {
       smallIcon: 'ic_stat_icon_config_sample',
