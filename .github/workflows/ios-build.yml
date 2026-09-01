@@ -23,7 +23,7 @@ jobs:
           cache: 'npm'
 
       - name: Bağımlılıkları Yükle
-        run: npm ci
+        run: npm install
 
       - name: Birim Testleri Doğrula
         run: npm test
