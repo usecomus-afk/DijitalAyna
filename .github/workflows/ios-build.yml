@@ -1,0 +1,60 @@
+name: iOS Bulut Derleme (macOS)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build & Export iOS IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
+      - name: Node.js Ortamını Kur (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Bağımlılıkları Yükle
+        run: npm ci
+
+      - name: Birim Testleri Doğrula
+        run: npm test
+
+      - name: Web Uygulamasını Derle ve iOS Projesini Senkronize Et
+        run: npm run ios:sync
+
+      - name: Xcode ile iOS Uygulamasını Derle (Release)
+        run: |
+          cd ios/App
+          xcodebuild clean build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -destination "generic/platform=iOS" \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            -derivedDataPath build
+
+      - name: IPA Kurulum Paketini Oluştur (.ipa / Payload)
+        run: |
+          cd ios/App/build/Build/Products/Release-iphoneos
+          mkdir -p Payload
+          cp -r App.app Payload/
+          zip -r DijitalAyna-iOS-Unsigned.ipa Payload
+
+      - name: IPA Dosyasını GitHub Artifacts Olarak Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: DijitalAyna-iOS-Unsigned
+          path: ios/App/build/Build/Products/Release-iphoneos/DijitalAyna-iOS-Unsigned.ipa
+          retention-days: 14
+          if-no-files-found: error
