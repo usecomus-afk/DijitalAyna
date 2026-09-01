@@ -16,6 +16,11 @@ jobs:
       - name: Kodu Çek
         uses: actions/checkout@v4
 
+      - name: Xcode Ortamını Yapılandır (v15.4)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.4'
+
       - name: Node.js Ortamını Kur (v22 LTS)
         uses: actions/setup-node@v4
         with:
