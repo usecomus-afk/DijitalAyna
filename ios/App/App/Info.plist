@@ -28,7 +28,7 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
@@ -43,9 +43,14 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSMotionUsageDescription</key>
-	<string>ComusAI, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>
+	<string>Dijital Ayna, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>ComusAI, konuşma ritmi ve perde varyansı dinamiklerini ölçmek için mikrofon erişimine ihtiyaç duyar. Ses kayıtları ASLA saklanmaz veya sunuculara iletilmez.</string>
+	<string>Dijital Ayna, konuşma ritmi ve perde varyansı dinamiklerini ölçmek için mikrofon erişimine ihtiyaç duyar. Ses kayıtları ASLA saklanmaz veya sunuculara iletilmez.</string>
 </dict>
 </plist>

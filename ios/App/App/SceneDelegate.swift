@@ -9,9 +9,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
         let window = UIWindow(windowScene: windowScene)
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        let rootViewController = storyboard.instantiateInitialViewController() as? CAPBridgeViewController ?? CAPBridgeViewController()
-        
+        let rootViewController = ViewController()
         window.rootViewController = rootViewController
         self.window = window
         window.makeKeyAndVisible()
