@@ -336,6 +336,26 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
           <GoogleAuthButton onSuccess={onSuccess} />
         </div>
       )}
+
+      {/* Quick Instant Start / Guest option */}
+      <div className="pt-3 border-t border-comus-sand-light/20 flex flex-col items-center">
+        <button
+          type="button"
+          onClick={() => {
+            const guestProfile: UserProfile = {
+              name: 'Kullanıcı',
+              isGoogleConnected: false,
+              isPasswordAccount: false,
+              createdAt: Date.now(),
+            };
+            onSuccess(guestProfile);
+          }}
+          className="text-xs font-semibold text-comus-copper hover:text-comus-copper-dark flex items-center gap-1.5 py-1.5 transition-colors cursor-pointer"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Hesap açmadan hızlı başla (Tek tıkla misafir girişi) →</span>
+        </button>
+      </div>
     </div>
   );
 };

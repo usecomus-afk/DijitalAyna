@@ -78,6 +78,22 @@ export const OnboardingPage: React.FC = () => {
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-comus-sand-light/20 shadow-soft">
             <AuthPanel onSuccess={handleAuthSuccess} />
           </div>
+
+          <div className="text-center mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                handleAuthSuccess({
+                  name: 'Kullanıcı',
+                  isGoogleConnected: false,
+                  createdAt: Date.now(),
+                });
+              }}
+              className="text-xs text-comus-sand-dark hover:text-comus-navy font-medium underline transition-colors cursor-pointer"
+            >
+              veya giriş yapmadan doğrudan adımlara geçin →
+            </button>
+          </div>
         </div>
       )}
 
