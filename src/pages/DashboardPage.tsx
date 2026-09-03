@@ -9,7 +9,6 @@ import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 import { PredictiveAlertModal } from '../components/alerts/PredictiveAlertModal';
 import { VoiceAnalysisWidget } from '../components/voice/VoiceAnalysisWidget';
 import { CognitiveBrakeModal } from '../components/brake/CognitiveBrakeModal';
-import { InstallPrompt } from '../components/pwa/InstallPrompt';
 import { Disclaimer } from '../components/common/Disclaimer';
 import {
   Activity,
@@ -127,9 +126,6 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
-      {/* PWA Install Prompt Banner */}
-      <InstallPrompt />
-
       {/* Live Sensors & Real-Time Evaluation Control Bar */}
       <div className="bg-white rounded-3xl p-4 sm:p-5 border border-comus-sand-light/30 shadow-soft space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

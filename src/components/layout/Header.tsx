@@ -21,7 +21,7 @@ export const Header: React.FC = () => {
       : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
 
   return (
-    <header className="sticky top-0 z-40 bg-comus-bg/90 backdrop-blur-md border-b border-comus-sand-light/20 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-40 bg-comus-bg/95 backdrop-blur-md border-b border-comus-sand-light/20 px-4 pb-3 sm:px-6" style={{ paddingTop: 'max(env(safe-area-inset-top, 24px), 24px)' }}>
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         {/* Brand with New Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group">

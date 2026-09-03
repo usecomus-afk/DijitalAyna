@@ -13,6 +13,8 @@ import { DoctorReportPage } from './pages/DoctorReportPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 
 export const App: React.FC = () => {
   const { settings, initialize } = useAppStore();
@@ -20,21 +22,36 @@ export const App: React.FC = () => {
   useEffect(() => {
     initialize();
 
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+    }
+
     const sub = CapApp.addListener('appUrlOpen', async (event) => {
-      if (event.url.startsWith('dijitalayna://google-auth')) {
+      if (
+        event.url.startsWith('dijitalayna://auth-callback') ||
+        event.url.startsWith('dijitalayna://google-auth') ||
+        event.url.startsWith('dijitalayna://apple-auth')
+      ) {
         try {
           await Browser.close();
         } catch (_) {}
         try {
           const parsed = new URL(event.url);
-          const name = decodeURIComponent(parsed.searchParams.get('name') || 'Google Kullanıcısı');
+          const provider = parsed.searchParams.get('provider') || (event.url.includes('apple') ? 'apple' : 'google');
+          const isApple = provider === 'apple';
+          const defaultName = isApple ? 'Apple Kullanıcısı' : 'Google Kullanıcısı';
+
+          const name = decodeURIComponent(parsed.searchParams.get('name') || defaultName);
           const email = decodeURIComponent(parsed.searchParams.get('email') || '');
           const picture = decodeURIComponent(parsed.searchParams.get('picture') || '');
-          useAppStore.getState().connectGoogleProfile({
+
+          useAppStore.getState().setUserProfile({
             name,
             email: email || undefined,
             picture: picture || undefined,
-            isGoogleConnected: true,
+            isGoogleConnected: !isApple,
+            isAppleConnected: isApple,
             createdAt: Date.now(),
           });
         } catch (e) {

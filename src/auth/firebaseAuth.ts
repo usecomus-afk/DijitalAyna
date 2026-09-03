@@ -2,6 +2,7 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -11,7 +12,6 @@ import {
   User,
 } from 'firebase/auth';
 import { UserProfile } from '../types/user';
-import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { App as CapApp } from '@capacitor/app';
 
@@ -36,53 +36,164 @@ export function getFirebaseAuth(): Auth {
 }
 
 export function formatUserProfile(user: User): UserProfile {
+  const isApple = user.providerData?.some((p) => p.providerId === 'apple.com') || false;
   return {
-    name: user.displayName || user.email?.split('@')[0] || 'Kullanıcı',
+    name: user.displayName || user.email?.split('@')[0] || (isApple ? 'Apple Kullanıcısı' : 'Google Kullanıcısı'),
     email: user.email || undefined,
     picture: user.photoURL || undefined,
-    isGoogleConnected: true,
+    isGoogleConnected: !isApple,
+    isAppleConnected: isApple,
     createdAt: Date.now(),
   };
 }
 
 /**
- * Native iOS/Android Google Sign In via In-App Browser & Custom URL Scheme Bridge
+ * Parses deep link callback URL received from auth-bridge.html in Safari
+ */
+export function handleAuthDeepLink(urlStr: string): UserProfile | null {
+  try {
+    const parsed = new URL(urlStr);
+    const provider = parsed.searchParams.get('provider') || (urlStr.includes('apple') ? 'apple' : 'google');
+    const isApple = provider === 'apple';
+
+    const nameParam = parsed.searchParams.get('name');
+    const emailParam = parsed.searchParams.get('email');
+    const pictureParam = parsed.searchParams.get('picture');
+
+    const defaultName = isApple ? 'Apple Kullanıcısı' : 'Google Kullanıcısı';
+    const name = nameParam ? decodeURIComponent(nameParam) : defaultName;
+    const email = emailParam ? decodeURIComponent(emailParam) : undefined;
+    const picture = pictureParam ? decodeURIComponent(pictureParam) : undefined;
+
+    return {
+      name,
+      email: email || undefined,
+      picture: picture || undefined,
+      isGoogleConnected: !isApple,
+      isAppleConnected: isApple,
+      createdAt: Date.now(),
+    };
+  } catch (err) {
+    console.error('[FirebaseAuth] Error parsing auth deep link URL:', err);
+    return null;
+  }
+}
+
+/**
+ * Native iOS Google Sign In via Safari & custom URL scheme (dijitalayna://auth-callback)
  */
 export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
-  // Listen for the redirect back to the app via URL scheme
   const listener = await CapApp.addListener('appUrlOpen', async (event) => {
-    if (event.url.startsWith('dijitalayna://google-auth')) {
+    if (
+      event.url.startsWith('dijitalayna://auth-callback') ||
+      event.url.startsWith('dijitalayna://google-auth')
+    ) {
       try {
         await Browser.close();
       } catch (_) {}
 
-      try {
-        const parsed = new URL(event.url);
-        const name = decodeURIComponent(parsed.searchParams.get('name') || 'Google Kullanıcısı');
-        const email = decodeURIComponent(parsed.searchParams.get('email') || '');
-        const picture = decodeURIComponent(parsed.searchParams.get('picture') || '');
-
-        const profile: UserProfile = {
-          name,
-          email: email || undefined,
-          picture: picture || undefined,
-          isGoogleConnected: true,
-          createdAt: Date.now(),
-        };
-
+      const profile = handleAuthDeepLink(event.url);
+      if (profile) {
         listener.remove();
         onSuccess(profile);
-      } catch (e) {
-        console.error('[FirebaseAuth] Error parsing auth callback:', e);
       }
     }
   });
 
-  // Open secure web auth bridge in Safari
   await Browser.open({
-    url: 'https://comus-ai-duty.web.app/auth-bridge.html',
-    presentationStyle: 'popover',
+    url: 'https://comus-ai-duty.web.app/auth-bridge.html?provider=google',
+    windowName: '_blank',
   });
+}
+
+/**
+ * Native iOS Apple Sign In via Safari & custom URL scheme (dijitalayna://auth-callback)
+ */
+export async function signInWithAppleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
+  const listener = await CapApp.addListener('appUrlOpen', async (event) => {
+    if (
+      event.url.startsWith('dijitalayna://auth-callback') ||
+      event.url.startsWith('dijitalayna://apple-auth')
+    ) {
+      try {
+        await Browser.close();
+      } catch (_) {}
+
+      const profile = handleAuthDeepLink(event.url);
+      if (profile) {
+        listener.remove();
+        onSuccess(profile);
+      }
+    }
+  });
+
+  await Browser.open({
+    url: 'https://comus-ai-duty.web.app/auth-bridge.html?provider=apple',
+    windowName: '_blank',
+  });
+}
+
+/**
+ * Web Sign in with Apple via Firebase OAuthProvider
+ */
+export async function signInWithApple(): Promise<UserProfile | null> {
+  const authInstance = getFirebaseAuth();
+  const appleProvider = new OAuthProvider('apple.com');
+  appleProvider.addScope('email');
+  appleProvider.addScope('name');
+
+  try {
+    const result = await signInWithPopup(authInstance, appleProvider);
+    return formatUserProfile(result.user);
+  } catch (err: any) {
+    console.warn('[FirebaseAuth] Apple popup error, trying redirect:', err);
+    await signInWithRedirect(authInstance, appleProvider);
+    return null;
+  }
+}
+
+/**
+ * Web Sign in with Google via Firebase GoogleAuthProvider
+ */
+export async function signInWithGoogle(): Promise<UserProfile | null> {
+  const authInstance = getFirebaseAuth();
+  const googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({
+    prompt: 'select_account',
+  });
+
+  try {
+    const result = await signInWithPopup(authInstance, googleProvider);
+    return formatUserProfile(result.user);
+  } catch (err: any) {
+    console.warn('[FirebaseAuth] Google popup error, trying redirect:', err);
+    await signInWithRedirect(authInstance, googleProvider);
+    return null;
+  }
+}
+
+/**
+ * Checks for any pending redirect result from web OAuth flow
+ */
+export async function checkRedirectAuth(): Promise<UserProfile | null> {
+  try {
+    const authInstance = getFirebaseAuth();
+    const result = await getRedirectResult(authInstance);
+    if (result && result.user) {
+      return formatUserProfile(result.user);
+    }
+  } catch (err) {
+    console.warn('[FirebaseAuth] Redirect result check error:', err);
+  }
+  return null;
+}
+
+/**
+ * Signs out from Firebase Auth
+ */
+export async function signOutFromFirebase(): Promise<void> {
+  const authInstance = getFirebaseAuth();
+  await fbSignOut(authInstance);
 }
 
 /**
@@ -99,120 +210,6 @@ export function subscribeToAuthState(onUser: (profile: UserProfile | null) => vo
   });
 }
 
-/**
- * Checks for any pending redirect result from mobile login flow
- */
-export async function checkRedirectAuth(): Promise<UserProfile | null> {
-  try {
-    const authInstance = getFirebaseAuth();
-    const result = await getRedirectResult(authInstance);
-    if (result && result.user) {
-      return formatUserProfile(result.user);
-    }
-  } catch (err) {
-    console.warn('[FirebaseAuth] Redirect result check error:', err);
-  }
-  return null;
-}
+export const signOutGoogle = signOutFromFirebase;
+export const signInWithGoogleRedirect = signInWithGoogle;
 
-/**
- * Sign in with Google Account with Mobile Safari / Chrome Popup & Redirect fallback
- */
-export async function signInWithGoogle(customEmail?: string, customName?: string): Promise<UserProfile | null> {
-  // 1. Native iOS / Android Capacitor Platform Handling:
-  // Native WKWebView does not permit arbitrary popups and Google OAuth blocks embedded webview user-agents.
-  // We establish a secure Google-linked user profile directly on device.
-  if (Capacitor.isNativePlatform()) {
-    return {
-      name: customName?.trim() || 'Google Kullanıcısı',
-      email: customEmail?.trim() || 'kullanici@gmail.com',
-      isGoogleConnected: true,
-      createdAt: Date.now(),
-    };
-  }
-
-  const authInstance = getFirebaseAuth();
-  const googleProvider = new GoogleAuthProvider();
-  googleProvider.setCustomParameters({
-    prompt: 'select_account',
-  });
-
-  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-  // If on mobile browser / PWA, prefer redirect or handle popup blocked
-  if (isMobile) {
-    try {
-      // First try popup
-      const result = await signInWithPopup(authInstance, googleProvider);
-      return formatUserProfile(result.user);
-    } catch (popupErr: any) {
-      console.warn('[FirebaseAuth] Mobile popup blocked/failed, switching to redirect:', popupErr);
-      if (
-        popupErr.code === 'auth/popup-blocked' ||
-        popupErr.code === 'auth/popup-closed-by-user' ||
-        popupErr.code === 'auth/cancelled-popup-request'
-      ) {
-        // Redirect to Google login
-        await signInWithRedirect(authInstance, googleProvider);
-        return null; // Will resume upon redirect
-      }
-      throw popupErr;
-    }
-  }
-
-  // Desktop Flow
-  try {
-    const result = await signInWithPopup(authInstance, googleProvider);
-    return formatUserProfile(result.user);
-  } catch (error: any) {
-    console.warn('[FirebaseAuth] Popup sign-in error:', error);
-
-    if (error.code === 'auth/popup-blocked') {
-      // Fallback to redirect if popup blocked on desktop
-      await signInWithRedirect(authInstance, googleProvider);
-      return null;
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      throw new Error('Giriş penceresi kapatıldı.');
-    } else if (error.code === 'auth/unauthorized-domain') {
-      throw new Error('Bu domain Firebase Authentication için yetkilendirilmemiş.');
-    } else if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed') {
-      throw new Error('Firebase Console > Authentication sekmesinde Google sağlayıcısı henüz aktif edilmemiş.');
-    }
-
-    throw error;
-  }
-}
-
-/**
- * Direct redirect login for browsers that restrict popups completely
- */
-export async function signInWithGoogleRedirect(): Promise<UserProfile | null> {
-  if (Capacitor.isNativePlatform()) {
-    return {
-      name: 'Google Kullanıcısı',
-      email: 'kullanici@gmail.com',
-      isGoogleConnected: true,
-      createdAt: Date.now(),
-    };
-  }
-
-  const authInstance = getFirebaseAuth();
-  const googleProvider = new GoogleAuthProvider();
-  googleProvider.setCustomParameters({
-    prompt: 'select_account',
-  });
-  await signInWithRedirect(authInstance, googleProvider);
-  return null;
-}
-
-/**
- * Sign out from Google Auth
- */
-export async function signOutGoogle(): Promise<void> {
-  try {
-    const authInstance = getFirebaseAuth();
-    await fbSignOut(authInstance);
-  } catch (err) {
-    console.error('[FirebaseAuth] Sign out error:', err);
-  }
-}

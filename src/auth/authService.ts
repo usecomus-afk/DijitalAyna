@@ -42,25 +42,6 @@ export class AuthService {
     const user: UserAccountRecord | undefined = userByUsername || userByEmail || undefined;
 
     if (!user) {
-      // Special automatic bootstrap for demo/first-time users
-      if (cleanIdentifier === 'demo' && cleanPassword === 'demo123') {
-        const demoProfile: UserProfile = {
-          name: 'Demo Kullanıcı',
-          username: 'demo',
-          email: 'demo@comus.local',
-          isGoogleConnected: false,
-          isPasswordAccount: true,
-          createdAt: Date.now(),
-        };
-        await db.users.add({
-          username: 'demo',
-          email: 'demo@comus.local',
-          passwordHash,
-          name: 'Demo Kullanıcı',
-          createdAt: Date.now(),
-        });
-        return demoProfile;
-      }
       throw new Error('Kullanıcı bulunamadı. Lütfen kullanıcı adı ve şifrenizi kontrol edin veya yeni hesap oluşturun.');
     }
 

@@ -73,9 +73,9 @@ describe('AuthService - Username and Password Authentication', () => {
     ).rejects.toThrow('Hatalı şifre');
   });
 
-  it('should support instant demo login (demo / demo123)', async () => {
-    const demo = await AuthService.loginWithCredentials('demo', 'demo123');
-    expect(demo.name).toBe('Demo Kullanıcı');
-    expect(demo.username).toBe('demo');
+  it('should reject non-existent user credentials', async () => {
+    await expect(
+      AuthService.loginWithCredentials('nonexistent', 'pass123')
+    ).rejects.toThrow('Kullanıcı bulunamadı');
   });
 });

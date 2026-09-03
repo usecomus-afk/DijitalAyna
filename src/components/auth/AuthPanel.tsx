@@ -12,7 +12,6 @@ import {
   UserPlus,
   AlertCircle,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 
 interface AuthPanelProps {
@@ -80,12 +79,6 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickDemo = () => {
-    setIdentifier('demo');
-    setPassword('demo123');
-    setErrorMessage(null);
   };
 
   return (
@@ -198,14 +191,6 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
               <label className="text-xs font-semibold text-comus-navy block">
                 Şifre
               </label>
-              <button
-                type="button"
-                onClick={handleQuickDemo}
-                className="text-[11px] text-comus-copper font-semibold hover:underline flex items-center gap-1"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Demo Girişi Doldur</span>
-              </button>
             </div>
             <div className="relative">
               <input
@@ -336,26 +321,6 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
           <GoogleAuthButton onSuccess={onSuccess} />
         </div>
       )}
-
-      {/* Quick Instant Start / Guest option */}
-      <div className="pt-3 border-t border-comus-sand-light/20 flex flex-col items-center">
-        <button
-          type="button"
-          onClick={() => {
-            const guestProfile: UserProfile = {
-              name: 'Kullanıcı',
-              isGoogleConnected: false,
-              isPasswordAccount: false,
-              createdAt: Date.now(),
-            };
-            onSuccess(guestProfile);
-          }}
-          className="text-xs font-semibold text-comus-copper hover:text-comus-copper-dark flex items-center gap-1.5 py-1.5 transition-colors cursor-pointer"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Hesap açmadan hızlı başla (Tek tıkla misafir girişi) →</span>
-        </button>
-      </div>
     </div>
   );
 };

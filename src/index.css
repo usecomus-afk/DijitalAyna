@@ -21,6 +21,21 @@
   }
 }
 
+@layer utilities {
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top, 20px), 20px);
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+  }
+  .top-safe {
+    top: env(safe-area-inset-top, 0px);
+  }
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* Custom scrollbars for clean look */
 ::-webkit-scrollbar {
   width: 6px;

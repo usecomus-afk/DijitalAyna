@@ -48,9 +48,15 @@ export const OnboardingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-comus-bg flex flex-col justify-between p-4 sm:p-6 max-w-xl mx-auto">
+    <div
+      className="min-h-screen bg-comus-bg flex flex-col justify-between p-4 sm:p-6 max-w-xl mx-auto"
+      style={{
+        paddingTop: 'max(env(safe-area-inset-top, 24px), 24px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 24px), 24px)',
+      }}
+    >
       {/* Progress Header */}
-      <div className="pt-4">
+      <div className="pt-2">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center p-1 border border-comus-sand-light/30 shadow-soft">
@@ -85,27 +91,11 @@ export const OnboardingPage: React.FC = () => {
           </h1>
 
           <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed mb-6">
-            Dijital Ayna tıbbi teşhis koymaz; akıllı cihazınızla etkileşiminizdeki ince ritimleri izleyerek size özel dijital baz hattınızı oluşturur. Başlamak için giriş yapın veya yeni profil oluşturun:
+            Dijital Ayna tıbbi teşhis koymaz; akıllı cihazınızla etkileşiminizdeki ince ritimleri izleyerek size özel dijital baz hattınızı oluşturur. Başlamak için Google veya Apple hesabınızla giriş yapın:
           </p>
 
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-comus-sand-light/20 shadow-soft">
             <AuthPanel onSuccess={handleAuthSuccess} />
-          </div>
-
-          <div className="text-center mt-3">
-            <button
-              type="button"
-              onClick={() => {
-                handleAuthSuccess({
-                  name: 'Kullanıcı',
-                  isGoogleConnected: false,
-                  createdAt: Date.now(),
-                });
-              }}
-              className="text-xs text-comus-sand-dark hover:text-comus-navy font-medium underline transition-colors cursor-pointer"
-            >
-              veya giriş yapmadan doğrudan adımlara geçin →
-            </button>
           </div>
         </div>
       )}

@@ -42,7 +42,10 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-comus-sand-light/30 shadow-[0_-4px_20px_rgba(30,58,95,0.04)] pb-[env(safe-area-inset-bottom,0px)]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-comus-sand-light/30 shadow-[0_-4px_20px_rgba(30,58,95,0.04)]"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
+    >
       <div className="max-w-xl mx-auto grid grid-cols-5 h-16 items-center px-1">
         {navItems.map((item) => (
           <NavLink
