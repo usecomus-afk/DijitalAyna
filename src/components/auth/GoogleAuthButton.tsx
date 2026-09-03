@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../types/user';
-import { signInWithGoogle, signInWithGoogleRedirect } from '../../auth/firebaseAuth';
+import { signInWithGoogle, signInWithGoogleRedirect, signInWithGoogleNative } from '../../auth/firebaseAuth';
 import { AlertCircle, ArrowRight, Sparkles, Check, User, Mail } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 
@@ -38,15 +38,12 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
 
     try {
       if (isNative) {
-        // In native iOS, perform instant friction-free Google connection
-        const profile = await signInWithGoogle(
-          customEmail || 'kullanici@gmail.com',
-          customName || 'Google Kullanıcısı'
-        );
-        if (profile) {
+        // Trigger real native Google sign-in via system browser bridge
+        await signInWithGoogleNative((profile) => {
+          setLoading(false);
           onSuccess(profile);
-          return;
-        }
+        });
+        return;
       }
 
       // Web flow

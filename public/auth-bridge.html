@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang=tr>
+<head>
+  <meta charset=UTF-8>
+  <meta name=viewport content=width=device-width, initial-scale=1.0>
+  <title>Dijital Ayna - Google Kimlik Doğrulama</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #F2F0EB;
+      color: #1E3A5F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 32px 24px;
+      box-shadow: 0 10px 30px rgba(30, 58, 95, 0.08);
+      max-width: 360px;
+      width: 100%;
+      border: 1px solid rgba(192, 103, 79, 0.2);
+    }
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      border-radius: 16px;
+    }
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    p {
+      font-size: 13px;
+      color: #70685D;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .btn {
+      background-color: #1E3A5F;
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(30, 58, 95, 0.15);
+    }
+    .status {
+      margin-top: 16px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  </style>
+  <script type=module>
+    import { initializeApp } from https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js;
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js;
+
+    const firebaseConfig = {
+      projectId: comus-ai-duty,
+      appId: 1:94491728408:web:66bc6cd17f999f4cf9816d,
+      storageBucket: comus-ai-duty.firebasestorage.app,
+      apiKey: AIzaSyDC1J4A-SgKyGFm6uUQ3F2oaDB5AAkq8nE,
+      authDomain: comus-ai-duty.firebaseapp.com,
+      messagingSenderId: 94491728408,
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    function returnToApp(user) {
+      document.getElementById('status').innerText = 'Giriş başarılı! Uygulamaya aktarılıyorsunuz...';
+      const name = encodeURIComponent(user.displayName || 'Google Kullanıcısı');
+      const email = encodeURIComponent(user.email || '');
+      const picture = encodeURIComponent(user.photoURL || '');
+      const returnUrl = dijitalayna://google-auth?name=&email=&picture=;
+      window.location.href = returnUrl;
+      setTimeout(() => {
+        document.getElementById('app-link').href = returnUrl;
+        document.getElementById('manual-return').style.display = 'block';
+      }, 1500);
+    }
+
+    window.startGoogleLogin = async function() {
+      document.getElementById('status').innerText = 'Google hesabı seçiliyor...';
+      try {
+        const result = await signInWithPopup(auth, provider);
+        if (result && result.user) {
+          returnToApp(result.user);
+        }
+      } catch (err) {
+        document.getElementById('status').innerText = 'Giriş hatası: ' + (err.message || 'Bilinmeyen hata');
+      }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        returnToApp(user);
+      } else {
+        window.startGoogleLogin();
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class=card>
+    <img src=/logo.png alt=Dijital Ayna class=logo>
+    <h2>Dijital Ayna</h2>
+    <p>Google hesabınızla güvenli oturum açın ve uygulamaya dönün.</p>
+    <button class=btn onclick=window.startGoogleLogin()>
+      <span>Google ile Giriş Yap</span>
+    </button>
+    <div id=status class=status>Doğrulama başlatılıyor...</div>
+    <div id=manual-return style=display: none; margin-top: 15px;>
+      <a id=app-link href=# style=color: #C0674F; font-size: 13px; font-weight: 600;>Uygulamaya Dönmek İçin Dokunun</a>
+    </div>
+  </div>
+</body>
+</html>

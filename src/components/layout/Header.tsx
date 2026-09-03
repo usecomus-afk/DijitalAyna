@@ -26,18 +26,15 @@ export const Header: React.FC = () => {
         {/* Brand with New Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center p-1 border border-comus-sand-light/30 shadow-soft group-hover:scale-105 transition-transform">
-            <img src="/logo.png" alt="ComusAI Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="Dijital Ayna Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">Dijital Ayna</span>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-comus-copper/15 text-comus-copper-dark">
-                AI
-              </span>
             </div>
             <p className="text-[11px] text-comus-sand-dark flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-600 inline" />
-              <span>Cihaz İçi Gizlilik (IndexedDB)</span>
+              <span>Cihaz İçi Biyobelirteçler</span>
             </p>
           </div>
         </NavLink>
@@ -46,7 +43,7 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* User Profile Link */}
           <NavLink
-            to="/settings"
+            to="/profile"
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-comus-sand-light/30 shadow-soft hover:bg-comus-surface transition-all text-xs font-medium text-comus-navy"
           >
             {userProfile.picture ? (

@@ -1,7 +1,5 @@
 import { db } from '../db';
 import { MetricKey, METRIC_DEFINITIONS } from '../types/sensor';
-import { calculateEWMAForMetrics } from './baseline';
-import { generateInsightsAndAlerts } from './insights';
 
 /**
  * Standard healthy normative behavioral values based on digital phenotyping literature (Insel 2017, Torous et al.)
@@ -33,53 +31,28 @@ const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; min: nu
  * detect anomalies, synthesize biomarkers, and generate clinical insights from day 1.
  */
 export async function ensureInitialCalibration(): Promise<boolean> {
-  const existingCount = await db.dailyMetrics.count();
-  if (existingCount >= 7) {
-    return false; // Already has sufficient calibration data
+  const existingBaselines = await db.baselines.count();
+  if (existingBaselines > 0) {
+    return false; // Already has baselines
   }
 
-  console.log('[Calibration] Seeding initial 7-day healthy baseline calibration...');
+  console.log('[Calibration] Initializing scientific reference priors for newly installed device...');
 
-  const today = new Date();
+  const todayStr = new Date().toISOString().split('T')[0];
   const keys = Object.keys(METRIC_DEFINITIONS) as MetricKey[];
 
-  // Generate 7 days of calibration history (from 6 days ago to today)
-  for (let d = 6; d >= 0; d--) {
-    const targetDate = new Date(today);
-    targetDate.setDate(targetDate.getDate() - d);
-    const dateStr = targetDate.toISOString().split('T')[0];
-
-    for (const key of keys) {
-      const norm = NORMATIVE_DEFAULTS[key] || { mean: 50, std: 5, min: 0, max: 100 };
-
-      // Gentle natural jitter for realistic longitudinal time series
-      const jitter = (Math.random() - 0.5) * 2 * norm.std;
-      const rawVal = norm.mean + jitter;
-      const clampedVal = Math.min(norm.max, Math.max(norm.min, rawVal));
-      const finalVal = Math.round(clampedVal * 100) / 100;
-
-      const existing = await db.dailyMetrics
-        .where('[metricKey+date]')
-        .equals([key, dateStr])
-        .first();
-
-      if (!existing) {
-        await db.dailyMetrics.add({
-          date: dateStr,
-          metricKey: key,
-          value: finalVal,
-          sampleCount: 15,
-          min: Math.max(norm.min, Math.round((finalVal - norm.std) * 100) / 100),
-          max: Math.min(norm.max, Math.round((finalVal + norm.std) * 100) / 100),
-        });
-      }
-    }
+  for (const key of keys) {
+    const norm = NORMATIVE_DEFAULTS[key] || { mean: 50, std: 5, min: 0, max: 100 };
+    await db.baselines.put({
+      metricKey: key,
+      ewmaMean: norm.mean,
+      ewmaStd: norm.std,
+      sampleCount: 0,
+      lastUpdated: todayStr,
+      isEstablished: false,
+    });
   }
 
-  // Calculate EWMA baselines and initial insights immediately
-  await calculateEWMAForMetrics();
-  await generateInsightsAndAlerts();
-
-  console.log('[Calibration] Initial 7-day baseline established successfully.');
+  console.log('[Calibration] Scientific reference priors initialized. Ready to collect real device telemetry.');
   return true;
 }

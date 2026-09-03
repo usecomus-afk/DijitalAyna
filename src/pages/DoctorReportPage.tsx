@@ -125,37 +125,13 @@ export const DoctorReportPage: React.FC = () => {
       : '';
 
     const result = await shareContent({
-      title: `ComusAI Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
-      text: `ComusAI Davranışsal Fenotip & İlaç Raporu\nDanışan / Kullanıcı: ${userProfile.name}\nRapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}\nİncelenen Dönem: Son ${selectedRange} Gün\n\nÖzet Göstergeler (Tüm Göstergeler Aktif):\n${tableText}${medText}\n\n* Bu bir tanı belgesi değildir. İstatistiksel dijital fenotip farkındalık çıktısıdır.`,
+      title: `Dijital Ayna Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
+      text: `Dijital Ayna Davranışsal Fenotip & İlaç Raporu\nDanışan / Kullanıcı: ${userProfile.name}\nRapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}\nİncelenen Dönem: Son ${selectedRange} Gün\n\nÖzet Göstergeler (Tüm Göstergeler Aktif):\n${tableText}${medText}\n\n* Bu bir tanı belgesi değildir. İstatistiksel dijital fenotip farkındalık çıktısıdır.`,
     });
 
     setShareFeedback(result.message);
     setTimeout(() => setShareFeedback(null), 3500);
   };
-
-  // Standard clinical default medication schedule for demonstration if user has none added yet
-  const defaultSchedule = [
-    {
-      id: 991,
-      name: 'Escitalopram (Örnek/Plan)',
-      dosageMg: 10,
-      timeSlot: 'Sabah (09:00)',
-      condition: 'Tok karnına, bol su ile',
-      frequency: 'Günde 1x',
-      indication: 'Duygudurum ve anksiyete regülasyonu',
-      notes: 'Düzenli sabah alımı; uykusuzluk yapmaması için sabah tercih edilir.',
-    },
-    {
-      id: 992,
-      name: 'Lityum Karbonat (Örnek/Plan)',
-      dosageMg: 300,
-      timeSlot: 'Akşam (20:00)',
-      condition: 'Yemek sonrası, bol su ile',
-      frequency: 'Günde 1x',
-      indication: 'Duygudurum stabilizasyonu',
-      notes: 'Bol sıvı tüketimi ile birlikte alınmalı, tuz dengesine dikkat edilmelidir.',
-    },
-  ];
 
   return (
     <div className="space-y-6 pb-6 animate-fadeIn">
@@ -219,7 +195,7 @@ export const DoctorReportPage: React.FC = () => {
             </div>
 
             <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
-              <strong className="text-emerald-950 block mb-1">ComusAI Çözümü: Nesnel Biyobelirteçler</strong>
+              <strong className="text-emerald-950 block mb-1">Dijital Ayna Çözümü: Nesnel Biyobelirteçler</strong>
               <p className="text-emerald-900">
                 Pazartesi ve Çarşamba 03:00'e kadar süren ekran aktivitesi, 4 saatlik uyku ve yazım yavaşlamasını net verilerle sunar. Hekimin doğru tanı ve tedavi planı oluşturmasını hızlandırır.
               </p>
@@ -281,7 +257,7 @@ export const DoctorReportPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-serif font-bold text-2xl text-comus-navy">ComusAI</span>
+              <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Ayna</span>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper border border-comus-copper/30 px-2 py-0.5 rounded">
                 Davranışsal Fenotip, İlaç Talimatı & Doz Takip Raporu
               </span>
@@ -450,28 +426,11 @@ export const DoctorReportPage: React.FC = () => {
                     );
                   })
                 ) : (
-                  defaultSchedule.map((sch) => (
-                    <tr key={sch.id} className="hover:bg-comus-surface/50">
-                      <td className="p-3 font-semibold text-comus-navy">
-                        <div className="flex items-center gap-1.5">
-                          <Pill className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-                          <span>{sch.name}</span>
-                          <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100/80 text-teal-900 rounded">
-                            {sch.dosageMg} mg
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-comus-navy font-medium">{sch.timeSlot} ({sch.frequency})</td>
-                      <td className="p-3 text-comus-sand-dark">{sch.condition}</td>
-                      <td className="p-3 text-comus-navy">{sch.notes}</td>
-                      <td className="p-3 text-center">
-                        <span className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>Düzenli Plan</span>
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-xs text-comus-sand-dark">
+                      Henüz kayıtlı ilaç bulunmuyor. İlaç ve doz takibi için "Yeni İlaç Ekle" butonunu kullanabilirsiniz.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

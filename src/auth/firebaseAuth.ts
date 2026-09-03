@@ -12,6 +12,8 @@ import {
 } from 'firebase/auth';
 import { UserProfile } from '../types/user';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { App as CapApp } from '@capacitor/app';
 
 export const firebaseConfig = {
   projectId: "comus-ai-duty",
@@ -41,6 +43,46 @@ export function formatUserProfile(user: User): UserProfile {
     isGoogleConnected: true,
     createdAt: Date.now(),
   };
+}
+
+/**
+ * Native iOS/Android Google Sign In via In-App Browser & Custom URL Scheme Bridge
+ */
+export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
+  // Listen for the redirect back to the app via URL scheme
+  const listener = await CapApp.addListener('appUrlOpen', async (event) => {
+    if (event.url.startsWith('dijitalayna://google-auth')) {
+      try {
+        await Browser.close();
+      } catch (_) {}
+
+      try {
+        const parsed = new URL(event.url);
+        const name = decodeURIComponent(parsed.searchParams.get('name') || 'Google Kullanıcısı');
+        const email = decodeURIComponent(parsed.searchParams.get('email') || '');
+        const picture = decodeURIComponent(parsed.searchParams.get('picture') || '');
+
+        const profile: UserProfile = {
+          name,
+          email: email || undefined,
+          picture: picture || undefined,
+          isGoogleConnected: true,
+          createdAt: Date.now(),
+        };
+
+        listener.remove();
+        onSuccess(profile);
+      } catch (e) {
+        console.error('[FirebaseAuth] Error parsing auth callback:', e);
+      }
+    }
+  });
+
+  // Open secure web auth bridge in Safari
+  await Browser.open({
+    url: 'https://comus-ai-duty.web.app/auth-bridge.html',
+    presentationStyle: 'popover',
+  });
 }
 
 /**

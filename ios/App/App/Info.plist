@@ -48,9 +48,35 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.dijitalayna.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dijitalayna</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSMotionUsageDescription</key>
 	<string>Dijital Ayna, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Dijital Ayna, konuşma ritmi ve perde varyansı dinamiklerini ölçmek için mikrofon erişimine ihtiyaç duyar. Ses kayıtları ASLA saklanmaz veya sunuculara iletilmez.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dijital Ayna, sirkadiyen hareketlilik yarıçapı ve günlük ev-çalışma yaşam alanı dinamiklerini nesnel olarak analiz etmek için yaklaşık konum bilgisini yerel olarak değerlendirir.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Dijital Ayna, uyku mimarisi evreleri (SOL, WASO, SE) ve günlük fiziksel adım telemetrisini kişiselleştirilmiş 14 günlük baz hattınızla karşılaştırmak için HealthKit verilerini tamamen cihazınızda yerel olarak inceler.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Dijital Ayna, hesaplanan uyku düzeni ve aktivite biyobelirteçlerini sağlık kaydınıza işlemek için HealthKit yazma izni kullanabilir.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.dijitalayna.app.analytics</string>
+	</array>
 </dict>
 </plist>

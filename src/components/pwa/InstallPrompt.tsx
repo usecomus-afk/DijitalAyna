@@ -59,7 +59,7 @@ export const InstallPrompt: React.FC = () => {
         </div>
         <div className="min-w-0">
           <div className="text-xs sm:text-sm font-semibold truncate">
-            ComusAI'yı Cihazına Yükle
+            Dijital Ayna'yı Cihazına Yükle
           </div>
           <div className="text-[11px] text-white/80 truncate">
             {isIOS ? (

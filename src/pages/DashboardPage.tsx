@@ -23,8 +23,8 @@ import {
   Wifi,
   Sparkles,
   ShieldAlert,
-  Compass,
-  Users,
+  FileText,
+  User,
   MousePointerClick,
   ArrowRight
 } from 'lucide-react';
@@ -360,48 +360,48 @@ export const DashboardPage: React.FC = () => {
       {/* Voice Tone Analysis Widget (Slide 7 & 10) */}
       <VoiceAnalysisWidget />
 
-      {/* Quick Ecosystem & Calm Route Hub Cards (Slides 11-24) */}
+      {/* Quick Navigation Cards: Doctor Report & Profile */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
-          to="/calm-route"
+          to="/doctor"
           className="p-5 rounded-3xl bg-gradient-to-br from-teal-900 to-comus-navy text-white shadow-soft hover:shadow-soft-lg transition-all group space-y-2"
         >
           <div className="flex items-center justify-between">
             <div className="w-9 h-9 rounded-2xl bg-white/10 text-teal-300 flex items-center justify-center">
-              <Compass className="w-5 h-5 group-hover:rotate-45 transition-transform" />
+              <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </div>
-            <span className="text-[10px] bg-teal-400/20 text-teal-200 px-2 py-0.5 rounded-full border border-teal-400/30 font-semibold">
-              Slide 22–24
+            <span className="text-[10px] bg-teal-400/20 text-teal-200 px-2.5 py-0.5 rounded-full border border-teal-400/30 font-semibold">
+              Klinik Görünüm
             </span>
           </div>
-          <h4 className="font-serif font-bold text-base text-white">Huzur Rotası & Şehir Röntgeni</h4>
+          <h4 className="font-serif font-bold text-base text-white">Klinik & Uzman Raporu</h4>
           <p className="text-xs text-white/80 leading-relaxed">
-            Şehirdeki park, kafe ve sahillerin anlık duygusal iklimini ve sükunet skorlarını keşfedin.
+            Cihaz içi biyobelirteç dinamiklerini ve ilaç etkileşimlerini doktorunuzla güvenle paylaşın.
           </p>
           <div className="flex items-center gap-1 text-xs text-teal-300 font-semibold pt-1">
-            <span>Haritayı Aç</span>
+            <span>Raporu Görüntüle</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
         </Link>
 
         <Link
-          to="/ecosystem"
+          to="/profile"
           className="p-5 rounded-3xl bg-gradient-to-br from-indigo-900 to-comus-navy text-white shadow-soft hover:shadow-soft-lg transition-all group space-y-2"
         >
           <div className="flex items-center justify-between">
             <div className="w-9 h-9 rounded-2xl bg-white/10 text-amber-300 flex items-center justify-center">
-              <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </div>
-            <span className="text-[10px] bg-amber-400/20 text-amber-200 px-2 py-0.5 rounded-full border border-amber-400/30 font-semibold">
-              Slide 11–17
+            <span className="text-[10px] bg-amber-400/20 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-400/30 font-semibold">
+              Biyometrik Profil
             </span>
           </div>
-          <h4 className="font-serif font-bold text-base text-white">Comus Ekosistemi & Cüzdan</h4>
+          <h4 className="font-serif font-bold text-base text-white">Kişisel Profil & Baz Hattı</h4>
           <p className="text-xs text-white/80 leading-relaxed">
-            Ebeveyn Kalkanı, Okul Esenlik Paneli, Comus Cüzdanı, STK Bağışları ve Vatandaş Bilimci.
+            Yaş, cinsiyet normları, aktif cihaz telemetrisi ve yerel güvenlik durumunu yönetin.
           </p>
           <div className="flex items-center gap-1 text-xs text-amber-300 font-semibold pt-1">
-            <span>Ekosistemi Keşfet</span>
+            <span>Profili Yönet</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
         </Link>

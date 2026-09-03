@@ -26,6 +26,7 @@ import {
   Bell,
   BellRing,
   Clock,
+  MapPin,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -526,6 +527,22 @@ export const SettingsPage: React.FC = () => {
               className="w-5 h-5 accent-comus-copper cursor-pointer"
             />
           </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-comus-sand-light/20">
+            <div className="flex items-center gap-2.5">
+              <MapPin className="w-4 h-4 text-rose-600" />
+              <div>
+                <div className="text-xs font-semibold text-comus-navy">Sirkadiyen Mobilite & Yaşam Alanı</div>
+                <div className="text-[11px] text-comus-sand-dark">Ev-çalışma hareketlilik yarıçapı ve açık hava döngüsü</div>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.sensorsEnabled.location}
+              onChange={() => toggleSensor('location')}
+              className="w-5 h-5 accent-comus-copper cursor-pointer"
+            />
+          </div>
         </div>
       </div>
 
@@ -638,58 +655,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 6. TÜRKİYE RUH SAĞLIĞI KRİZİ: RAKAMLARLA GERÇEKLER (PDF Sayfa 3 & 4) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-700">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-serif font-bold text-lg text-comus-navy">
-              Türkiye'de Görmezden Gelinemeyecek Bir Kriz: Rakamlarla Ruh Sağlığı
-            </h3>
-            <p className="text-xs text-comus-sand-dark">
-              Kaynak: TÜİK 2024 & DSÖ Verileri, Türkiye'de Ruh Sağlığı Raporu (PDF Sayfa 3–4)
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-          <div className="p-3.5 rounded-2xl bg-comus-surface border border-comus-sand-light/30 text-center space-y-1">
-            <div className="text-xl font-bold font-serif text-comus-navy">Her 5 Kişiden 1'i</div>
-            <p className="text-[11px] text-comus-sand-dark">
-              Yetişkin nüfusun %17-20'si ruhsal bir bozukluk yaşıyor.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200 text-center space-y-1">
-            <div className="text-xl font-bold font-serif text-rose-800">Sadece %8</div>
-            <p className="text-[11px] text-rose-900">
-              Terapiye ulaşabilenlerin oranı (Avrupa: %22, ABD: %26).
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 text-center space-y-1">
-            <div className="text-xl font-bold font-serif text-amber-900">16.33 Uzman</div>
-            <p className="text-[11px] text-amber-950">
-              100.000 kişiye düşen çalışan (Avrupa ortalaması: 43.5).
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-comus-surface border border-comus-sand-light/30 text-center space-y-1">
-            <div className="text-xl font-bold font-serif text-comus-copper">+%67 İlaç</div>
-            <p className="text-[11px] text-comus-sand-dark">
-              Son 10 yılda antidepresan kullanımı patlaması (5 Milyar TL+).
-            </p>
-          </div>
-        </div>
-
-        <p className="text-xs text-comus-sand-dark italic bg-comus-sand-subtle/80 p-3.5 rounded-2xl border border-comus-sand-light/30 leading-relaxed text-center">
-          "Bu tablo, reaktif tedavi modelinin sınırlarına ulaştığını gösteriyor. Kriz gelmeden önce fark eden <strong>proaktif bir yaklaşıma</strong> ihtiyacımız var."
-        </p>
-      </div>
-
-      {/* 7. ÖNEMLİ BİLGİLENDİRME VE YASAL FERAGATNAMELER (PDF Sayfa 19) */}
+      {/* 6. ÖNEMLİ BİLGİLENDİRME VE YASAL FERAGATNAMELER */}
       <div className="bg-amber-50/70 rounded-3xl p-6 sm:p-7 shadow-soft border border-amber-200/80 space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-amber-200/80 flex items-center justify-center text-amber-900">
@@ -697,7 +663,7 @@ export const SettingsPage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-serif font-bold text-lg text-amber-950">
-              Önemli Bilgilendirme ve Yasal Feragatnameler (PDF Sayfa 19)
+              Önemli Bilgilendirme ve Yasal Feragatnameler
             </h3>
             <p className="text-xs text-amber-800">
               Hukuki sorumluluk sınırları, acil durum kanalları ve ilişki beyanı
@@ -707,7 +673,7 @@ export const SettingsPage: React.FC = () => {
 
         <div className="space-y-2.5 text-xs text-amber-950 leading-relaxed">
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>Temel Feragatname:</strong> ComusAI, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
+            <strong>Temel Feragatname:</strong> Dijital Ayna, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
@@ -730,7 +696,7 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, ComusAI ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
+            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, Dijital Ayna ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
           </div>
         </div>
       </div>

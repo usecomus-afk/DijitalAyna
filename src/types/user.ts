@@ -1,9 +1,14 @@
+export type UserGender = 'female' | 'male' | 'other' | 'prefer_not_to_say';
+
 export interface UserProfile {
   name: string;
   username?: string;
   email?: string;
   picture?: string;
+  age?: number;
+  gender?: UserGender;
   isGoogleConnected: boolean;
+  isAppleConnected?: boolean;
   isPasswordAccount?: boolean;
   createdAt: number;
 }
@@ -14,6 +19,8 @@ export interface UserAccountRecord {
   email?: string;
   passwordHash: string;
   name: string;
+  age?: number;
+  gender?: UserGender;
   avatarUrl?: string;
   createdAt: number;
 }
@@ -29,6 +36,7 @@ export interface UserSettings {
     battery: boolean;
     network: boolean;
     voice: boolean;
+    location: boolean;
   };
   notificationsEnabled: boolean;
   lastAnalysisTimestamp: number;

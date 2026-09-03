@@ -24,7 +24,7 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
   if (isLearning) {
     avatarSrc = AVATAR_IMAGES.normal;
     avatarAlt = 'Öğrenme Dönemi';
-    mirrorText = `Merhaba ${userProfile.name}! ComusAI şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını (normalini) öğreniyor.`;
+    mirrorText = `Merhaba ${userProfile.name}! Dijital Ayna şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını (normalini) öğreniyor.`;
     moodPill = { text: 'Öğrenme Dönemi', color: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/40' };
   } else if (severeAnomalies.some((a) => a.metricKey === 'typing_wpm' && a.zScore <= -1.8)) {
     avatarSrc = AVATAR_IMAGES.zorlu;

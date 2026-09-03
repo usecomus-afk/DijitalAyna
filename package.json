@@ -12,12 +12,13 @@
     "deploy": "npm run build && npx -y firebase-tools deploy --only hosting",
     "deploy:preview": "npm run build && npx -y firebase-tools hosting:channel:deploy preview",
     "serve:firebase": "npx -y firebase-tools emulators:start --only hosting",
-    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:sync": "npm run build && npx cap sync ios && node scripts/ensure-native-sync.cjs",
     "ios:build": "npm run build && npx cap copy ios",
     "ios:open": "npx cap open ios"
   },
   "dependencies": {
     "@capacitor/app": "^7.0.0",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/cli": "^7.0.0",
     "@capacitor/core": "^7.0.0",
     "@capacitor/device": "^7.0.0",

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Sparkles, LineChart, FileText, Compass, Users } from 'lucide-react';
+import { Activity, Sparkles, LineChart, User, Sliders } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 
@@ -10,15 +10,9 @@ export const Navbar: React.FC = () => {
   const navItems = [
     {
       to: '/',
-      label: 'İkiz',
-      fullName: 'Dijital İkiz',
+      label: 'Ayna',
+      fullName: 'Dijital Ayna',
       icon: Activity,
-    },
-    {
-      to: '/calm-route',
-      label: 'Huzur',
-      fullName: 'Huzur Rotası & Şehir Röntgeni',
-      icon: Compass,
     },
     {
       to: '/insights',
@@ -29,27 +23,27 @@ export const Navbar: React.FC = () => {
     },
     {
       to: '/triggers',
-      label: 'Ruh Hali',
-      fullName: 'Tetikleyici Analizi',
+      label: 'Günlük',
+      fullName: 'Ruh Hali & Günlük',
       icon: LineChart,
     },
     {
-      to: '/ecosystem',
-      label: 'Ekosistem',
-      fullName: 'Comus Ekosistemi',
-      icon: Users,
+      to: '/profile',
+      label: 'Profil',
+      fullName: 'Kullanıcı Profili',
+      icon: User,
     },
     {
-      to: '/doctor',
-      label: 'Rapor',
-      fullName: 'Doktor Raporu',
-      icon: FileText,
+      to: '/settings',
+      label: 'Ayarlar',
+      fullName: 'Cihaz Ayarları',
+      icon: Sliders,
     },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-comus-sand-light/30 shadow-[0_-4px_20px_rgba(30,58,95,0.04)] pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="max-w-xl mx-auto grid grid-cols-6 h-16 items-center px-1">
+      <div className="max-w-xl mx-auto grid grid-cols-5 h-16 items-center px-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}

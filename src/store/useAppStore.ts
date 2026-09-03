@@ -46,6 +46,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     battery: true,
     network: true,
     voice: true,
+    location: true,
   },
   notificationsEnabled: true,
   lastAnalysisTimestamp: Date.now(),
