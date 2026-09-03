@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Dijital Ayna',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    url: 'https://comus-ai-duty.web.app',
+    cleartext: false
   },
   plugins: {
     SplashScreen: {
