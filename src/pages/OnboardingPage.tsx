@@ -14,11 +14,12 @@ import {
   BatteryCharging,
   Wifi,
   Mic,
+  Bell,
 } from 'lucide-react';
 
 export const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const { settings, setUserProfile, connectGoogleProfile, toggleSensor, setOnboardingCompleted } = useAppStore();
+  const { settings, setUserProfile, connectGoogleProfile, toggleSensor, setNotificationsEnabled, setOnboardingCompleted } = useAppStore();
 
   const handleAuthSuccess = (profile: UserProfile) => {
     if (profile.isGoogleConnected) {
@@ -223,6 +224,25 @@ export const OnboardingPage: React.FC = () => {
                 type="checkbox"
                 checked={settings.sensorsEnabled.voice}
                 onChange={() => toggleSensor('voice')}
+                className="w-5 h-5 accent-comus-copper cursor-pointer"
+              />
+            </div>
+
+            {/* Notifications */}
+            <div className="flex items-center justify-between p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200/50 shadow-soft">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-xs text-comus-navy">iOS Farkındalık Bildirimleri</div>
+                  <div className="text-[11px] text-comus-sand-dark">Sabah/akşam ruh hali yoklamaları & bilişsel fren alarmları</div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.notificationsEnabled}
+                onChange={() => setNotificationsEnabled(!settings.notificationsEnabled)}
                 className="w-5 h-5 accent-comus-copper cursor-pointer"
               />
             </div>

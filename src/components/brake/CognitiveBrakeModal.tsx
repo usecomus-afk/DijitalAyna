@@ -12,6 +12,7 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { notificationService } from '../../services/notificationService';
 
 interface CognitiveBrakeModalProps {
   isOpen: boolean;
@@ -60,12 +61,20 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
 
   const triggerFatigueCheck = () => {
     Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
+    notificationService.sendPredictiveAlert(
+      'Bilişsel Fren Devrede',
+      'Karar yorgunluğu tespit edildi. İletiyi göndermeden önce 1 saat ertelemeniz önerilir.'
+    );
     setShowFatigueWarning(true);
     setDecisionDelayed(false);
   };
 
   const startImpulsePause = () => {
     Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+    notificationService.sendPredictiveAlert(
+      'Dürtüsel Harcama Freni',
+      'Yüksek tutarlı işlem için 15 saniyelik biyolojik soğuma süresi başlatıldı.'
+    );
     setImpulseCountdown(15);
     setImpulseCancelled(false);
   };

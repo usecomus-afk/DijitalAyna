@@ -4,6 +4,7 @@ import { EvidenceItem, Insight, PredictiveAlert } from '../types/engine';
 import { detectAnomaliesForDay } from './anomaly';
 import { synthesizeBiomarkers } from './biomarkers';
 import { evaluatePredictivePatterns } from './prediction';
+import { notificationService } from '../services/notificationService';
 
 /**
  * Main Insight and Alert Generation Pipeline
@@ -171,6 +172,10 @@ export async function generateInsightsAndAlerts(): Promise<{
   }
   if (alerts.length > 0) {
     await db.predictiveAlerts.bulkAdd(alerts);
+    const topAlert = alerts[0];
+    if (topAlert && (topAlert.riskLevel === 'elevated' || topAlert.riskLevel === 'high')) {
+      notificationService.sendPredictiveAlert(topAlert.title, topAlert.explanation).catch(() => {});
+    }
   }
 
   return { insights: generatedInsights, alerts };

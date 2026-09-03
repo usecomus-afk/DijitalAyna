@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { AuthPanel } from '../components/auth/AuthPanel';
 import { typingSensor } from '../sensors/typingSensor';
 import { db } from '../db';
+import { notificationService, NotificationPermissionState } from '../services/notificationService';
 import {
   Settings,
   Sliders,
@@ -21,7 +22,10 @@ import {
   Edit2,
   Mic,
   CheckCircle2,
-  Lock
+  Lock,
+  Bell,
+  BellRing,
+  Clock,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -32,6 +36,8 @@ export const SettingsPage: React.FC = () => {
     connectGoogleProfile,
     disconnectGoogleProfile,
     toggleSensor,
+    setNotificationsEnabled,
+    sendTestNotification,
     wipeAllData,
   } = useAppStore();
 
@@ -41,6 +47,14 @@ export const SettingsPage: React.FC = () => {
   const [wipeConfirmed, setWipeConfirmed] = useState(false);
   const [testText, setTestText] = useState('');
   const [typingStatsFeedback, setTypingStatsFeedback] = useState<string | null>(null);
+  const [notificationPerm, setNotificationPerm] = useState<NotificationPermissionState>('prompt');
+  const [testNotificationState, setTestNotificationState] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+
+  useEffect(() => {
+    notificationService.checkPermissions().then((status) => {
+      setNotificationPerm(status);
+    });
+  }, []);
 
   const handleSaveName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,6 +270,131 @@ export const SettingsPage: React.FC = () => {
           >
             Ölçümü Kaydet
           </button>
+        </div>
+      </div>
+
+      {/* BİLDİRİM VE FARKINDALIK HATIRLATICILARI */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-700">
+              <Bell className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif font-bold text-lg text-comus-navy">
+                  iOS Bildirim & Farkındalık Ayarları
+                </h3>
+                {notificationPerm === 'granted' ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                    İzin Verildi
+                  </span>
+                ) : notificationPerm === 'denied' ? (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
+                    Engellendi
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                    İzin Bekleniyor
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-comus-sand-dark">
+                Ruh hali yoklamaları, bilişsel fren alarmları ve günlük değerlendirme bildirimleri
+              </p>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.notificationsEnabled}
+              onChange={async () => {
+                const target = !settings.notificationsEnabled;
+                await setNotificationsEnabled(target);
+                const updatedPerm = await notificationService.checkPermissions();
+                setNotificationPerm(updatedPerm);
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-comus-sand-light/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-comus-copper"></div>
+          </label>
+        </div>
+
+        {/* Alt Bildirim Kanalları & Bilgilendirme */}
+        <div className="space-y-3 pt-2">
+          <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-white flex items-center justify-center text-comus-navy shrink-0 shadow-sm mt-0.5">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs font-bold text-comus-navy">Günün İlk Dijital Aynası (09:00)</div>
+              <div className="text-[11px] text-comus-sand-dark leading-relaxed">
+                Sabah ruh hali, enerji ve odak seviyenizi kaydetmeniz için nazik bir hatırlatıcı.
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-white flex items-center justify-center text-comus-copper shrink-0 shadow-sm mt-0.5">
+              <Moon className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs font-bold text-comus-navy">Günün Davranışsal Özeti (21:00)</div>
+              <div className="text-[11px] text-comus-sand-dark leading-relaxed">
+                Gün boyunca ölçülen sirkadiyen ritim, el titreşimi ve yazım dinamiklerinizin özet raporu.
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 flex items-start gap-3">
+            <div className="w-7 h-7 rounded-xl bg-white flex items-center justify-center text-rose-600 shrink-0 shadow-sm mt-0.5">
+              <BellRing className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs font-bold text-comus-navy">Bilişsel Fren & Anomali Erken Uyarısı</div>
+              <div className="text-[11px] text-comus-sand-dark leading-relaxed">
+                Aşırı ekran süresi veya bilişsel yorgunluk anomalisi algılandığında anlık titreşim ve bildirim.
+              </div>
+            </div>
+          </div>
+
+          {/* Test Bildirimi Butonu */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <button
+              onClick={async () => {
+                setTestNotificationState('sending');
+                const ok = await sendTestNotification();
+                if (ok) {
+                  setTestNotificationState('success');
+                  const perm = await notificationService.checkPermissions();
+                  setNotificationPerm(perm);
+                  setTimeout(() => setTestNotificationState('idle'), 4000);
+                } else {
+                  setTestNotificationState('error');
+                  setTimeout(() => setTestNotificationState('idle'), 4000);
+                }
+              }}
+              disabled={testNotificationState === 'sending'}
+              className="w-full sm:w-auto px-4 py-2 rounded-2xl bg-comus-navy text-white text-xs font-semibold hover:bg-comus-navy-dark transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>{testNotificationState === 'sending' ? 'Bildirim Gönderiliyor...' : 'Test Bildirimi Gönder'}</span>
+            </button>
+
+            {testNotificationState === 'success' && (
+              <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4" />
+                Test bildirimi başarıyla gönderildi!
+              </span>
+            )}
+            {testNotificationState === 'error' && (
+              <span className="text-xs font-semibold text-rose-700 flex items-center gap-1.5 animate-fadeIn">
+                <AlertTriangle className="w-4 h-4" />
+                Bildirim izni verilmedi veya desteklenmiyor.
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

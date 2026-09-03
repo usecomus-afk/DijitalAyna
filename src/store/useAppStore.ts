@@ -4,6 +4,7 @@ import { db } from '../db';
 import { sensorManager } from '../sensors/SensorManager';
 import { ensureInitialCalibration } from '../engine/seedCalibration';
 import { signOutGoogle, subscribeToAuthState, checkRedirectAuth } from '../auth/firebaseAuth';
+import { notificationService } from '../services/notificationService';
 
 interface AppState {
   userProfile: UserProfile;
@@ -20,6 +21,8 @@ interface AppState {
   disconnectGoogleProfile: () => Promise<void>;
   toggleSensor: (sensor: keyof UserSettings['sensorsEnabled']) => void;
   setOnboardingCompleted: (completed: boolean) => Promise<void>;
+  setNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
+  sendTestNotification: () => Promise<boolean>;
   setEmergencyModalOpen: (open: boolean) => void;
   dismissPredictiveAlert: () => void;
   runAnalysisPipeline: () => Promise<void>;
@@ -96,6 +99,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       // 3. Sync and activate sensors
       sensorManager.syncWithSettings(currentSettings);
 
+      // 4. Initialize and sync notifications
+      if (currentSettings.notificationsEnabled) {
+        await notificationService.init();
+        const perm = await notificationService.checkPermissions();
+        if (perm === 'granted') {
+          await notificationService.scheduleDailyReminders();
+        }
+      }
+
       // Check mobile redirect authentication result
       const redirectProfile = await checkRedirectAuth();
       if (redirectProfile) {
@@ -171,6 +183,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ settings: updated });
     await db.settings.put({ key: 'app_settings', value: updated });
     await sensorManager.evaluateNow();
+  },
+
+  setNotificationsEnabled: async (enabled: boolean): Promise<boolean> => {
+    const current = get().settings;
+    if (enabled) {
+      const granted = await notificationService.requestPermissions();
+      if (granted) {
+        await notificationService.scheduleDailyReminders();
+        const updated = { ...current, notificationsEnabled: true };
+        set({ settings: updated });
+        await db.settings.put({ key: 'app_settings', value: updated });
+        return true;
+      } else {
+        const updated = { ...current, notificationsEnabled: false };
+        set({ settings: updated });
+        await db.settings.put({ key: 'app_settings', value: updated });
+        return false;
+      }
+    } else {
+      await notificationService.cancelAll();
+      const updated = { ...current, notificationsEnabled: false };
+      set({ settings: updated });
+      await db.settings.put({ key: 'app_settings', value: updated });
+      return true;
+    }
+  },
+
+  sendTestNotification: async (): Promise<boolean> => {
+    return await notificationService.sendTestNotification();
   },
 
   setEmergencyModalOpen: (open: boolean) => {
