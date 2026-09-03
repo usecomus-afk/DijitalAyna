@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { AuthPanel } from '../components/auth/AuthPanel';
 import { UserProfile, UserGender } from '../types/user';
@@ -21,6 +21,12 @@ import {
 export const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const { settings, userProfile, setUserProfile, connectGoogleProfile, toggleSensor, setNotificationsEnabled, setOnboardingCompleted } = useAppStore();
+
+  useEffect(() => {
+    if ((userProfile?.isGoogleConnected || userProfile?.isAppleConnected || userProfile?.isPasswordAccount) && step === 1) {
+      setStep(2);
+    }
+  }, [userProfile?.isGoogleConnected, userProfile?.isAppleConnected, userProfile?.isPasswordAccount, step]);
 
   const [selectedAge, setSelectedAge] = useState<number>(userProfile?.age || 28);
   const [selectedGender, setSelectedGender] = useState<UserGender>(userProfile?.gender || 'prefer_not_to_say');

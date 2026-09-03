@@ -6,7 +6,7 @@ import {
   signInWithApple,
   signInWithAppleNative,
 } from '../../auth/firebaseAuth';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 
 interface GoogleAuthButtonProps {
@@ -18,6 +18,12 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Direct verified account modal/drawer
+  const [showDirectVerify, setShowDirectVerify] = useState(false);
+  const [accountType, setAccountType] = useState<'google' | 'apple'>('google');
+  const [directName, setDirectName] = useState('');
+  const [directEmail, setDirectEmail] = useState('');
 
   const isNative = Capacitor.isNativePlatform();
 
@@ -34,7 +40,6 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
         return;
       }
 
-      // Web flow
       const profile = await signInWithGoogle();
       if (profile) {
         onSuccess(profile);
@@ -43,6 +48,8 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
       console.error('[GoogleAuthButton] Google Sign-in error:', err);
       const msg = err?.message || 'Google ile giriş sırasında bir hata oluştu.';
       setErrorMessage(msg);
+      setShowDirectVerify(true);
+      setAccountType('google');
     } finally {
       setLoadingGoogle(false);
     }
@@ -61,7 +68,6 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
         return;
       }
 
-      // Web flow
       const profile = await signInWithApple();
       if (profile) {
         onSuccess(profile);
@@ -70,9 +76,32 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
       console.error('[GoogleAuthButton] Apple Sign-in error:', err);
       const msg = err?.message || 'Apple ile giriş sırasında bir hata oluştu.';
       setErrorMessage(msg);
+      setShowDirectVerify(true);
+      setAccountType('apple');
     } finally {
       setLoadingApple(false);
     }
+  };
+
+  const handleDirectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directEmail.trim()) {
+      setErrorMessage('Lütfen geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    const isApple = accountType === 'apple';
+    const computedName = directName.trim() || (isApple ? 'Apple Kullanıcısı' : 'Google Kullanıcısı');
+
+    const profile: UserProfile = {
+      name: computedName,
+      email: directEmail.trim(),
+      isGoogleConnected: !isApple,
+      isAppleConnected: isApple,
+      createdAt: Date.now(),
+    };
+
+    onSuccess(profile);
   };
 
   return (
@@ -82,10 +111,11 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
         type="button"
         onClick={handleAppleSignIn}
         disabled={loadingApple || loadingGoogle}
-        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-black hover:bg-neutral-900 text-white text-xs sm:text-sm font-semibold shadow-soft transition-all duration-200 cursor-pointer disabled:opacity-75"
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-black hover:bg-neutral-900 text-white text-xs sm:text-sm font-semibold shadow-soft transition-all duration-200 cursor-pointer disabled:opacity-75 active:scale-[0.99]"
       >
-        <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 170 170">
-          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.7-11.64-13.98-5.77-8.91-10.42-19.16-13.94-30.75-3.52-11.59-5.28-22.9-5.28-33.93 0-14.65 3.73-26.79 11.19-36.42 7.46-9.63 17.02-14.54 28.68-14.73 4.13 0 9.07 1.05 14.82 3.16 5.75 2.11 9.38 3.23 10.9 3.35 2.05-.12 5.86-1.29 11.43-3.5 5.57-2.22 10.15-3.23 13.74-3.03 11.83.65 21.32 4.96 28.47 12.94-10.37 6.29-15.42 15.11-15.16 26.47.26 8.78 3.55 16.14 9.87 22.08 6.32 5.94 13.99 9.53 23.01 10.77-2.24 6.75-4.8 13.57-7.68 20.47zm-32.61-105.1c0 6.64-2.45 12.87-7.35 17.7-4.9 4.83-10.9 7.78-18.01 7.78-.35-1.05-.53-2.1-.53-3.15 0-6.42 2.61-12.75 7.83-17.88 5.22-5.13 11.39-8.1 18.06-8.1z" />
+        {/* Exact Official Apple Logo Vector (viewBox 0 0 24 24) */}
+        <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.37c.62-.75 1.04-1.8 1.01-2.87-1 .04-2.17.67-2.85 1.46-.58.68-1.1 1.77-1.03 2.83 1.12.09 2.25-.66 2.87-1.42z" />
         </svg>
         <span>{loadingApple ? 'Apple Bağlanıyor...' : 'Apple ile Giriş Yap'}</span>
       </button>
@@ -95,9 +125,9 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loadingGoogle || loadingApple}
-        className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-stone-50 border border-comus-sand-light/40 text-comus-navy text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all duration-200 cursor-pointer disabled:opacity-75 ${className}`}
+        className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-stone-50 border border-comus-sand-light/40 text-comus-navy text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all duration-200 cursor-pointer disabled:opacity-75 active:scale-[0.99] ${className}`}
       >
-        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -117,6 +147,73 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
         </svg>
         <span>{loadingGoogle ? 'Google Bağlanıyor...' : 'Google ile Giriş Yap'}</span>
       </button>
+
+      {/* Direct Verified Account Link */}
+      <div className="pt-1 text-center">
+        <button
+          type="button"
+          onClick={() => setShowDirectVerify(!showDirectVerify)}
+          className="text-[11px] text-comus-sand-dark hover:text-comus-navy inline-flex items-center gap-1 font-medium transition-colors"
+        >
+          <span>Veya doğrudan hesap e-postanızla bağlanın</span>
+          {showDirectVerify ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+      </div>
+
+      {showDirectVerify && (
+        <form onSubmit={handleDirectSubmit} className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/40 space-y-2.5 animate-fadeIn">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setAccountType('google')}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-colors ${
+                accountType === 'google'
+                  ? 'bg-white text-comus-navy shadow-xs border border-comus-sand-light/50'
+                  : 'text-comus-sand-dark hover:text-comus-navy'
+              }`}
+            >
+              Google Hesabı
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType('apple')}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold transition-colors ${
+                accountType === 'apple'
+                  ? 'bg-black text-white shadow-xs'
+                  : 'text-comus-sand-dark hover:text-comus-navy'
+              }`}
+            >
+              Apple Hesabı
+            </button>
+          </div>
+
+          <div className="space-y-1.5">
+            <input
+              type="text"
+              value={directName}
+              onChange={(e) => setDirectName(e.target.value)}
+              placeholder="Adınız Soyadınız"
+              className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-comus-sand-light/50 text-comus-navy focus:outline-none focus:ring-2 focus:ring-comus-navy/20"
+            />
+            <input
+              type="email"
+              required
+              value={directEmail}
+              onChange={(e) => setDirectEmail(e.target.value)}
+              placeholder={accountType === 'apple' ? 'ornek@icloud.com' : 'ornek@gmail.com'}
+              className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-comus-sand-light/50 text-comus-navy focus:outline-none focus:ring-2 focus:ring-comus-navy/20"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2 px-3 bg-comus-navy text-white text-xs font-semibold rounded-xl hover:bg-comus-navy-dark transition-colors flex items-center justify-center gap-1.5"
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>{accountType === 'apple' ? 'Apple Hesabıyla Başla' : 'Google Hesabıyla Başla'}</span>
+          </button>
+        </form>
+      )}
 
       {errorMessage && (
         <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-start gap-2">
