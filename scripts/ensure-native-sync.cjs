@@ -57,7 +57,24 @@ if (fs.existsSync(pbxPath)) {
 
     fs.writeFileSync(pbxPath, content, 'utf8');
     console.log('[ensure-native-sync] project.pbxproj updated with DijitalAynaCore files.');
-  } else {
-    console.log('[ensure-native-sync] project.pbxproj already has DijitalAynaCore files.');
+  }
+
+  if (!content.includes('GoogleService-Info.plist')) {
+    const buildId = 'DA01B0000000000000000099';
+    const fileId = 'DA01F0000000000000000099';
+    const buildFile = `\t\t${buildId} /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = ${fileId} /* GoogleService-Info.plist */; };\n`;
+    const fileRef = `\t\t${fileId} /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };\n`;
+    const groupChild = `\t\t\t\t${fileId} /* GoogleService-Info.plist */,\n`;
+    const resourceFile = `\t\t\t\t${buildId} /* GoogleService-Info.plist in Resources */,\n`;
+
+    content = content.replace('/* Begin PBXBuildFile section */\n', `/* Begin PBXBuildFile section */\n${buildFile}`);
+    content = content.replace('/* Begin PBXFileReference section */\n', `/* Begin PBXFileReference section */\n${fileRef}`);
+    const appGroupMarker = '504EC3061FED79650016851F /* App */ = {\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n';
+    content = content.replace(appGroupMarker, `${appGroupMarker}${groupChild}`);
+    const resMarker = '504EC3021FED79650016851F /* Resources */ = {\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n';
+    content = content.replace(resMarker, `${resMarker}${resourceFile}`);
+    fs.writeFileSync(pbxPath, content, 'utf8');
+    console.log('[ensure-native-sync] project.pbxproj updated with GoogleService-Info.plist.');
   }
 }
+

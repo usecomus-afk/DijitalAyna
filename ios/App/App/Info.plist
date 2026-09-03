@@ -58,6 +58,16 @@
 				<string>dijitalayna</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>google-auth-reversed</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.94491728408-e6l84jmebk7vricd1ieu64nuokaiooo3</string>
+			</array>
+		</dict>
 	</array>
 	<key>NSMotionUsageDescription</key>
 	<string>Dijital Ayna, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>

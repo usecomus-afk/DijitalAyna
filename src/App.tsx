@@ -15,6 +15,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { handleAuthDeepLink } from './auth/firebaseAuth';
 
 export const App: React.FC = () => {
   const { settings, initialize } = useAppStore();
@@ -31,29 +32,17 @@ export const App: React.FC = () => {
       if (
         event.url.startsWith('dijitalayna://auth-callback') ||
         event.url.startsWith('dijitalayna://google-auth') ||
-        event.url.startsWith('dijitalayna://apple-auth')
+        event.url.startsWith('dijitalayna://apple-auth') ||
+        event.url.includes('googleusercontent.apps')
       ) {
         try {
           await Browser.close();
         } catch (_) {}
         try {
-          const parsed = new URL(event.url);
-          const provider = parsed.searchParams.get('provider') || (event.url.includes('apple') ? 'apple' : 'google');
-          const isApple = provider === 'apple';
-          const defaultName = isApple ? 'Apple Kullanıcısı' : 'Google Kullanıcısı';
-
-          const name = decodeURIComponent(parsed.searchParams.get('name') || defaultName);
-          const email = decodeURIComponent(parsed.searchParams.get('email') || '');
-          const picture = decodeURIComponent(parsed.searchParams.get('picture') || '');
-
-          useAppStore.getState().setUserProfile({
-            name,
-            email: email || undefined,
-            picture: picture || undefined,
-            isGoogleConnected: !isApple,
-            isAppleConnected: isApple,
-            createdAt: Date.now(),
-          });
+          const profile = handleAuthDeepLink(event.url);
+          if (profile) {
+            useAppStore.getState().setUserProfile(profile);
+          }
         } catch (e) {
           console.error('[App] Error handling deep link:', e);
         }

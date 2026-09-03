@@ -52,9 +52,10 @@ export function formatUserProfile(user: User): UserProfile {
  */
 export function handleAuthDeepLink(urlStr: string): UserProfile | null {
   try {
-    const parsed = new URL(urlStr);
+    const isGoogleReversed = urlStr.includes('googleusercontent.apps');
+    const parsed = new URL(urlStr.replace(/^com\.googleusercontent\.apps\.[^:]+:/, 'https://localhost/'));
     const provider = parsed.searchParams.get('provider') || (urlStr.includes('apple') ? 'apple' : 'google');
-    const isApple = provider === 'apple';
+    const isApple = !isGoogleReversed && provider === 'apple';
 
     const nameParam = parsed.searchParams.get('name');
     const emailParam = parsed.searchParams.get('email');
@@ -86,7 +87,8 @@ export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) =
   const listener = await CapApp.addListener('appUrlOpen', async (event) => {
     if (
       event.url.startsWith('dijitalayna://auth-callback') ||
-      event.url.startsWith('dijitalayna://google-auth')
+      event.url.startsWith('dijitalayna://google-auth') ||
+      event.url.includes('googleusercontent.apps')
     ) {
       try {
         await Browser.close();
@@ -101,7 +103,7 @@ export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) =
   });
 
   await Browser.open({
-    url: 'https://comus-ai-duty.web.app/auth-bridge.html?provider=google',
+    url: 'https://comus-ai-duty.firebaseapp.com/auth-bridge.html?provider=google',
     windowName: '_blank',
   });
 }
@@ -128,7 +130,7 @@ export async function signInWithAppleNative(onSuccess: (profile: UserProfile) =>
   });
 
   await Browser.open({
-    url: 'https://comus-ai-duty.web.app/auth-bridge.html?provider=apple',
+    url: 'https://comus-ai-duty.firebaseapp.com/auth-bridge.html?provider=apple',
     windowName: '_blank',
   });
 }
