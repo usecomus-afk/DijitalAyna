@@ -125,8 +125,8 @@ export const DoctorReportPage: React.FC = () => {
       : '';
 
     const result = await shareContent({
-      title: `Dijital Ayna Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
-      text: `Dijital Ayna Davranışsal Fenotip & İlaç Raporu\nDanışan / Kullanıcı: ${userProfile.name}\nRapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}\nİncelenen Dönem: Son ${selectedRange} Gün\n\nÖzet Göstergeler (Tüm Göstergeler Aktif):\n${tableText}${medText}\n\n* Bu bir tanı belgesi değildir. İstatistiksel dijital fenotip farkındalık çıktısıdır.`,
+      title: `Duty-Comus Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
+      text: `Duty-Comus Davranışsal Fenotip & İlaç Raporu\nDanışan / Kullanıcı: ${userProfile.name}\nRapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}\nİncelenen Dönem: Son ${selectedRange} Gün\n\nÖzet Göstergeler (Tüm Göstergeler Aktif):\n${tableText}${medText}\n\n* Bu bir tanı belgesi değildir. İstatistiksel dijital fenotip farkındalık çıktısıdır.`,
     });
 
     setShareFeedback(result.message);
@@ -195,7 +195,7 @@ export const DoctorReportPage: React.FC = () => {
             </div>
 
             <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
-              <strong className="text-emerald-950 block mb-1">Dijital Ayna Çözümü: Nesnel Biyobelirteçler</strong>
+              <strong className="text-emerald-950 block mb-1">Duty-Comus Çözümü: Nesnel Biyobelirteçler</strong>
               <p className="text-emerald-900">
                 Pazartesi ve Çarşamba 03:00'e kadar süren ekran aktivitesi, 4 saatlik uyku ve yazım yavaşlamasını net verilerle sunar. Hekimin doğru tanı ve tedavi planı oluşturmasını hızlandırır.
               </p>
@@ -257,7 +257,7 @@ export const DoctorReportPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Ayna</span>
+              <span className="font-serif font-bold text-2xl text-comus-navy">Duty-Comus</span>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper border border-comus-copper/30 px-2 py-0.5 rounded">
                 Davranışsal Fenotip, İlaç Talimatı & Doz Takip Raporu
               </span>

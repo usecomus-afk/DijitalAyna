@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { AuthPanel } from '../components/auth/AuthPanel';
-import { typingSensor } from '../sensors/typingSensor';
 import { db } from '../db';
-import { notificationService, NotificationPermissionState } from '../services/notificationService';
 import {
   Settings,
   Sliders,
@@ -11,7 +9,6 @@ import {
   Download,
   ShieldCheck,
   AlertTriangle,
-  Keyboard,
   CheckCircle,
   Activity,
   Smartphone,
@@ -20,13 +17,10 @@ import {
   Wifi,
   LogOut,
   Edit2,
-  Mic,
   CheckCircle2,
   Lock,
-  Bell,
-  BellRing,
-  Clock,
   MapPin,
+  Keyboard,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -37,8 +31,6 @@ export const SettingsPage: React.FC = () => {
     connectGoogleProfile,
     disconnectGoogleProfile,
     toggleSensor,
-    setNotificationsEnabled,
-    sendTestNotification,
     wipeAllData,
   } = useAppStore();
 
@@ -46,16 +38,6 @@ export const SettingsPage: React.FC = () => {
   const [editedName, setEditedName] = useState(userProfile.name);
   const [wipeModalOpen, setWipeModalOpen] = useState(false);
   const [wipeConfirmed, setWipeConfirmed] = useState(false);
-  const [testText, setTestText] = useState('');
-  const [typingStatsFeedback, setTypingStatsFeedback] = useState<string | null>(null);
-  const [notificationPerm, setNotificationPerm] = useState<NotificationPermissionState>('prompt');
-  const [testNotificationState, setTestNotificationState] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
-
-  useEffect(() => {
-    notificationService.checkPermissions().then((status) => {
-      setNotificationPerm(status);
-    });
-  }, []);
 
   const handleSaveName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +53,7 @@ export const SettingsPage: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `comus-ai-data-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `duty-comus-export-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -81,11 +63,6 @@ export const SettingsPage: React.FC = () => {
     setWipeModalOpen(false);
     setWipeConfirmed(true);
     setTimeout(() => setWipeConfirmed(false), 3000);
-  };
-
-  const handleTestTypingKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    typingSensor.handleKeyDown(e.nativeEvent);
-    setTypingStatsFeedback('Yazım vuruş dinamikleri ve IKI aralıkları canlı ölçülüyor (içerik kaydedilmez)...');
   };
 
   return (
@@ -235,169 +212,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. CANLI YAZIM DİNAMİĞİ TEST ALANI */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-9 h-9 rounded-2xl bg-comus-navy-subtle flex items-center justify-center text-comus-navy">
-            <Keyboard className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-serif font-bold text-lg text-comus-navy">
-              Canlı Yazım Dinamiği Test Sandbox'ı
-            </h3>
-            <p className="text-xs text-comus-sand-dark">
-              Buraya yazarak tuş aralıklarının ve hata sıklığının nasıl ölçüldüğünü deneyimleyin
-            </p>
-          </div>
-        </div>
 
-        <textarea
-          rows={3}
-          value={testText}
-          onChange={(e) => setTestText(e.target.value)}
-          onKeyDown={handleTestTypingKeyDown}
-          placeholder="Rastgele bir cümle yazmayı deneyin... Örneğin: 'Bugün toplantılar biraz yorucuydu ama akşama kendime dinlenme vakti ayırdım.'"
-          className="w-full text-xs p-3.5 rounded-2xl bg-comus-surface border border-comus-sand-light/30 focus:outline-none focus:border-comus-copper text-comus-navy placeholder:text-comus-sand"
-        />
-
-        <div className="flex items-center justify-between mt-2 text-[11px] text-comus-sand-dark">
-          <span>{typingStatsFeedback || 'İçerik asla kaydedilmez; yalnızca ms aralıkları ve WPM hesaplanır.'}</span>
-          <button
-            onClick={() => {
-              typingSensor.flush();
-              setTypingStatsFeedback('Metrikler hesaplandı ve kaydedildi.');
-            }}
-            className="text-comus-copper font-semibold hover:underline"
-          >
-            Ölçümü Kaydet
-          </button>
-        </div>
-      </div>
-
-      {/* BİLDİRİM VE FARKINDALIK HATIRLATICILARI */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-700">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-serif font-bold text-lg text-comus-navy">
-                  iOS Bildirim & Farkındalık Ayarları
-                </h3>
-                {notificationPerm === 'granted' ? (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    İzin Verildi
-                  </span>
-                ) : notificationPerm === 'denied' ? (
-                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
-                    Engellendi
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                    İzin Bekleniyor
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-comus-sand-dark">
-                Ruh hali yoklamaları, bilişsel fren alarmları ve günlük değerlendirme bildirimleri
-              </p>
-            </div>
-          </div>
-
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.notificationsEnabled}
-              onChange={async () => {
-                const target = !settings.notificationsEnabled;
-                await setNotificationsEnabled(target);
-                const updatedPerm = await notificationService.checkPermissions();
-                setNotificationPerm(updatedPerm);
-              }}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-comus-sand-light/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-comus-copper"></div>
-          </label>
-        </div>
-
-        {/* Alt Bildirim Kanalları & Bilgilendirme */}
-        <div className="space-y-3 pt-2">
-          <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-white flex items-center justify-center text-comus-navy shrink-0 shadow-sm mt-0.5">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-bold text-comus-navy">Günün İlk Dijital Aynası (09:00)</div>
-              <div className="text-[11px] text-comus-sand-dark leading-relaxed">
-                Sabah ruh hali, enerji ve odak seviyenizi kaydetmeniz için nazik bir hatırlatıcı.
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-white flex items-center justify-center text-comus-copper shrink-0 shadow-sm mt-0.5">
-              <Moon className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-bold text-comus-navy">Günün Davranışsal Özeti (21:00)</div>
-              <div className="text-[11px] text-comus-sand-dark leading-relaxed">
-                Gün boyunca ölçülen sirkadiyen ritim, el titreşimi ve yazım dinamiklerinizin özet raporu.
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-white flex items-center justify-center text-rose-600 shrink-0 shadow-sm mt-0.5">
-              <BellRing className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-bold text-comus-navy">Bilişsel Fren & Anomali Erken Uyarısı</div>
-              <div className="text-[11px] text-comus-sand-dark leading-relaxed">
-                Aşırı ekran süresi veya bilişsel yorgunluk anomalisi algılandığında anlık titreşim ve bildirim.
-              </div>
-            </div>
-          </div>
-
-          {/* Test Bildirimi Butonu */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <button
-              onClick={async () => {
-                setTestNotificationState('sending');
-                const ok = await sendTestNotification();
-                if (ok) {
-                  setTestNotificationState('success');
-                  const perm = await notificationService.checkPermissions();
-                  setNotificationPerm(perm);
-                  setTimeout(() => setTestNotificationState('idle'), 4000);
-                } else {
-                  setTestNotificationState('error');
-                  setTimeout(() => setTestNotificationState('idle'), 4000);
-                }
-              }}
-              disabled={testNotificationState === 'sending'}
-              className="w-full sm:w-auto px-4 py-2 rounded-2xl bg-comus-navy text-white text-xs font-semibold hover:bg-comus-navy-dark transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              <Bell className="w-3.5 h-3.5" />
-              <span>{testNotificationState === 'sending' ? 'Bildirim Gönderiliyor...' : 'Test Bildirimi Gönder'}</span>
-            </button>
-
-            {testNotificationState === 'success' && (
-              <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5 animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4" />
-                Test bildirimi başarıyla gönderildi!
-              </span>
-            )}
-            {testNotificationState === 'error' && (
-              <span className="text-xs font-semibold text-rose-700 flex items-center gap-1.5 animate-fadeIn">
-                <AlertTriangle className="w-4 h-4" />
-                Bildirim izni verilmedi veya desteklenmiyor.
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* 3. GRANÜLER SENSÖR İZİNLERİ */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">
@@ -512,21 +327,7 @@ export const SettingsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-comus-sand-light/20">
-            <div className="flex items-center gap-2.5">
-              <Mic className="w-4 h-4 text-teal-600" />
-              <div>
-                <div className="text-xs font-semibold text-comus-navy">Ses Analizi & Perde Varyansı (Web Audio API)</div>
-                <div className="text-[11px] text-comus-sand-dark">Konuşma tonu ve monotonluk ölçümü (ses kaydı tutulmaz)</div>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.sensorsEnabled.voice}
-              onChange={() => toggleSensor('voice')}
-              className="w-5 h-5 accent-comus-copper cursor-pointer"
-            />
-          </div>
+
 
           <div className="flex items-center justify-between pt-3 border-t border-comus-sand-light/20">
             <div className="flex items-center gap-2.5">
@@ -673,7 +474,7 @@ export const SettingsPage: React.FC = () => {
 
         <div className="space-y-2.5 text-xs text-amber-950 leading-relaxed">
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>Temel Feragatname:</strong> Dijital Ayna, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
+            <strong>Temel Feragatname:</strong> Duty-Comus, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
@@ -696,7 +497,7 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, Dijital Ayna ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
+            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, Duty-Comus ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
           </div>
         </div>
       </div>

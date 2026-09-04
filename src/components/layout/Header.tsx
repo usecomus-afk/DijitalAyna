@@ -2,23 +2,11 @@ import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { ShieldCheck } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
-import { getAvatarByScore } from '../../constants/avatars';
+import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 
 export const Header: React.FC = () => {
   const { userProfile, setEmergencyModalOpen } = useAppStore();
-  const latestMood = useLiveQuery(() => db.moodReports.orderBy('timestamp').reverse().first());
-
-  // Determine indicator color based on emotion score
-  const moodScore = latestMood?.score || 3;
-  const avatarThumb = getAvatarByScore(moodScore);
-  const moodDotColor =
-    moodScore <= 2
-      ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]'
-      : moodScore === 3
-      ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]'
-      : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
+  const { avatarSrc, colorClass, avatarAlt } = useMentalTwinAvatar();
 
   return (
     <header className="sticky top-0 z-40 bg-comus-bg/95 backdrop-blur-md border-b border-comus-sand-light/20 px-4 pb-3 sm:px-6" style={{ paddingTop: 'max(env(safe-area-inset-top, 24px), 24px)' }}>
@@ -26,11 +14,11 @@ export const Header: React.FC = () => {
         {/* Brand with New Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center p-1 border border-comus-sand-light/30 shadow-soft group-hover:scale-105 transition-transform">
-            <img src="/logo.png" alt="Dijital Ayna Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="Duty-Comus Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">Dijital Ayna</span>
+              <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">Duty-Comus</span>
             </div>
             <p className="text-[11px] text-comus-sand-dark flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-600 inline" />
@@ -71,11 +59,11 @@ export const Header: React.FC = () => {
           >
             <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-comus-sand-light/40 group-hover:scale-110 transition-transform">
               <img
-                src={avatarThumb}
-                alt="Mental İkiz"
+                src={avatarSrc}
+                alt={avatarAlt}
                 className="w-full h-full object-cover"
               />
-              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white animate-pulse ${moodDotColor}`} />
+              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white animate-pulse ${colorClass}`} />
             </div>
             <span className="hidden xs:inline text-comus-navy font-medium">Mental İkiz</span>
           </button>

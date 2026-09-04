@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { Sparkles, Calendar, Zap, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { AnomalyResult } from '../../types/engine';
-import { AVATAR_IMAGES } from '../../constants/avatars';
+import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 
 interface DigitalTwinMirrorProps {
   anomalies: AnomalyResult[];
@@ -11,35 +11,10 @@ interface DigitalTwinMirrorProps {
 
 export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies, sampleDays }) => {
   const { userProfile, baselineDayCount, setEmergencyModalOpen } = useAppStore();
+  const { avatarSrc, avatarAlt, mirrorText, moodPill } = useMentalTwinAvatar();
 
   const severeAnomalies = anomalies.filter((a) => a.isAnomaly);
   const isLearning = sampleDays < 7;
-
-  // Determine current avatar based on anomalies & behavioral rhythm
-  let avatarSrc = AVATAR_IMAGES.normal;
-  let avatarAlt = 'Normal & Dengeli';
-  let mirrorText = `${userProfile.name}, bugün cihaz kullanım ritmin ve tuş vuruş dinamiklerin genel baz hattınla dengeli bir uyum içinde akıyor.`;
-  let moodPill = { text: 'Dengeli Ritim', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
-
-  if (isLearning) {
-    avatarSrc = AVATAR_IMAGES.normal;
-    avatarAlt = 'Öğrenme Dönemi';
-    mirrorText = `Merhaba ${userProfile.name}! Dijital Ayna şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını (normalini) öğreniyor.`;
-    moodPill = { text: 'Öğrenme Dönemi', color: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/40' };
-  } else if (severeAnomalies.some((a) => a.metricKey === 'typing_wpm' && a.zScore <= -1.8)) {
-    avatarSrc = AVATAR_IMAGES.zorlu;
-    avatarAlt = 'Zihinsel Yorgunluk Sinyali';
-    mirrorText = `${userProfile.name}, son birkaç gündür klavye yazım hızında yavaşlama ve düzeltme sıklığında artış fark ettik. Zihinsel bir yorgunluk hissediyor olabilir misin?`;
-    moodPill = { text: 'Zihinsel Yorgunluk Sinyali', color: 'bg-rose-500/20 text-rose-200 border-rose-500/40' };
-  } else if (severeAnomalies.some((a) => a.metricKey === 'mobility_index' && a.zScore <= -2.0)) {
-    avatarSrc = AVATAR_IMAGES.dusuk;
-    avatarAlt = 'Düşük Hareketlilik';
-    mirrorText = `${userProfile.name}, fiziksel hareketlilik seviyen alışılmış temponun altında seyrediyor. Kendine küçük bir açık hava molası ayırmayı düşünebilirsin.`;
-    moodPill = { text: 'Düşük Hareketlilik', color: 'bg-amber-500/20 text-amber-200 border-amber-500/40' };
-  } else if (severeAnomalies.length === 0) {
-    avatarSrc = AVATAR_IMAGES.iyi;
-    avatarAlt = 'Canlı & Pozitif Ritim';
-  }
 
   return (
     <div className="bg-gradient-to-br from-comus-navy to-comus-navy-dark text-white rounded-3xl p-5 sm:p-7 shadow-soft-lg relative overflow-hidden">

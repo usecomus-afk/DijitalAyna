@@ -7,8 +7,6 @@ import { DigitalTwinMirror } from '../components/dashboard/DigitalTwinMirror';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 import { PredictiveAlertModal } from '../components/alerts/PredictiveAlertModal';
-import { VoiceAnalysisWidget } from '../components/voice/VoiceAnalysisWidget';
-import { CognitiveBrakeModal } from '../components/brake/CognitiveBrakeModal';
 import { Disclaimer } from '../components/common/Disclaimer';
 import {
   Activity,
@@ -21,11 +19,9 @@ import {
   Battery,
   Wifi,
   Sparkles,
-  ShieldAlert,
+  ArrowRight,
   FileText,
   User,
-  MousePointerClick,
-  ArrowRight
 } from 'lucide-react';
 import { calculateZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
@@ -35,7 +31,6 @@ export const DashboardPage: React.FC = () => {
   const [evalToast, setEvalToast] = useState<string | null>(null);
   const [testInput, setTestInput] = useState('');
   const [showQuickTest, setShowQuickTest] = useState(false);
-  const [cognitiveBrakeOpen, setCognitiveBrakeOpen] = useState(false);
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
@@ -149,15 +144,6 @@ export const DashboardPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
-              onClick={() => setCognitiveBrakeOpen(true)}
-              className="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100/80 text-amber-900 text-xs font-semibold border border-amber-300 transition-colors flex items-center gap-1.5 shadow-sm"
-              title="Bilişsel Yorgunluk Freni & Dürtüsel Narkoz (Slide 25-26)"
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
-              <span>Bilişsel Fren</span>
-            </button>
-
-            <button
               onClick={() => setShowQuickTest(!showQuickTest)}
               className="px-3 py-2 rounded-xl bg-comus-surface hover:bg-comus-sand-light/20 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors flex items-center gap-1.5"
             >
@@ -252,44 +238,11 @@ export const DashboardPage: React.FC = () => {
         />
       )}
 
-      {/* Cognitive Brake Modal (Slide 25 & 26) */}
-      <CognitiveBrakeModal
-        isOpen={cognitiveBrakeOpen}
-        onClose={() => setCognitiveBrakeOpen(false)}
-      />
-
       {/* Digital Twin Status Mirror */}
       <DigitalTwinMirror
         anomalies={anomalies}
         sampleDays={baselineDayCount}
       />
-
-      {/* Davranış Aynanız: Ekran Kaydırma Hızı & Farkındalık İçgörüsü (Slide 8) */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-white border border-comus-sand-light/30 shadow-soft flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <MousePointerClick className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-comus-navy">Farkındalık İçgörüsü (PDF Sayfa 8)</span>
-              <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold border border-amber-300">
-                Kaydırma Hızı: +%30
-              </span>
-            </div>
-            <p className="text-xs text-comus-navy/90 mt-1 leading-relaxed">
-              "Son bir haftadır ekran kaydırma hızın normalden <strong>%30 daha yüksek</strong>. Bu genellikle yüksek stres veya kaygı anlarında yaptığın bir eylem. <em>Farkında mısın?</em>"
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setCognitiveBrakeOpen(true)}
-          className="shrink-0 text-xs px-3.5 py-2 rounded-xl bg-comus-surface hover:bg-comus-sand-light/20 text-comus-navy border border-comus-sand-light/40 font-semibold transition-colors flex items-center gap-1"
-        >
-          <span>Fren Kalkanı</span>
-          <ArrowRight className="w-3.5 h-3.5 text-comus-copper" />
-        </button>
-      </div>
 
       {/* 4 Core Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -352,9 +305,6 @@ export const DashboardPage: React.FC = () => {
 
       {/* Instant Mood Check-In Widget */}
       <QuickMoodWidget />
-
-      {/* Voice Tone Analysis Widget (Slide 7 & 10) */}
-      <VoiceAnalysisWidget />
 
       {/* Quick Navigation Cards: Doctor Report & Profile */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

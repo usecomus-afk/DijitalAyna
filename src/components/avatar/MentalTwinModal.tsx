@@ -1,9 +1,6 @@
-import React, { useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { ClinicalPhenotypeClassifier } from '../../classifier/ClinicalPhenotypeClassifier';
-import { RollingBaselineEngine } from '../../normalization/RollingBaselineEngine';
+import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import { AVATAR_IMAGES } from '../../constants/avatars';
 import {
   X,
@@ -17,82 +14,13 @@ import {
 
 export const MentalTwinModal: React.FC = () => {
   const { emergencyModalOpen, setEmergencyModalOpen, userProfile } = useAppStore();
-
-  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
-  const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
-
-  // Compute real-time emotional state & phenotype inference exclusively from passive sensors
   const {
-    effectiveMoodScore,
+    score: effectiveMoodScore,
     affectiveIndex,
-    inference,
+    phenoLabel,
+    clinicalInsight,
     sensorStatus,
-  } = useMemo(() => {
-    // 1. Find latest available date
-    const latestDate = dailyMetrics.reduce((max, m) => (m.date > max ? m.date : max), '');
-    const todays = dailyMetrics.filter((m) => m.date === latestDate);
-
-    // 2. Build baseline lookup
-    const baselineMap = new Map(baselines.map((b) => [b.metricKey, b]));
-
-    // 3. Compute Z-Scores for all 15 indicators
-    const zScores: Record<string, number> = {};
-    for (const metric of todays) {
-      const base = baselineMap.get(metric.metricKey);
-      if (base && base.ewmaStd > 0) {
-        zScores[metric.metricKey] = RollingBaselineEngine.calculateZScore(
-          metric.value,
-          base.ewmaMean,
-          base.ewmaStd
-        );
-      }
-    }
-
-    // 4. Clinical phenotype classification & Affective Balance Index (0-100)
-    const phenoInference = ClinicalPhenotypeClassifier.classifyPhenotype(zScores, latestDate);
-    const balanceIndex = ClinicalPhenotypeClassifier.calculateAffectiveStateIndex(zScores);
-
-    // 5. Derive avatar state (1 to 5) strictly from telemetry & phenotype
-    let derivedScore = 3; // Default neutral
-
-    if (phenoInference.state === 'depressive_phenotype' || balanceIndex <= 35) {
-      derivedScore = 1; // Zorlu
-    } else if (
-      phenoInference.state === 'anxious_agitated_phenotype' ||
-      phenoInference.state === 'cognitive_fatigue_phenotype' ||
-      phenoInference.state === 'cognitive_decline_risk_phenotype' ||
-      phenoInference.state === 'ptsd_hypervigilance_phenotype' ||
-      phenoInference.state === 'adhd_neurodivergent_phenotype' ||
-      phenoInference.state === 'low_self_esteem_phenotype' ||
-      balanceIndex <= 50
-    ) {
-      derivedScore = 2; // Düşük
-    } else if (balanceIndex <= 74) {
-      derivedScore = 3; // Normal
-    } else if (balanceIndex <= 87) {
-      derivedScore = 4; // İyi
-    } else {
-      derivedScore = 5; // Harika
-    }
-
-    // Telemetry summary values
-    const typing = todays.find((m) => m.metricKey === 'typing_wpm')?.value || 42;
-    const night = todays.find((m) => m.metricKey === 'night_usage_minutes')?.value || 0;
-    const mobility = todays.find((m) => m.metricKey === 'mobility_index')?.value || 70;
-    const tremor = todays.find((m) => m.metricKey === 'tremor_variance')?.value || 0.15;
-
-    return {
-      effectiveMoodScore: derivedScore,
-      affectiveIndex: balanceIndex,
-      inference: phenoInference,
-      sensorStatus: {
-        typing,
-        night,
-        mobility,
-        tremor,
-      },
-    };
-  }, [dailyMetrics, baselines]);
+  } = useMentalTwinAvatar();
 
   if (!emergencyModalOpen) return null;
 
@@ -256,7 +184,7 @@ export const MentalTwinModal: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-comus-sand-dark leading-relaxed">
-            {inference.clinicalInsight}
+            {clinicalInsight}
           </p>
 
           <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
@@ -265,7 +193,7 @@ export const MentalTwinModal: React.FC = () => {
               <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
             </span>
             <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
-              {inference.label}
+              {phenoLabel}
             </span>
           </div>
         </div>

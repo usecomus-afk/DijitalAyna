@@ -110,7 +110,7 @@ class NotificationService {
           notifications: [
             {
               id: 9999,
-              title: 'Dijital Ayna Bildirim Sistemi 🔔',
+              title: 'Duty-Comus Bildirim Sistemi 🔔',
               body: 'iOS bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
               schedule: { at: new Date(Date.now() + 1000) },
               sound: 'beep.wav',
@@ -120,7 +120,7 @@ class NotificationService {
           ],
         });
       } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Dijital Ayna Bildirim Sistemi 🔔', {
+        new Notification('Duty-Comus Bildirim Sistemi 🔔', {
           body: 'Bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
           icon: '/logo.png',
         });
@@ -166,7 +166,7 @@ class NotificationService {
           notifications: [
             {
               id: 1001,
-              title: 'Günün İlk Dijital Aynası 🪞',
+              title: 'Günün İlk Duty-Comus Yansıması 🪞',
               body: 'Güne nasıl başladınız? Anlık hissiyatınızı ve sabah enerjinizi kaydetmek için dokunun.',
               schedule: {
                 at: morning,
