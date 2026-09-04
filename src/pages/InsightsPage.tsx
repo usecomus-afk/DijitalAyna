@@ -109,54 +109,66 @@ export const InsightsPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
           {[
             {
-              state: 'Duygusal Tükenmişlik (Burnout)',
-              source: 'Klavye Dinamiği',
-              sign: 'Yazım hızında yavaşlama, artan backspace ve duraksama',
+              state: '1. Duygusal Tükenmişlik (Burnout)',
+              source: 'Klavye Hold Time, IKI ve Silme Oranı',
+              threshold: 'Hold Time ≥ +2.0σ (>35 ms) ve silme oranı >%25 artış',
+              duration: 'Ardışık 3 gün devam ettiğinde',
               color: 'border-amber-200 bg-amber-50/40 text-amber-900',
             },
             {
-              state: 'Depresyon & Sosyal İzolasyon',
-              source: 'GPS / Hareketlilik',
-              sign: 'Evden çıkmama (yüksek homestay), iletişim kopması',
+              state: '2. Depresyon ve Sosyal İzolasyon',
+              source: 'GPS Homestay %, Gyration Yarıçapı & Sosyal Log',
+              threshold: 'Homestay ≥ %85 (veya %30 artış) ve yarıçapta ≥ -2.0σ (%50 daralma)',
+              duration: 'Ardışık 4 gün devam ettiğinde (Aalbers et al., 2025)',
               color: 'border-rose-200 bg-rose-50/40 text-rose-900',
             },
             {
-              state: 'Anksiyete & Uyku Bozuklukları',
-              source: 'Işık / Ekran Ritmi',
-              sign: 'Gece 02:00-04:00 yoğun kullanım, sirkadiyen sapma',
+              state: '3. Anksiyete ve Uyku Bozuklukları',
+              source: '02:00-04:00 Gece Penceresi & SOL / WASO',
+              threshold: '02:00-04:00 arası ≥ 3 kilit açma / >35 dk ve SOL ≥ 30 dk uzama',
+              duration: 'Son 7 günün en az 3 gecesinde (Lee et al., 2025)',
               color: 'border-indigo-200 bg-indigo-50/40 text-indigo-900',
             },
             {
-              state: 'Nöroçeşitlilik (DEHB, Otizm)',
-              source: 'Uygulama Geçişleri',
-              sign: 'Tekrarlayıcı davranışlar ve dikkat dağınıklığı örüntüleri',
+              state: '4. Nöroçeşitlilik (DEHB, Dikkat Dağınıklığı)',
+              source: 'Uygulama Geçiş Sıklığı & Mikro-Oturumlar',
+              threshold: '15 dk pencerede ≥ 8 geçiş ve ortalama oturum <40 saniye',
+              duration: 'Günde en az 4 ayrı zaman diliminde saptandığında',
               color: 'border-teal-200 bg-teal-50/40 text-teal-900',
             },
             {
-              state: 'Bilişsel Düşüş Riski',
-              source: 'Klavye & Arama',
-              sign: 'Kelime haznesinde daralma, uzayan tuş aralıkları',
+              state: '5. Bilişsel İcra Hızı ve Ritim Değişimi',
+              source: 'Klavye IKI, Duraksamalar (>2000 ms) & SRI',
+              threshold: 'IKI aralığında sürekli artış (Z ≥ +2.5σ) ve SRI <%60 sirkadiyen parçalanma',
+              duration: 'Ardışık 7 gün devam ettiğinde (Boyle et al., 2025)',
               color: 'border-slate-200 bg-slate-50 text-slate-800',
             },
             {
-              state: 'PTSD Belirtileri',
-              source: 'Ekran Açma (Unlock)',
-              sign: 'Hipervijilans (sık kontrol) ve kaçınma örüntüleri',
+              state: '6. PTSD Belirtileri (Hipervijilans)',
+              source: 'Günlük Kilit Açma Sıklığı & Mikro-Kontrol',
+              threshold: 'Günlük kilit açma ≥ +2.5σ (>80/gün) ve 5 sn içi eylemsiz kilitleme >%40',
+              duration: 'Sinir sistemi yüksek alarm hali saptandığında',
               color: 'border-purple-200 bg-purple-50/40 text-purple-900',
             },
             {
-              state: 'Düşük Özsaygı',
-              source: 'Sosyal Medya',
-              sign: 'Sosyal medyada pasif izleyici modunda geçirilen aşırı zaman',
+              state: '7. Düşük Özsaygı & Pasif Sosyal Medya',
+              source: 'Sosyal Medya Süresi, Pasif Kaydırma & EMA',
+              threshold: 'Sosyal medya >120 dk & dışa dönük etkileşim <%5, gece scroll >45 dk',
+              duration: 'Oturum sonrası EMA afektinde ≥ 2 puan düşüş (Ekstrom, 2026)',
               color: 'border-stone-200 bg-stone-50 text-stone-800',
             },
           ].map((item, idx) => (
-            <div key={idx} className={`p-3.5 rounded-2xl border ${item.color} space-y-1`}>
-              <div className="font-bold flex items-center justify-between">
+            <div key={idx} className={`p-3.5 rounded-2xl border ${item.color} space-y-1.5`}>
+              <div className="font-bold flex items-center justify-between text-xs sm:text-[13px]">
                 <span>{item.state}</span>
               </div>
-              <div className="text-[11px] font-semibold opacity-75">{item.source}</div>
-              <p className="text-[11px] leading-relaxed opacity-90">{item.sign}</p>
+              <div className="text-[11px] font-semibold opacity-80">{item.source}</div>
+              <p className="text-[11px] leading-relaxed font-medium">
+                <strong>Eşik:</strong> {item.threshold}
+              </p>
+              <div className="text-[10px] opacity-75 italic">
+                {item.duration}
+              </div>
             </div>
           ))}
         </div>

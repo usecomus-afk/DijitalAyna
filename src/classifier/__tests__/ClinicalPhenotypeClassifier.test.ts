@@ -146,4 +146,61 @@ describe('ClinicalPhenotypeClassifier - Rule-Augmented Landmark Mental Health Ph
     });
     expect(lowIndex).toBeLessThan(50);
   });
+
+  describe('EarlyAwarenessEngine - 7 Clinical Insight Patterns & Thresholds', () => {
+    it('should generate explainable alerts for Burnout, Depression, Anxiety, ADHD, Cognitive, PTSD, and Passive Social', () => {
+      const zScores = {
+        typing_hold_time: 2.3,
+        typing_backspace_rate: 1.8,
+        homestay_ratio: 2.0,
+        mobility_radius: -2.2,
+        night_usage_minutes: 2.1,
+        session_switching_entropy: 2.2,
+        typing_iki: 2.6,
+        hyper_checking_ratio: 2.4,
+      };
+
+      const rawValues = {
+        meanHoldTimeMs: 155,
+        backspacePercentIncrease: 32,
+        homestayPercentage: 89,
+        sleepOnsetLatencyMinutes: 48,
+        nocturnalScreen02to04Unlocks: 4,
+        appSwitchingIn15MinWindow: 10,
+        averageSessionLengthSeconds: 32,
+        sleepRegularityIndex: 52,
+        dailyUnlockCount: 92,
+        quickCheckRatioPercent: 46,
+        dailySocialMediaMinutes: 145,
+        outwardInteractionRatioPercent: 3.2,
+        lateNightContinuousScrollMinutes: 55,
+        postSessionEmaAffectDrop: 2.5,
+      };
+
+      const alerts = ClinicalPhenotypeClassifier.evaluateEarlyAwarenessAlerts(zScores, rawValues);
+
+      expect(alerts.length).toBe(7);
+
+      const burnout = alerts.find(a => a.insightType === 'burnout');
+      expect(burnout).toBeDefined();
+      expect(burnout?.title).toContain('Burnout');
+      expect(burnout?.explainableEvidences.length).toBeGreaterThanOrEqual(2);
+      expect(burnout?.ethicalDisclaimer).toContain('tıbbi teşhis değildir');
+
+      const depression = alerts.find(a => a.insightType === 'depressionIsolation');
+      expect(depression).toBeDefined();
+      expect(depression?.title).toContain('Depresyon');
+
+      const cognitive = alerts.find(a => a.insightType === 'cognitiveDecline');
+      expect(cognitive).toBeDefined();
+      expect(cognitive?.title).toBe('Bilişsel İcra Hızı ve Ritim Değişimi');
+      expect(cognitive?.title).not.toContain('Demans');
+
+      const passiveSocial = alerts.find(a => a.insightType === 'lowSelfEsteemPassiveSocial');
+      expect(passiveSocial).toBeDefined();
+      expect(passiveSocial?.title).toContain('Düşük Özsaygı');
+      expect(passiveSocial?.notificationBody).toContain('sosyal medyada pasif izleyici');
+    });
+  });
 });
+

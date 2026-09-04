@@ -10,37 +10,45 @@ if (fs.existsSync(pkgPath)) {
   console.log('[ensure-native-sync] Package.swift normalized.');
 }
 
-// 2. Ensure project.pbxproj includes the DijitalAynaCore Swift files
+// 2. Ensure project.pbxproj includes all DijitalAynaCore Swift files
 const pbxPath = path.join(__dirname, '../ios/App/App.xcodeproj/project.pbxproj');
 if (fs.existsSync(pbxPath)) {
   let content = fs.readFileSync(pbxPath, 'utf8');
-  if (!content.includes('Medication.swift')) {
-    const files = [
-      { name: 'Medication.swift', path: 'DijitalAynaCore/Models/Medication.swift' },
-      { name: 'MedicationLog.swift', path: 'DijitalAynaCore/Models/MedicationLog.swift' },
-      { name: 'DailyPhenotype.swift', path: 'DijitalAynaCore/Models/DailyPhenotype.swift' },
-      { name: 'SPCDeviation.swift', path: 'DijitalAynaCore/Models/SPCDeviation.swift' },
-      { name: 'ClinicianReportData.swift', path: 'DijitalAynaCore/Models/ClinicianReportData.swift' },
-      { name: 'HealthKitService.swift', path: 'DijitalAynaCore/Services/HealthKitService.swift' },
-      { name: 'CoreLocationClusterer.swift', path: 'DijitalAynaCore/Services/CoreLocationClusterer.swift' },
-      { name: 'BackgroundSyncManager.swift', path: 'DijitalAynaCore/Services/BackgroundSyncManager.swift' },
-      { name: 'SPCEngine.swift', path: 'DijitalAynaCore/Analytics/SPCEngine.swift' },
-      { name: 'MedicationImpactAnalyzer.swift', path: 'DijitalAynaCore/Analytics/MedicationImpactAnalyzer.swift' },
-      { name: 'ClinicianReportGenerator.swift', path: 'DijitalAynaCore/Reporting/ClinicianReportGenerator.swift' },
-      { name: 'ExplainableForesightCard.swift', path: 'DijitalAynaCore/Views/ExplainableForesightCard.swift' },
-      { name: 'MedicationTrackerView.swift', path: 'DijitalAynaCore/Views/MedicationTrackerView.swift' },
-      { name: 'DigitalMirrorDashboardView.swift', path: 'DijitalAynaCore/Views/DigitalMirrorDashboardView.swift' }
-    ];
 
+  const files = [
+    { name: 'Medication.swift', path: 'DijitalAynaCore/Models/Medication.swift' },
+    { name: 'MedicationLog.swift', path: 'DijitalAynaCore/Models/MedicationLog.swift' },
+    { name: 'DailyPhenotype.swift', path: 'DijitalAynaCore/Models/DailyPhenotype.swift' },
+    { name: 'SPCDeviation.swift', path: 'DijitalAynaCore/Models/SPCDeviation.swift' },
+    { name: 'ClinicalInsightType.swift', path: 'DijitalAynaCore/Models/ClinicalInsightType.swift' },
+    { name: 'ClinicianReportData.swift', path: 'DijitalAynaCore/Models/ClinicianReportData.swift' },
+    { name: 'HealthKitService.swift', path: 'DijitalAynaCore/Services/HealthKitService.swift' },
+    { name: 'CoreLocationClusterer.swift', path: 'DijitalAynaCore/Services/CoreLocationClusterer.swift' },
+    { name: 'BackgroundSyncManager.swift', path: 'DijitalAynaCore/Services/BackgroundSyncManager.swift' },
+    { name: 'ForesightNotificationManager.swift', path: 'DijitalAynaCore/Services/ForesightNotificationManager.swift' },
+    { name: 'SPCEngine.swift', path: 'DijitalAynaCore/Analytics/SPCEngine.swift' },
+    { name: 'EarlyAwarenessEngine.swift', path: 'DijitalAynaCore/Analytics/EarlyAwarenessEngine.swift' },
+    { name: 'MedicationImpactAnalyzer.swift', path: 'DijitalAynaCore/Analytics/MedicationImpactAnalyzer.swift' },
+    { name: 'ClinicianReportGenerator.swift', path: 'DijitalAynaCore/Reporting/ClinicianReportGenerator.swift' },
+    { name: 'ExplainableForesightCard.swift', path: 'DijitalAynaCore/Views/ExplainableForesightCard.swift' },
+    { name: 'InsightCardView.swift', path: 'DijitalAynaCore/Views/InsightCardView.swift' },
+    { name: 'MedicationTrackerView.swift', path: 'DijitalAynaCore/Views/MedicationTrackerView.swift' },
+    { name: 'DigitalMirrorDashboardView.swift', path: 'DijitalAynaCore/Views/DigitalMirrorDashboardView.swift' }
+  ];
+
+  const missingFiles = files.filter(f => !content.includes(f.name));
+
+  if (missingFiles.length > 0) {
     let buildFiles = '';
     let fileRefs = '';
     let groupChildren = '';
     let sourcesFiles = '';
 
-    files.forEach((f, idx) => {
-      const hexIdx = (idx + 1).toString(16).padStart(2, '0');
-      const buildId = `DA01B00000000000000000${hexIdx}`;
-      const fileId = `DA01F00000000000000000${hexIdx}`;
+    missingFiles.forEach((f, idx) => {
+      // Generate unique IDs using hash or safe index
+      const hexIdx = (files.indexOf(f) + 1).toString(16).padStart(2, '0');
+      const buildId = `DA02B00000000000000000${hexIdx}`;
+      const fileId = `DA02F00000000000000000${hexIdx}`;
 
       buildFiles += `\t\t${buildId} /* ${f.name} in Sources */ = {isa = PBXBuildFile; fileRef = ${fileId} /* ${f.name} */; };\n`;
       fileRefs += `\t\t${fileId} /* ${f.name} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "${f.path}"; sourceTree = "<group>"; };\n`;
@@ -56,7 +64,7 @@ if (fs.existsSync(pbxPath)) {
     content = content.replace(sourcesMarker, `${sourcesMarker}${sourcesFiles}`);
 
     fs.writeFileSync(pbxPath, content, 'utf8');
-    console.log('[ensure-native-sync] project.pbxproj updated with DijitalAynaCore files.');
+    console.log(`[ensure-native-sync] project.pbxproj updated with ${missingFiles.length} new DijitalAynaCore files: ${missingFiles.map(m => m.name).join(', ')}.`);
   }
 
   if (!content.includes('GoogleService-Info.plist')) {
@@ -77,4 +85,3 @@ if (fs.existsSync(pbxPath)) {
     console.log('[ensure-native-sync] project.pbxproj updated with GoogleService-Info.plist.');
   }
 }
-

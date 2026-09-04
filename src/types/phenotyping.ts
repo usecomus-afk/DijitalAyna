@@ -87,8 +87,10 @@ export interface DailyPhenotypeFeatures {
  * Clinical Phenotype Classification Result
  */
 export type ClinicalPhenotypeState =
+  | 'burnout_phenotype'
   | 'depressive_phenotype'
   | 'anxious_agitated_phenotype'
+  | 'anxiety_sleep_phenotype'
   | 'manic_hypomanic_phenotype'
   | 'cognitive_fatigue_phenotype'
   | 'adhd_neurodivergent_phenotype'
@@ -105,4 +107,25 @@ export interface ClinicalPhenotypeInference {
   clinicalInsight: string;
   contributingZScores: Record<string, number>;
   detectedAt: string;
+}
+
+export interface ClinicalInsightAlert {
+  id: string;
+  insightType:
+    | 'burnout'
+    | 'depressionIsolation'
+    | 'anxietySleep'
+    | 'neurodiversity'
+    | 'cognitiveDecline'
+    | 'ptsdHypervigilance'
+    | 'lowSelfEsteemPassiveSocial';
+  title: string;
+  personalizedDeviationStatement: string;
+  explainableEvidences: string[];
+  ethicalDisclaimer: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: number;
+  contributingMetrics: Record<string, number>;
+  notificationBody: string;
+  isAddedToDoctorReport?: boolean;
 }

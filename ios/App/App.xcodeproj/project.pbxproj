@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DA02B0000000000000000005 /* ClinicalInsightType.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA02F0000000000000000005 /* ClinicalInsightType.swift */; };
+		DA02B000000000000000000a /* ForesightNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA02F000000000000000000a /* ForesightNotificationManager.swift */; };
+		DA02B000000000000000000c /* EarlyAwarenessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA02F000000000000000000c /* EarlyAwarenessEngine.swift */; };
+		DA02B0000000000000000010 /* InsightCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA02F0000000000000000010 /* InsightCardView.swift */; };
 		DA01B0000000000000000099 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = DA01F0000000000000000099 /* GoogleService-Info.plist */; };
 		DA01B0000000000000000001 /* Medication.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01F0000000000000000001 /* Medication.swift */; };
 		DA01B0000000000000000002 /* MedicationLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01F0000000000000000002 /* MedicationLog.swift */; };
@@ -33,6 +37,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DA02F0000000000000000005 /* ClinicalInsightType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DijitalAynaCore/Models/ClinicalInsightType.swift"; sourceTree = "<group>"; };
+		DA02F000000000000000000a /* ForesightNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DijitalAynaCore/Services/ForesightNotificationManager.swift"; sourceTree = "<group>"; };
+		DA02F000000000000000000c /* EarlyAwarenessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DijitalAynaCore/Analytics/EarlyAwarenessEngine.swift"; sourceTree = "<group>"; };
+		DA02F0000000000000000010 /* InsightCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DijitalAynaCore/Views/InsightCardView.swift"; sourceTree = "<group>"; };
 		DA01F0000000000000000099 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		DA01F0000000000000000001 /* Medication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DijitalAynaCore/Models/Medication.swift"; sourceTree = "<group>"; };
 		DA01F0000000000000000002 /* MedicationLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DijitalAynaCore/Models/MedicationLog.swift"; sourceTree = "<group>"; };
@@ -92,6 +100,10 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				DA02F0000000000000000005 /* ClinicalInsightType.swift */,
+				DA02F000000000000000000a /* ForesightNotificationManager.swift */,
+				DA02F000000000000000000c /* EarlyAwarenessEngine.swift */,
+				DA02F0000000000000000010 /* InsightCardView.swift */,
 				DA01F0000000000000000099 /* GoogleService-Info.plist */,
 				DA01F0000000000000000001 /* Medication.swift */,
 				DA01F0000000000000000002 /* MedicationLog.swift */,
@@ -201,6 +213,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DA02B0000000000000000005 /* ClinicalInsightType.swift in Sources */,
+				DA02B000000000000000000a /* ForesightNotificationManager.swift in Sources */,
+				DA02B000000000000000000c /* EarlyAwarenessEngine.swift in Sources */,
+				DA02B0000000000000000010 /* InsightCardView.swift in Sources */,
 				DA01B0000000000000000001 /* Medication.swift in Sources */,
 				DA01B0000000000000000002 /* MedicationLog.swift in Sources */,
 				DA01B0000000000000000003 /* DailyPhenotype.swift in Sources */,

@@ -21,6 +21,12 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
     }
   };
 
+  const [isAddedToReport, setIsAddedToReport] = useState<boolean>(false);
+
+  const handleToggleReport = () => {
+    setIsAddedToReport(!isAddedToReport);
+  };
+
   const handleShare = async () => {
     const result = await shareContent({
       title: `Duty-Comus Farkındalık Notu: ${insight.title}`,
@@ -62,6 +68,19 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleReport}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl transition-all font-medium ${
+              isAddedToReport
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-comus-surface hover:bg-comus-sand-subtle text-comus-navy border border-comus-sand-light/30'
+            }`}
+            title="Bu içgörüyü hekim raporuna ekle"
+          >
+            <Check className={`w-3.5 h-3.5 ${isAddedToReport ? 'text-white' : 'text-comus-sand-dark'}`} />
+            <span>{isAddedToReport ? 'Rapora Eklendi' : 'Hekim Raporuna Ekle'}</span>
+          </button>
+
           <button
             onClick={handleShare}
             className="flex items-center gap-1 text-xs text-comus-sand-dark hover:text-comus-navy bg-comus-surface hover:bg-comus-sand-subtle px-2.5 py-1 rounded-xl transition-colors"
