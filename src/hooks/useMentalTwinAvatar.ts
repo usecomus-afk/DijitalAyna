@@ -99,7 +99,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
     if (isLearning && todays.length === 0) {
       avatarAlt = 'Öğrenme Dönemi';
       stateLabel = 'Öğrenme Aşaması';
-      mirrorText = `Merhaba ${userProfile.name}! Duty-Comus şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını (normalini) öğreniyor.`;
+      mirrorText = `Merhaba ${userProfile.name}! Duty Dijital Ayna şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını (normalini) öğreniyor.`;
       moodPill = { text: 'Öğrenme Dönemi', color: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/40' };
       colorClass = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]';
     } else if (derivedScore === 1) {

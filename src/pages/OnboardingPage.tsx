@@ -66,9 +66,9 @@ export const OnboardingPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center p-1 border border-comus-sand-light/30 shadow-soft">
-              <img src="/logo.png" alt="Duty-Comus Logo" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="Duty Dijital Ayna Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-serif font-bold text-comus-navy">Duty-Comus</span>
+            <span className="font-serif font-bold text-comus-navy">Duty Dijital Ayna</span>
           </div>
           <span className="text-xs font-semibold text-comus-sand-dark">
             Adım {step} / 4
@@ -86,18 +86,18 @@ export const OnboardingPage: React.FC = () => {
       {step === 1 && (
         <div className="my-auto py-6 animate-fadeIn">
           <div className="w-20 h-20 rounded-3xl bg-white border border-comus-sand-light/30 flex items-center justify-center p-2 mb-6 shadow-soft">
-            <img src="/logo.png" alt="Duty-Comus Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="Duty Dijital Ayna Logo" className="w-full h-full object-contain" />
           </div>
 
           <span className="text-xs font-bold uppercase tracking-widest text-comus-copper">
             Kişiselleştirilmiş Biyobelirteç Takibi
           </span>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-comus-navy mt-1 mb-3 leading-tight">
-            Duty-Comus'a Hoş Geldin.
+            Duty Dijital Ayna'ya Hoş Geldin.
           </h1>
 
           <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed mb-6">
-            Duty-Comus tıbbi teşhis koymaz; akıllı cihazınızla etkileşiminizdeki ince ritimleri izleyerek size özel dijital baz hattınızı oluşturur. Başlamak için Google veya Apple hesabınızla giriş yapın:
+            Duty Dijital Ayna tıbbi teşhis koymaz; akıllı cihazınızla etkileşiminizdeki ince ritimleri izleyerek size özel dijital baz hattınızı oluşturur. Başlamak için Google veya Apple hesabınızla giriş yapın:
           </p>
 
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-comus-sand-light/20 shadow-soft">
@@ -339,7 +339,7 @@ export const OnboardingPage: React.FC = () => {
                 Tıbbi Teşhis Değildir
               </h4>
               <p>
-                Duty-Comus bir tıbbi tanı veya klinik tedavi aracı değildir. Davranışsal değişimleri istatistiksel baz hattı üzerinden ayna tutarak farkındalık sunar.
+                Duty Dijital Ayna bir tıbbi tanı veya klinik tedavi aracı değildir. Davranışsal değişimleri istatistiksel baz hattı üzerinden ayna tutarak farkındalık sunar.
               </p>
             </div>
 

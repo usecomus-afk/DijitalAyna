@@ -16,38 +16,93 @@ const AVAILABLE_TAGS = ['İş', 'Uyku', 'Zihinsel Yük', 'Sosyal', 'Açık Hava'
 export const QuickMoodWidget: React.FC = () => {
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [lastSavedId, setLastSavedId] = useState<number | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter((t) => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
+  const toggleTag = async (tag: string) => {
+    const updatedTags = selectedTags.includes(tag)
+      ? selectedTags.filter((t) => t !== tag)
+      : [...selectedTags, tag];
+    setSelectedTags(updatedTags);
+
+    // If a report was already created in this interaction, seamlessly update its tags in Dexie
+    if (lastSavedId) {
+      try {
+        await db.moodReports.update(lastSavedId, { tags: updatedTags });
+      } catch (err) {
+        console.warn('[QuickMoodWidget] Failed to update tags on active mood report:', err);
+      }
     }
   };
 
-  const handleSave = async (score: number) => {
+  const handleSelectScore = async (score: number) => {
     setSelectedScore(score);
     const todayStr = new Date().toISOString().split('T')[0];
 
-    await db.moodReports.add({
-      timestamp: Date.now(),
-      date: todayStr,
-      score,
-      energyScore: score,
-      tags: selectedTags,
-    });
+    try {
+      let reportId = lastSavedId;
+      if (reportId) {
+        // Update existing active session report
+        await db.moodReports.update(reportId, {
+          score,
+          energyScore: score,
+          tags: selectedTags,
+          timestamp: Date.now(),
+        });
+      } else {
+        // Create new record
+        reportId = await db.moodReports.add({
+          timestamp: Date.now(),
+          date: todayStr,
+          score,
+          energyScore: score,
+          tags: selectedTags,
+        });
+        setLastSavedId(reportId as number);
+      }
 
-    // Immediately trigger live evaluation
-    const store = (await import('../../store/useAppStore')).useAppStore.getState();
-    store.runAnalysisPipeline();
+      // Immediately trigger live evaluation
+      const store = (await import('../../store/useAppStore')).useAppStore.getState();
+      await store.runAnalysisPipeline();
 
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-      setSelectedScore(null);
-      setSelectedTags([]);
-    }, 2500);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error('[QuickMoodWidget] Error saving mood report:', err);
+    }
+  };
+
+  const handleExplicitSave = async () => {
+    if (!selectedScore) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    try {
+      if (lastSavedId) {
+        await db.moodReports.update(lastSavedId, {
+          score: selectedScore,
+          energyScore: selectedScore,
+          tags: selectedTags,
+          timestamp: Date.now(),
+        });
+      } else {
+        const id = await db.moodReports.add({
+          timestamp: Date.now(),
+          date: todayStr,
+          score: selectedScore,
+          energyScore: selectedScore,
+          tags: selectedTags,
+        });
+        setLastSavedId(id as number);
+      }
+
+      const store = (await import('../../store/useAppStore')).useAppStore.getState();
+      await store.runAnalysisPipeline();
+
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3500);
+    } catch (err) {
+      console.error('[QuickMoodWidget] Explicit save error:', err);
+    }
   };
 
   return (
@@ -79,7 +134,7 @@ export const QuickMoodWidget: React.FC = () => {
         {MOOD_OPTIONS.map((opt) => (
           <button
             key={opt.score}
-            onClick={() => handleSave(opt.score)}
+            onClick={() => handleSelectScore(opt.score)}
             title={opt.fullLabel}
             className={`flex flex-col items-center justify-center h-24 sm:h-26 p-2 rounded-2xl border transition-all duration-200 group ${
               selectedScore === opt.score
@@ -119,6 +174,23 @@ export const QuickMoodWidget: React.FC = () => {
             </button>
           );
         })}
+      </div>
+
+      {/* Explicit Save Action */}
+      <div className="mt-3.5 pt-2.5 border-t border-comus-sand-light/10 flex items-center justify-between gap-3">
+        <span className="text-[11px] text-comus-sand-dark truncate">
+          {selectedScore
+            ? `${MOOD_OPTIONS.find((m) => m.score === selectedScore)?.label} seçildi (${selectedTags.length} etiket)`
+            : 'Modunuzu ve etiketleri seçin'}
+        </span>
+        <button
+          onClick={handleExplicitSave}
+          disabled={!selectedScore}
+          className="px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+        >
+          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Kayıtlara İşle</span>
+        </button>
       </div>
     </div>
   );

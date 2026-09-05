@@ -4,7 +4,7 @@ import { MetricKey, METRIC_DEFINITIONS } from '../types/sensor';
 /**
  * Standard healthy normative behavioral values based on digital phenotyping literature (Insel 2017, Torous et al.)
  */
-const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; min: number; max: number }> = {
+export const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; min: number; max: number }> = {
   mobility_index: { mean: 74, std: 6, min: 20, max: 100 },
   tremor_variance: { mean: 0.04, std: 0.015, min: 0.01, max: 0.2 },
   typing_wpm: { mean: 44, std: 4, min: 15, max: 90 },

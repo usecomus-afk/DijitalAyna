@@ -29,7 +29,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
 
   const handleShare = async () => {
     const result = await shareContent({
-      title: `Duty-Comus Farkındalık Notu: ${insight.title}`,
+      title: `Duty Dijital Ayna Farkındalık Notu: ${insight.title}`,
       text: `${insight.title}\n\n${insight.body}\n\nÖneri: ${insight.suggestedAction}\n\n* Bu bir teşhis değil, istatistiksel bir farkındalık içgörüsüdür.`,
     });
 

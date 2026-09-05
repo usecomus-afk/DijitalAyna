@@ -14,11 +14,9 @@ import {
   Moon,
   Smartphone,
   RefreshCw,
-  Zap,
   CheckCircle2,
   Battery,
   Wifi,
-  Sparkles,
   ArrowRight,
   FileText,
   User,
@@ -29,8 +27,6 @@ import { AnomalyResult } from '../types/engine';
 export const DashboardPage: React.FC = () => {
   const { isAnalyzing, activePredictiveAlertDismissed, dismissPredictiveAlert, baselineDayCount, runAnalysisPipeline } = useAppStore();
   const [evalToast, setEvalToast] = useState<string | null>(null);
-  const [testInput, setTestInput] = useState('');
-  const [showQuickTest, setShowQuickTest] = useState(false);
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
@@ -144,14 +140,6 @@ export const DashboardPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
-              onClick={() => setShowQuickTest(!showQuickTest)}
-              className="px-3 py-2 rounded-xl bg-comus-surface hover:bg-comus-sand-light/20 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-comus-copper" />
-              <span>{showQuickTest ? 'Testi Kapat' : 'Hızlı Ritim Testi'}</span>
-            </button>
-
-            <button
               onClick={handleManualEvaluate}
               disabled={isAnalyzing}
               className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all disabled:opacity-75"
@@ -185,42 +173,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Typing & Sensor Test Box (Demonstrates real data intake live) */}
-        {showQuickTest && (
-          <div className="mt-3 p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-2.5 animate-fadeIn">
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-bold text-teal-950 flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-teal-700" />
-                <span>10 Saniyelik Canlı Ritim Kalibrasyonu</span>
-              </div>
-              <span className="text-[10px] text-teal-800 font-mono">
-                {testInput.length} karakter yazıldı
-              </span>
-            </div>
-
-            <p className="text-[11px] text-teal-900 leading-relaxed">
-              Aşağıdaki alana herhangi bir cümle yazın veya ekranı kaydırın. Klavyenizin tuşlar arası vuruş aralığı (IKI), yazım hızı ve düzeltme oranınız gerçek zamanlı hesaplanarak fenotip modelinize eklenir:
-            </p>
-
-            <input
-              type="text"
-              value={testInput}
-              onChange={(e) => setTestInput(e.target.value)}
-              placeholder="Örn: Bugün kendimi sakin ve dengeli hissediyorum..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-teal-300 text-xs text-comus-navy focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
-            />
-
-            <div className="flex items-center justify-between text-[11px] text-teal-900 font-medium">
-              <span>Tuş Aralığı: {testInput.length > 5 ? '~230 ms' : 'Ölçülüyor...'}</span>
-              <button
-                onClick={handleManualEvaluate}
-                className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
-              >
-                Sonuçları Güncelle
-              </button>
-            </div>
-          </div>
-        )}
 
         {evalToast && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2 animate-fadeIn font-medium">

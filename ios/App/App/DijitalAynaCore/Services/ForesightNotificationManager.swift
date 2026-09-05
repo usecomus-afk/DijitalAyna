@@ -76,7 +76,7 @@ public final class ForesightNotificationManager: NSObject, UNUserNotificationCen
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "Duty-Comus: Erken Farkındalık Gözlemi"
+        content.title = "Duty Dijital Ayna: Erken Farkındalık Gözlemi"
         content.subtitle = alert.title
         content.body = alert.notificationBody
         content.sound = .default

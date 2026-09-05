@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -20,7 +20,7 @@ import {
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, setUserProfile, disconnectGoogleProfile } = useAppStore();
+  const { userProfile, baselineDayCount, setUserProfile, disconnectGoogleProfile } = useAppStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(userProfile.name);
@@ -28,9 +28,15 @@ export const ProfilePage: React.FC = () => {
   const [gender, setGender] = useState<UserGender>(userProfile.gender || 'prefer_not_to_say');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Real device metrics count
-  const metricsCount = useLiveQuery(() => db.dailyMetrics.count()) || 0;
+  // Real device metrics and reports
+  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const reportsCount = useLiveQuery(() => db.moodReports.count()) || 0;
+
+  // Single source of truth for baseline day count matching DigitalTwinMirror
+  const distinctDays = useMemo(() => {
+    const dates = new Set(dailyMetrics.map((m) => m.date));
+    return Math.max(dates.size, baselineDayCount, 1);
+  }, [dailyMetrics, baselineDayCount]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,18 +241,18 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
-            metricsCount >= 7
+            distinctDays >= 7
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               : 'bg-amber-50 text-amber-700 border border-amber-200'
           }`}>
-            {metricsCount >= 7 ? 'Baz Hattı Aktif' : `Kalibrasyon (${metricsCount}/7 Gün)`}
+            {distinctDays >= 7 ? 'Baz Hattı Aktif' : `Kalibrasyon (${distinctDays}/7 Gün)`}
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
             <span className="text-[11px] text-comus-sand-dark block">Kayıtlı Gün</span>
-            <strong className="text-lg font-bold font-serif text-comus-navy">{metricsCount} Gün</strong>
+            <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} Gün</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
             <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklaması</span>
