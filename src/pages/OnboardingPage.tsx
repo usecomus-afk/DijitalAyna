@@ -16,7 +16,9 @@ import {
   MapPin,
   UserCheck,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
+import { getAvatarByScore } from '../constants/avatars';
 
 export const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -176,6 +178,24 @@ export const OnboardingPage: React.FC = () => {
                   {g.label}
                 </button>
               ))}
+            </div>
+
+            {/* Dynamic Mental Twin Avatar Preview */}
+            <div className="mt-3 p-3 rounded-2xl bg-gradient-to-br from-comus-navy/5 to-comus-copper/10 border border-comus-sand-light/40 flex items-center gap-3 animate-fadeIn">
+              <img
+                src={getAvatarByScore(3, selectedGender)}
+                alt="Mental İkiz Yansıması"
+                className="w-14 h-14 rounded-xl object-contain bg-white shadow-soft p-1 border border-comus-sand-light/30 shrink-0"
+              />
+              <div>
+                <span className="text-[11px] font-bold text-comus-navy flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-comus-copper" />
+                  <span>Kişisel Dijital İkiz Avatarınız</span>
+                </span>
+                <p className="text-[10.5px] text-comus-sand-dark leading-tight mt-0.5">
+                  {selectedGender === 'female' ? 'Kadın' : selectedGender === 'male' ? 'Erkek' : 'Dengeli'} dijital ikiz avatarınız biyobelirteçlerinize göre otomatik yansıtılacaktır.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
-import { AVATAR_IMAGES } from '../../constants/avatars';
+import { getAvatarMap } from '../../constants/avatars';
 import {
   X,
   Sparkles,
@@ -29,7 +29,8 @@ export const MentalTwinModal: React.FC = () => {
   // 2: Düşük (45.png)
   // 3: Normal (46.png)
   // 4: İyi (47.png)
-  // 5: Harika (48.png)
+  const avatarMap = getAvatarMap(userProfile.gender);
+
   const getAvatarConfig = (score: number) => {
     switch (score) {
       case 1:
@@ -40,7 +41,7 @@ export const MentalTwinModal: React.FC = () => {
           auraGradient: 'from-rose-500/25 via-purple-600/20 to-slate-900/30',
           glowColor: '#f43f5e',
           bgBase: 'bg-gradient-to-b from-rose-950/20 to-purple-950/30',
-          avatarSrc: AVATAR_IMAGES.zorlu,
+          avatarSrc: avatarMap.zorlu,
           dialogue: `${userProfile.name}, zihnim bugün oldukça ağır ve yorgun. Sensör ve hareketlilik sinyallerin yoğun bir zihinsel yük altında olduğunu gösteriyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`,
           energyText: `%${affectiveIndex} Duygusal Denge`,
         };
@@ -52,7 +53,7 @@ export const MentalTwinModal: React.FC = () => {
           auraGradient: 'from-amber-500/20 via-orange-600/15 to-slate-800/30',
           glowColor: '#f59e0b',
           bgBase: 'bg-gradient-to-b from-amber-950/20 to-slate-900/30',
-          avatarSrc: AVATAR_IMAGES.dusuk,
+          avatarSrc: avatarMap.dusuk,
           dialogue: `Bugün tempomuz biraz düşük ${userProfile.name}. Klavyedeki yazım akışın ve hareketliliğin içe çekildiğimizi hissettiriyor. Her gün yüzde yüz performansla koşmak zorunda değiliz; bugün dinlenme günü olsun.`,
           energyText: `%${affectiveIndex} Duygusal Denge`,
         };
@@ -64,7 +65,7 @@ export const MentalTwinModal: React.FC = () => {
           auraGradient: 'from-cyan-500/20 via-indigo-500/15 to-blue-900/20',
           glowColor: '#6366f1',
           bgBase: 'bg-gradient-to-b from-indigo-950/20 to-slate-900/30',
-          avatarSrc: AVATAR_IMAGES.normal,
+          avatarSrc: avatarMap.normal,
           dialogue: `Şu an dingin ve dengeli bir akıştayız ${userProfile.name}. Sensör dinamiklerin standart kişisel baz hattınla uyumlu. Rutinine sakin adımlarla devam edebilirsin.`,
           energyText: `%${affectiveIndex} Duygusal Denge`,
         };
@@ -76,7 +77,7 @@ export const MentalTwinModal: React.FC = () => {
           auraGradient: 'from-emerald-500/25 via-teal-500/20 to-cyan-900/20',
           glowColor: '#10b981',
           bgBase: 'bg-gradient-to-b from-emerald-950/20 to-slate-900/30',
-          avatarSrc: AVATAR_IMAGES.iyi,
+          avatarSrc: avatarMap.iyi,
           dialogue: `Yüzüm gülüyor ${userProfile.name}! Yazım tempon akıcı, günlük hareketliliğin canlı. Zihinsel enerjimizin bu pozitif dalgasını güzel hedeflere dönüştürebilirsin.`,
           energyText: `%${affectiveIndex} Duygusal Denge`,
         };
@@ -89,7 +90,7 @@ export const MentalTwinModal: React.FC = () => {
           auraGradient: 'from-amber-400/30 via-comus-copper/25 to-rose-500/20',
           glowColor: '#f59e0b',
           bgBase: 'bg-gradient-to-b from-amber-950/25 to-comus-navy/40',
-          avatarSrc: AVATAR_IMAGES.harika,
+          avatarSrc: avatarMap.harika,
           dialogue: `Işıl ışıl bir zihin durumundayız ${userProfile.name}! Zihinsel berraklığımız ve motivasyonumuz zirvede. Bu neşeli ve ilham verici enerjinin tadını çıkar!`,
           energyText: `%${affectiveIndex} Duygusal Denge`,
         };

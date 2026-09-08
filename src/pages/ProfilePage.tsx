@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Sliders,
 } from 'lucide-react';
+import { getAvatarByScore } from '../constants/avatars';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -85,9 +86,11 @@ export const ProfilePage: React.FC = () => {
               className="w-20 h-20 rounded-3xl object-cover border-2 border-comus-copper/20 shadow-soft"
             />
           ) : (
-            <div className="w-20 h-20 rounded-3xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper text-2xl font-bold font-serif shadow-soft">
-              {userProfile.name.charAt(0).toUpperCase()}
-            </div>
+            <img
+              src={getAvatarByScore(3, userProfile.gender)}
+              alt="Dijital İkiz Avatarı"
+              className="w-20 h-20 rounded-3xl object-contain bg-white border-2 border-comus-copper/20 shadow-soft p-1"
+            />
           )}
 
           <div className="flex-1 space-y-1">
@@ -201,6 +204,21 @@ export const ProfilePage: React.FC = () => {
                     {g.label}
                   </button>
                 ))}
+              </div>
+
+              {/* Dynamic Mental Twin Avatar Preview */}
+              <div className="mt-2.5 p-2.5 rounded-xl bg-comus-surface border border-comus-sand-light/40 flex items-center gap-2.5">
+                <img
+                  src={getAvatarByScore(3, gender)}
+                  alt="Dijital İkiz Önizleme"
+                  className="w-10 h-10 rounded-lg object-contain bg-white p-0.5 border border-comus-sand-light/30 shrink-0"
+                />
+                <span className="text-[11px] text-comus-navy font-medium">
+                  Seçilen profil için dijital ikiz avatarı:{' '}
+                  <strong className="text-comus-copper">
+                    {gender === 'female' ? 'Kadın Avatar Seti' : gender === 'male' ? 'Erkek Avatar Seti' : 'Dengeli Avatar Seti'}
+                  </strong>
+                </span>
               </div>
             </div>
 

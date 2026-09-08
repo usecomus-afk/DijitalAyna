@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { Smile, CheckCircle, Plus } from 'lucide-react';
 import { db } from '../../db';
-import { AVATAR_IMAGES } from '../../constants/avatars';
-
-const MOOD_OPTIONS = [
-  { score: 1, avatarSrc: AVATAR_IMAGES.zorlu, label: 'Zorlu', fullLabel: 'Çok Zorlayıcı' },
-  { score: 2, avatarSrc: AVATAR_IMAGES.dusuk, label: 'Düşük', fullLabel: 'Düşük Enerji' },
-  { score: 3, avatarSrc: AVATAR_IMAGES.normal, label: 'Normal', fullLabel: 'Nötr / Normal' },
-  { score: 4, avatarSrc: AVATAR_IMAGES.iyi, label: 'İyi', fullLabel: 'İyi / Dengeli' },
-  { score: 5, avatarSrc: AVATAR_IMAGES.harika, label: 'Harika', fullLabel: 'Çok Dengeli / Yüksek' },
-];
+import { getAvatarMap } from '../../constants/avatars';
+import { useAppStore } from '../../store/useAppStore';
 
 const AVAILABLE_TAGS = ['İş', 'Uyku', 'Zihinsel Yük', 'Sosyal', 'Açık Hava', 'Yorgunluk'];
 
 export const QuickMoodWidget: React.FC = () => {
+  const { userProfile } = useAppStore();
+  const avatarMap = getAvatarMap(userProfile?.gender);
+
+  const moodOptions = [
+    { score: 1, avatarSrc: avatarMap.zorlu, label: 'Zorlu', fullLabel: 'Çok Zorlayıcı' },
+    { score: 2, avatarSrc: avatarMap.dusuk, label: 'Düşük', fullLabel: 'Düşük Enerji' },
+    { score: 3, avatarSrc: avatarMap.normal, label: 'Normal', fullLabel: 'Nötr / Normal' },
+    { score: 4, avatarSrc: avatarMap.iyi, label: 'İyi', fullLabel: 'İyi / Dengeli' },
+    { score: 5, avatarSrc: avatarMap.harika, label: 'Harika', fullLabel: 'Çok Dengeli / Yüksek' },
+  ];
+
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [lastSavedId, setLastSavedId] = useState<number | null>(null);
@@ -131,7 +135,7 @@ export const QuickMoodWidget: React.FC = () => {
 
       {/* 3D Avatar Scale (No Emojis, Bundled Avatars) */}
       <div className="grid grid-cols-5 gap-2 my-4">
-        {MOOD_OPTIONS.map((opt) => (
+        {moodOptions.map((opt) => (
           <button
             key={opt.score}
             onClick={() => handleSelectScore(opt.score)}
@@ -180,7 +184,7 @@ export const QuickMoodWidget: React.FC = () => {
       <div className="mt-3.5 pt-2.5 border-t border-comus-sand-light/10 flex items-center justify-between gap-3">
         <span className="text-[11px] text-comus-sand-dark truncate">
           {selectedScore
-            ? `${MOOD_OPTIONS.find((m) => m.score === selectedScore)?.label} seçildi (${selectedTags.length} etiket)`
+            ? `${moodOptions.find((m) => m.score === selectedScore)?.label} seçildi (${selectedTags.length} etiket)`
             : 'Modunuzu ve etiketleri seçin'}
         </span>
         <button

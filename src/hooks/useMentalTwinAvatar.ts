@@ -82,7 +82,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       derivedScore = latestMood.score as 1 | 2 | 3 | 4 | 5;
     }
 
-    const avatarSrc = getAvatarByScore(derivedScore);
+    const avatarSrc = getAvatarByScore(derivedScore, userProfile.gender);
 
     // Telemetry summary values
     const typing = todays.find((m) => m.metricKey === 'typing_wpm')?.value || 42;
@@ -153,5 +153,5 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
         tremor,
       },
     };
-  }, [dailyMetrics, baselines, latestMood, baselineDayCount, userProfile.name]);
+  }, [dailyMetrics, baselines, latestMood, baselineDayCount, userProfile.name, userProfile.gender]);
 }
