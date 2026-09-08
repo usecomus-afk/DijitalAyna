@@ -5,6 +5,7 @@ import { sensorManager } from '../sensors/SensorManager';
 import { ensureInitialCalibration } from '../engine/seedCalibration';
 import { signOutGoogle, subscribeToAuthState, checkRedirectAuth } from '../auth/firebaseAuth';
 import { notificationService } from '../services/notificationService';
+import { cloudSyncService } from '../services/cloudSyncService';
 
 interface AppState {
   userProfile: UserProfile;
@@ -22,6 +23,9 @@ interface AppState {
   toggleSensor: (sensor: keyof UserSettings['sensorsEnabled']) => void;
   setOnboardingCompleted: (completed: boolean) => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
+  setCloudBackupEnabled: (enabled: boolean) => Promise<boolean>;
+  syncCloudDataNow: () => Promise<{ success: boolean; message?: string }>;
+  restoreFromCloudNow: (email?: string) => Promise<{ success: boolean; restored: boolean; message?: string }>;
   sendTestNotification: () => Promise<boolean>;
   setEmergencyModalOpen: (open: boolean) => void;
   dismissPredictiveAlert: () => void;
@@ -37,6 +41,7 @@ const DEFAULT_PROFILE: UserProfile = {
 
 const DEFAULT_SETTINGS: UserSettings = {
   onboardingCompleted: false,
+  cloudBackupEnabled: false,
   sensorsEnabled: {
     motion: true,
     typing: true,
@@ -114,6 +119,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (redirectProfile) {
         set({ userProfile: redirectProfile });
         await db.settings.put({ key: 'user_profile', value: redirectProfile });
+        if (redirectProfile.email) {
+          await get().restoreFromCloudNow(redirectProfile.email);
+        }
       }
 
       // Subscribe to real-time auth changes
@@ -121,6 +129,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (authUser && !get().userProfile.isGoogleConnected) {
           set({ userProfile: authUser });
           await db.settings.put({ key: 'user_profile', value: authUser });
+          if (authUser.email) {
+            await get().restoreFromCloudNow(authUser.email);
+          }
         }
       });
 
@@ -149,6 +160,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   connectGoogleProfile: async (googleProfile: UserProfile) => {
     set({ userProfile: googleProfile });
     await db.settings.put({ key: 'user_profile', value: googleProfile });
+    
+    // Automatically check and restore cloud backup for this Google account if available
+    if (googleProfile.email) {
+      await get().restoreFromCloudNow(googleProfile.email);
+    }
     await sensorManager.evaluateNow();
   },
 
@@ -211,6 +227,76 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  setCloudBackupEnabled: async (enabled: boolean): Promise<boolean> => {
+    const current = get().settings;
+    const updated = { ...current, cloudBackupEnabled: enabled };
+    set({ settings: updated });
+    await db.settings.put({ key: 'app_settings', value: updated });
+
+    if (enabled && (get().userProfile.email || get().userProfile.uid)) {
+      await cloudSyncService.backupUserDataToCloud(get().userProfile, updated, true);
+    }
+    return true;
+  },
+
+  syncCloudDataNow: async () => {
+    const { userProfile, settings } = get();
+    const res = await cloudSyncService.backupUserDataToCloud(userProfile, settings, true);
+    if (res.success && res.timestamp) {
+      const updated = { ...settings, lastCloudSyncTimestamp: res.timestamp };
+      set({ settings: updated });
+    }
+    return res;
+  },
+
+  restoreFromCloudNow: async (email?: string) => {
+    const targetEmail = email || get().userProfile.email;
+    if (!targetEmail) {
+      return { success: false, restored: false, message: 'Hesap e-postası bulunamadı.' };
+    }
+
+    const res = await cloudSyncService.restoreUserDataFromCloud(targetEmail);
+    if (res.success && res.restored && res.data) {
+      const currentProfile = get().userProfile;
+      const currentSettings = get().settings;
+
+      const restoredProfile: UserProfile = {
+        ...currentProfile,
+        name: res.data.userProfile.name || currentProfile.name,
+        age: res.data.userProfile.age ?? currentProfile.age,
+        gender: res.data.userProfile.gender ?? currentProfile.gender,
+        isGoogleConnected: res.data.userProfile.isGoogleConnected ?? currentProfile.isGoogleConnected,
+        email: res.data.userProfile.email || currentProfile.email,
+        picture: res.data.userProfile.picture || currentProfile.picture,
+      };
+
+      const restoredSettings: UserSettings = {
+        ...currentSettings,
+        ...(res.data.settings || {}),
+        onboardingCompleted: true,
+        cloudBackupEnabled: true,
+        lastCloudSyncTimestamp: res.data.updatedAt,
+      };
+
+      set({
+        userProfile: restoredProfile,
+        settings: restoredSettings,
+        baselineDayCount: res.baselineDayCount || 7,
+      });
+
+      await db.settings.put({ key: 'user_profile', value: restoredProfile });
+      await db.settings.put({ key: 'app_settings', value: restoredSettings });
+      await sensorManager.evaluateNow();
+
+      return {
+        success: true,
+        restored: true,
+        message: `Kayıtlı dijital ikiziniz ve ${res.baselineDayCount} günlük baz hattınız buluttan başarıyla geri yüklendi!`,
+      };
+    }
+    return { success: res.success, restored: false, message: res.message };
+  },
+
   sendTestNotification: async (): Promise<boolean> => {
     return await notificationService.sendTestNotification();
   },
@@ -230,6 +316,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       const metrics = await db.dailyMetrics.toArray();
       const distinctDates = new Set(metrics.map(m => m.date));
       set({ baselineDayCount: Math.max(1, distinctDates.size) });
+
+      // Silent background cloud backup if user opted in
+      if (get().settings.cloudBackupEnabled && get().userProfile.email) {
+        cloudSyncService.backupUserDataToCloud(get().userProfile, get().settings).catch(() => {});
+      }
     } catch (err) {
       console.error('[AppStore] Analysis pipeline error:', err);
     } finally {

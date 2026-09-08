@@ -10,6 +10,7 @@ export interface UserProfile {
   isGoogleConnected: boolean;
   isAppleConnected?: boolean;
   isPasswordAccount?: boolean;
+  uid?: string;
   createdAt: number;
 }
 
@@ -27,6 +28,8 @@ export interface UserAccountRecord {
 
 export interface UserSettings {
   onboardingCompleted: boolean;
+  cloudBackupEnabled: boolean;
+  lastCloudSyncTimestamp?: number;
   sensorsEnabled: {
     motion: boolean;
     typing: boolean;

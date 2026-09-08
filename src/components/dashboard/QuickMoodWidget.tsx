@@ -22,8 +22,10 @@ export const QuickMoodWidget: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [lastSavedId, setLastSavedId] = useState<number | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const toggleTag = async (tag: string) => {
+    setSavedSuccess(false);
     const updatedTags = selectedTags.includes(tag)
       ? selectedTags.filter((t) => t !== tag)
       : [...selectedTags, tag];
@@ -39,45 +41,14 @@ export const QuickMoodWidget: React.FC = () => {
     }
   };
 
-  const handleSelectScore = async (score: number) => {
+  const handleSelectScore = (score: number) => {
     setSelectedScore(score);
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    try {
-      let reportId = lastSavedId;
-      if (reportId) {
-        // Update existing active session report
-        await db.moodReports.update(reportId, {
-          score,
-          energyScore: score,
-          tags: selectedTags,
-          timestamp: Date.now(),
-        });
-      } else {
-        // Create new record
-        reportId = await db.moodReports.add({
-          timestamp: Date.now(),
-          date: todayStr,
-          score,
-          energyScore: score,
-          tags: selectedTags,
-        });
-        setLastSavedId(reportId as number);
-      }
-
-      // Immediately trigger live evaluation
-      const store = (await import('../../store/useAppStore')).useAppStore.getState();
-      await store.runAnalysisPipeline();
-
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.error('[QuickMoodWidget] Error saving mood report:', err);
-    }
+    setSavedSuccess(false);
   };
 
   const handleExplicitSave = async () => {
-    if (!selectedScore) return;
+    if (!selectedScore || isSaving) return;
+    setIsSaving(true);
     const todayStr = new Date().toISOString().split('T')[0];
 
     try {
@@ -102,10 +73,16 @@ export const QuickMoodWidget: React.FC = () => {
       const store = (await import('../../store/useAppStore')).useAppStore.getState();
       await store.runAnalysisPipeline();
 
+      // If cloud backup is enabled, sync to cloud
+      if (store.settings.cloudBackupEnabled) {
+        await store.syncCloudDataNow();
+      }
+
       setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3500);
     } catch (err) {
       console.error('[QuickMoodWidget] Explicit save error:', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -189,11 +166,15 @@ export const QuickMoodWidget: React.FC = () => {
         </span>
         <button
           onClick={handleExplicitSave}
-          disabled={!selectedScore}
-          className="px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+          disabled={!selectedScore || isSaving}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+            savedSuccess
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'bg-comus-navy hover:bg-comus-navy-light text-white'
+          }`}
         >
-          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Kayıtlara İşle</span>
+          <CheckCircle className={`w-3.5 h-3.5 ${savedSuccess ? 'text-white' : 'text-emerald-400'}`} />
+          <span>{savedSuccess ? 'Kayıtlara İşlendi' : isSaving ? 'Kaydediliyor...' : 'Kayıtlara İşle'}</span>
         </button>
       </div>
     </div>

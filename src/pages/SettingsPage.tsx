@@ -21,6 +21,10 @@ import {
   Lock,
   MapPin,
   Keyboard,
+  Cloud,
+  CloudOff,
+  RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -31,6 +35,9 @@ export const SettingsPage: React.FC = () => {
     connectGoogleProfile,
     disconnectGoogleProfile,
     toggleSensor,
+    setCloudBackupEnabled,
+    syncCloudDataNow,
+    restoreFromCloudNow,
     wipeAllData,
   } = useAppStore();
 
@@ -38,6 +45,8 @@ export const SettingsPage: React.FC = () => {
   const [editedName, setEditedName] = useState(userProfile.name);
   const [wipeModalOpen, setWipeModalOpen] = useState(false);
   const [wipeConfirmed, setWipeConfirmed] = useState(false);
+  const [cloudActionLoading, setCloudActionLoading] = useState(false);
+  const [cloudActionFeedback, setCloudActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleSaveName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +72,83 @@ export const SettingsPage: React.FC = () => {
     setWipeModalOpen(false);
     setWipeConfirmed(true);
     setTimeout(() => setWipeConfirmed(false), 3000);
+  };
+
+  const handleToggleCloudBackup = async () => {
+    const nextState = !settings.cloudBackupEnabled;
+    setCloudActionLoading(true);
+    setCloudActionFeedback(null);
+    try {
+      await setCloudBackupEnabled(nextState);
+      setCloudActionFeedback({
+        type: 'success',
+        message: nextState
+          ? 'Bulut yedekleme başarıyla aktif edildi ve verileriniz buluta senkronize edildi.'
+          : 'Bulut yedekleme kapatıldı. Verileriniz artık yalnızca bu cihazda tutulacak.',
+      });
+    } catch (err: any) {
+      setCloudActionFeedback({
+        type: 'error',
+        message: err?.message || 'Bulut yedekleme ayarı güncellenirken hata oluştu.',
+      });
+    } finally {
+      setCloudActionLoading(false);
+      setTimeout(() => setCloudActionFeedback(null), 4000);
+    }
+  };
+
+  const handleSyncCloudNow = async () => {
+    setCloudActionLoading(true);
+    setCloudActionFeedback(null);
+    try {
+      const res = await syncCloudDataNow();
+      if (res.success) {
+        setCloudActionFeedback({
+          type: 'success',
+          message: 'Tüm biyobelirteçleriniz, baz hatlarınız ve ruh hali kayıtlarınız buluta başarıyla yedeklendi.',
+        });
+      } else {
+        setCloudActionFeedback({
+          type: 'error',
+          message: res.message || 'Bulut yedekleme başarısız oldu.',
+        });
+      }
+    } catch (err: any) {
+      setCloudActionFeedback({
+        type: 'error',
+        message: err?.message || 'Buluta bağlanırken bir sorun oluştu.',
+      });
+    } finally {
+      setCloudActionLoading(false);
+      setTimeout(() => setCloudActionFeedback(null), 4000);
+    }
+  };
+
+  const handleRestoreCloudNow = async () => {
+    setCloudActionLoading(true);
+    setCloudActionFeedback(null);
+    try {
+      const res = await restoreFromCloudNow();
+      if (res.success && res.restored) {
+        setCloudActionFeedback({
+          type: 'success',
+          message: res.message || 'Kayıtlı verileriniz buluttan başarıyla geri yüklendi!',
+        });
+      } else {
+        setCloudActionFeedback({
+          type: 'error',
+          message: res.message || 'Bulutta kayıtlı bir yedek bulunamadı.',
+        });
+      }
+    } catch (err: any) {
+      setCloudActionFeedback({
+        type: 'error',
+        message: err?.message || 'Geri yükleme sırasında hata oluştu.',
+      });
+    } finally {
+      setCloudActionLoading(false);
+      setTimeout(() => setCloudActionFeedback(null), 4000);
+    }
   };
 
   return (
@@ -212,7 +298,96 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 2. BULUT YEDEKLEME & YENİDEN YÜKLEME */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+              settings.cloudBackupEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'
+            }`}>
+              {settings.cloudBackupEnabled ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif font-bold text-lg text-comus-navy">
+                  Bulut Yedekleme & Senkronizasyon
+                </h3>
+                <span className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full ${
+                  settings.cloudBackupEnabled
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-stone-100 text-stone-600 border border-stone-200'
+                }`}>
+                  {settings.cloudBackupEnabled ? 'Aktif' : 'Kapalı'}
+                </span>
+              </div>
+              <p className="text-xs text-comus-sand-dark">
+                Uygulama silinse bile Google hesabınızla verilerinizi 1/7 günden sıfırlamadan geri yükleyin
+              </p>
+            </div>
+          </div>
 
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={settings.cloudBackupEnabled}
+              onChange={handleToggleCloudBackup}
+              disabled={cloudActionLoading}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+        <p className="text-xs text-comus-sand-dark leading-relaxed">
+          Kişisel biyobelirteçleriniz, baz hattı kalibrasyonunuz ve ruh hali yoklamalarınız Google hesabınızla şifreli olarak bulutta saklanır. Uygulamayı telefonunuzdan silseniz dahi aynı Google hesabıyla giriş yaptığınızda kaldığınız günden itibaren tanınırsınız.
+        </p>
+
+        {cloudActionFeedback && (
+          <div className={`p-3 rounded-2xl text-xs font-semibold flex items-center gap-2 animate-fadeIn ${
+            cloudActionFeedback.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border border-rose-200'
+          }`}>
+            {cloudActionFeedback.type === 'success' ? (
+              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{cloudActionFeedback.message}</span>
+          </div>
+        )}
+
+        <div className="p-4 bg-comus-surface rounded-2xl border border-comus-sand-light/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <span className="text-[11px] text-comus-sand-dark block">Son Bulut Senkronizasyonu:</span>
+            <strong className="text-xs text-comus-navy font-semibold">
+              {settings.lastCloudSyncTimestamp
+                ? new Date(settings.lastCloudSyncTimestamp).toLocaleString('tr-TR')
+                : 'Henüz bulut eşitlemesi yapılmadı'}
+            </strong>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleSyncCloudNow}
+              disabled={cloudActionLoading}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft transition-all cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-comus-copper-light ${cloudActionLoading ? 'animate-spin' : ''}`} />
+              <span>Şimdi Yedekle</span>
+            </button>
+
+            <button
+              onClick={handleRestoreCloudNow}
+              disabled={cloudActionLoading}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-stone-50 border border-comus-sand-light/40 text-comus-navy text-xs font-semibold shadow-soft transition-all cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-comus-sand-dark" />
+              <span>Buluttan Geri Yükle</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* 3. GRANÜLER SENSÖR İZİNLERİ */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">

@@ -19,7 +19,7 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { setUserProfile } = useAppStore();
+  const { setUserProfile, connectGoogleProfile } = useAppStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,9 +53,12 @@ export const OAuthModal: React.FC<OAuthModalProps> = ({
         createdAt: Date.now(),
       };
 
-      // Persist to indexed database
-      await db.settings.put({ key: 'user_profile', value: profile });
-      await setUserProfile(profile);
+      if (!isApple) {
+        await connectGoogleProfile(profile);
+      } else {
+        await db.settings.put({ key: 'user_profile', value: profile });
+        await setUserProfile(profile);
+      }
 
       onSuccess(profile);
       onClose();

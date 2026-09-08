@@ -16,18 +16,25 @@ import {
   Check,
   ChevronRight,
   Sliders,
+  Cloud,
+  CloudOff,
+  RefreshCw,
 } from 'lucide-react';
 import { getAvatarByScore } from '../constants/avatars';
+import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, baselineDayCount, setUserProfile, disconnectGoogleProfile } = useAppStore();
+  const { userProfile, settings, baselineDayCount, setUserProfile, disconnectGoogleProfile, syncCloudDataNow } = useAppStore();
+  const mentalTwin = useMentalTwinAvatar();
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(userProfile.name);
   const [age, setAge] = useState<number>(userProfile.age || 28);
   const [gender, setGender] = useState<UserGender>(userProfile.gender || 'prefer_not_to_say');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
   // Real device metrics and reports
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
@@ -38,6 +45,25 @@ export const ProfilePage: React.FC = () => {
     const dates = new Set(dailyMetrics.map((m) => m.date));
     return Math.max(dates.size, baselineDayCount, 1);
   }, [dailyMetrics, baselineDayCount]);
+
+  const handleManualSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    setSyncFeedback(null);
+    try {
+      const res = await syncCloudDataNow();
+      if (res.success) {
+        setSyncFeedback('Buluta başarıyla yedeklendi.');
+      } else {
+        setSyncFeedback(res.message || 'Yedekleme başarısız.');
+      }
+    } catch {
+      setSyncFeedback('Bağlantı hatası oluştu.');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncFeedback(null), 3000);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,19 +105,24 @@ export const ProfilePage: React.FC = () => {
       {/* Profile Header Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-          {userProfile.picture ? (
-            <img
-              src={userProfile.picture}
-              alt={userProfile.name}
-              className="w-20 h-20 rounded-3xl object-cover border-2 border-comus-copper/20 shadow-soft"
-            />
-          ) : (
-            <img
-              src={getAvatarByScore(3, userProfile.gender)}
-              alt="Dijital İkiz Avatarı"
-              className="w-20 h-20 rounded-3xl object-contain bg-white border-2 border-comus-copper/20 shadow-soft p-1"
-            />
-          )}
+          {/* Always guaranteed in-app avatar profile photo - never empty */}
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 rounded-3xl p-1 bg-gradient-to-br from-comus-surface via-white to-comus-copper/10 border-2 border-comus-copper/30 shadow-soft overflow-hidden flex items-center justify-center">
+              <img
+                src={mentalTwin.avatarSrc}
+                alt={mentalTwin.avatarAlt || 'Duty-Comus Dijital İkiz Profil Fotoğrafı'}
+                className="w-full h-full object-contain drop-shadow-sm"
+              />
+            </div>
+            {userProfile.picture && (
+              <img
+                src={userProfile.picture}
+                alt={userProfile.name}
+                title="Bağlı Google Hesabı"
+                className="w-6 h-6 rounded-full border-2 border-white absolute -bottom-1 -right-1 shadow-md object-cover"
+              />
+            )}
+          </div>
 
           <div className="flex-1 space-y-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -113,6 +144,17 @@ export const ProfilePage: React.FC = () => {
                   Yerel Cihaz Profili
                 </span>
               )}
+              {settings.cloudBackupEnabled ? (
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                  <Cloud className="w-3 h-3 text-emerald-600" />
+                  <span>Bulut Yedekleme Aktif</span>
+                </span>
+              ) : (
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200 inline-flex items-center gap-1">
+                  <CloudOff className="w-3 h-3 text-stone-500" />
+                  <span>Yalnızca Bu Cihaz</span>
+                </span>
+              )}
             </div>
 
             <p className="text-xs text-comus-sand-dark flex items-center justify-center sm:justify-start gap-1.5">
@@ -124,6 +166,8 @@ export const ProfilePage: React.FC = () => {
               <span>Yaş: <strong className="text-comus-navy">{userProfile.age || 'Belirtilmedi'}</strong></span>
               <span>•</span>
               <span>Cinsiyet: <strong className="text-comus-navy">{userProfile.gender ? genderLabels[userProfile.gender] : 'Belirtilmedi'}</strong></span>
+              <span>•</span>
+              <span>Ruh Hali: <strong className="text-comus-copper">{mentalTwin.stateLabel}</strong></span>
             </div>
           </div>
 
@@ -284,6 +328,45 @@ export const ProfilePage: React.FC = () => {
             </strong>
           </div>
         </div>
+      </div>
+
+      {/* Cloud Backup & Sync Status Card */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-soft border border-comus-sand-light/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+            settings.cloudBackupEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'
+          }`}>
+            {settings.cloudBackupEnabled ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
+          </div>
+          <div>
+            <h3 className="font-semibold text-xs sm:text-sm text-comus-navy">
+              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalı'}
+            </h3>
+            <p className="text-[11px] text-comus-sand-dark">
+              {settings.cloudBackupEnabled
+                ? settings.lastCloudSyncTimestamp
+                  ? `Son yedekleme: ${new Date(settings.lastCloudSyncTimestamp).toLocaleString('tr-TR')}`
+                  : 'Verileriniz hesabınızla güvenle yedekleniyor'
+                : 'Veriler yalnızca bu telefonda saklanır. Ayarlar sayfasından açabilirsiniz.'}
+            </p>
+            {syncFeedback && (
+              <span className="text-[10.5px] font-semibold text-emerald-600 mt-0.5 block animate-fadeIn">
+                {syncFeedback}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {settings.cloudBackupEnabled && (
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-comus-surface hover:bg-comus-copper-subtle/50 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-comus-copper ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
+          </button>
+        )}
       </div>
 
       {/* Quick Navigation Cards */}

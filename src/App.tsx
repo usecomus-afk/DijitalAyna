@@ -41,7 +41,11 @@ export const App: React.FC = () => {
         try {
           const profile = handleAuthDeepLink(event.url);
           if (profile) {
-            useAppStore.getState().setUserProfile(profile);
+            if (profile.isGoogleConnected) {
+              await useAppStore.getState().connectGoogleProfile(profile);
+            } else {
+              await useAppStore.getState().setUserProfile(profile);
+            }
           }
         } catch (e) {
           console.error('[App] Error handling deep link:', e);

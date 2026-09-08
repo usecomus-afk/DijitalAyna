@@ -17,12 +17,22 @@ import {
   UserCheck,
   Calendar,
   Sparkles,
+  Cloud,
 } from 'lucide-react';
 import { getAvatarByScore } from '../constants/avatars';
 
 export const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const { settings, userProfile, setUserProfile, connectGoogleProfile, toggleSensor, setNotificationsEnabled, setOnboardingCompleted } = useAppStore();
+  const {
+    settings,
+    userProfile,
+    setUserProfile,
+    connectGoogleProfile,
+    toggleSensor,
+    setNotificationsEnabled,
+    setCloudBackupEnabled,
+    setOnboardingCompleted,
+  } = useAppStore();
 
   useEffect(() => {
     if ((userProfile?.isGoogleConnected || userProfile?.isAppleConnected || userProfile?.isPasswordAccount) && step === 1) {
@@ -33,11 +43,15 @@ export const OnboardingPage: React.FC = () => {
   const [selectedAge, setSelectedAge] = useState<number>(userProfile?.age || 28);
   const [selectedGender, setSelectedGender] = useState<UserGender>(userProfile?.gender || 'prefer_not_to_say');
 
-  const handleAuthSuccess = (profile: UserProfile) => {
+  const handleAuthSuccess = async (profile: UserProfile) => {
     if (profile.isGoogleConnected) {
-      connectGoogleProfile(profile);
+      await connectGoogleProfile(profile);
     } else {
-      setUserProfile(profile);
+      await setUserProfile(profile);
+    }
+    const storeSettings = useAppStore.getState().settings;
+    if (storeSettings.onboardingCompleted) {
+      return;
     }
     setStep(2);
   };
@@ -215,6 +229,34 @@ export const OnboardingPage: React.FC = () => {
           </p>
 
           <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
+            {/* Cloud Backup & Restore Protection Choice */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/80 to-comus-surface border-2 border-emerald-300/80 shadow-soft space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                    <Cloud className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-comus-navy">
+                      Bulut Yedekleme & Sıfırlanmama Koruması (İsteğe Bağlı)
+                    </div>
+                    <div className="text-[10.5px] text-emerald-800 font-semibold">
+                      Uygulamayı silseniz bile baz hattınız (1/7 gün) kaybolmaz
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.cloudBackupEnabled}
+                  onChange={() => setCloudBackupEnabled(!settings.cloudBackupEnabled)}
+                  className="w-5 h-5 accent-emerald-600 cursor-pointer"
+                />
+              </div>
+              <p className="text-[11px] text-comus-sand-dark leading-relaxed pl-10.5">
+                Kişisel biyobelirteçleriniz Google hesabınızla şifreli olarak bulutta saklanır. Uygulamayı kaldırsanız dahi aynı hesapla girdiğinizde kaldığınız günden itibaren otomatik tanınırsınız.
+              </p>
+            </div>
+
             <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-comus-sand-light/30 shadow-soft">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-comus-copper">
