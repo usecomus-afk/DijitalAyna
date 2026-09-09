@@ -110,7 +110,7 @@ export const ProfilePage: React.FC = () => {
             <div className="w-20 h-20 rounded-3xl p-1 bg-gradient-to-br from-comus-surface via-white to-comus-copper/10 border-2 border-comus-copper/30 shadow-soft overflow-hidden flex items-center justify-center">
               <img
                 src={mentalTwin.avatarSrc}
-                alt={mentalTwin.avatarAlt || 'Duty-Comus Dijital İkiz Profil Fotoğrafı'}
+                alt={mentalTwin.avatarAlt || 'DutyDijitalAyna Dijital İkiz Profil Fotoğrafı'}
                 className="w-full h-full object-contain drop-shadow-sm"
               />
             </div>

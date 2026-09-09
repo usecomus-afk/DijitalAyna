@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.png', 'pwa-192x192.png', 'pwa-512x512.png', 'robots.txt'],
       manifest: {
-        name: 'Duty-Comus — Dijital Ayna',
-        short_name: 'Duty-Comus',
-        description: 'Duty-Comus Dijital Ayna — Dijital fenotipleme ile kişisel baz hattı ve davranışsal farkındalık platformu',
+        name: 'DutyDijitalAyna',
+        short_name: 'DutyDijitalAyna',
+        description: 'DutyDijitalAyna — Dijital fenotipleme ile kişisel baz hattı ve davranışsal farkındalık platformu',
         theme_color: '#F2F0EB',
         background_color: '#F2F0EB',
         display: 'standalone',

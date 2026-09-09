@@ -76,7 +76,7 @@ public final class ForesightNotificationManager: NSObject, UNUserNotificationCen
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "Duty Dijital Ayna: Erken Farkındalık Gözlemi"
+        content.title = "DutyDijitalAyna: Erken Farkındalık Gözlemi"
         content.subtitle = alert.title
         content.body = alert.notificationBody
         content.sound = .default
@@ -89,7 +89,7 @@ public final class ForesightNotificationManager: NSObject, UNUserNotificationCen
         ]
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1.0, delaySeconds), repeats: false)
-        let requestIdentifier = "duty_comus_insight_\(alert.insightType.rawValue)_\(UUID().uuidString.prefix(8))"
+        let requestIdentifier = "dutydijitalayna_insight_\(alert.insightType.rawValue)_\(UUID().uuidString.prefix(8))"
         let request = UNNotificationRequest(identifier: requestIdentifier, content: content, trigger: trigger)
 
         do {

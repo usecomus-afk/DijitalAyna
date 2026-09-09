@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.dijitalayna.app',
-  appName: 'Duty Dijital Ayna',
+  appName: 'DutyDijitalAyna',
   webDir: 'dist',
   server: {
     androidScheme: 'https'
