@@ -31,4 +31,8 @@ ios/App/Pods
 ios/App/build
 ios/App/DerivedData
 ios_artifact*/
+Duty-Dijital-Ayna-iOS-Unsigned/
+DijitalAyna-iOS-Unsigned/
+*.ipa
+.firebase/
 

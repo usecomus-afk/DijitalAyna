@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.png', 'pwa-192x192.png', 'pwa-512x512.png', 'robots.txt'],
       manifest: {
-        name: 'Duty Dijital Ayna — Davranışsal Farkındalık',
-        short_name: 'Duty Dijital Ayna',
-        description: 'Duty Dijital Ayna dijital fenotipleme ile kişisel baz hattı ve davranışsal farkındalık platformu',
+        name: 'Duty-Comus — Dijital Ayna',
+        short_name: 'Duty-Comus',
+        description: 'Duty-Comus Dijital Ayna — Dijital fenotipleme ile kişisel baz hattı ve davranışsal farkındalık platformu',
         theme_color: '#F2F0EB',
         background_color: '#F2F0EB',
         display: 'standalone',
@@ -39,7 +39,11 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}']
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
       }
     })
   ],
