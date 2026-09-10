@@ -151,6 +151,25 @@ export class BaselineEngine {
   }
 
   /**
+   * Convenience helper returning a BaselineState
+   */
+  static calculateEWMA(
+    metricKey: MetricKey,
+    values: number[],
+    lastUpdated = new Date().toISOString().split('T')[0]
+  ): BaselineState {
+    const res = this.computeBaseline(values, metricKey);
+    return {
+      metricKey,
+      ewmaMean: res.mean,
+      ewmaStd: res.shrunkStd,
+      sampleCount: res.sampleCount,
+      lastUpdated,
+      isEstablished: res.isEstablished,
+    };
+  }
+
+  /**
    * Calculates Individualized Z-Score using shrunk standard deviation:
    * $$Z = \frac{X_t - \mu_{baseline}}{\sigma_{\text{shrunk}} + \epsilon}$$
    */

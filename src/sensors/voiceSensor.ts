@@ -1,5 +1,4 @@
 import { db } from '../db';
-import { sensorCapabilities } from './capabilities';
 
 export interface VoiceAnalysisResult {
   pitchVariance: number | null; // Perde varyansı (Hz²)

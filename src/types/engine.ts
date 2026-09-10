@@ -74,6 +74,8 @@ export interface Insight {
   evidence: EvidenceItem[];
   dismissed: boolean;
   feedback?: 'helpful' | 'not_helpful';
+  provisional?: boolean;
+  finalized?: boolean;
 }
 
 export interface PredictiveAlert {

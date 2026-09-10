@@ -1,5 +1,4 @@
 import { db } from '../db';
-import { sensorCapabilities } from './capabilities';
 
 class LightSensorCollector {
   private isRunning = false;

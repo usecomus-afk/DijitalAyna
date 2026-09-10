@@ -4,12 +4,50 @@ import { EvidenceItem, Insight, PredictiveAlert } from '../types/engine';
 import { detectAnomaliesForDay } from './anomaly';
 import { synthesizeBiomarkers } from './biomarkers';
 import { evaluatePredictivePatterns } from './prediction';
+import { checkAndTriggerCrisisIfNeeded } from '../safety/crisisDetector';
 import { notificationService } from '../services/notificationService';
 
 /**
- * Main Insight and Alert Generation Pipeline
+ * Upserts a daily insight record by primary date (YYYY-MM-DD), preserving historical records.
  */
-export async function generateInsightsAndAlerts(): Promise<{
+export async function saveDailyInsight(
+  date: string,
+  insightData: Partial<Insight>
+): Promise<number> {
+  const existing = await db.insights.where('date').equals(date).first();
+  if (existing && existing.id) {
+    await db.insights.update(existing.id, {
+      ...insightData,
+      date,
+      provisional: insightData.provisional ?? existing.provisional ?? true,
+      finalized: insightData.finalized ?? existing.finalized ?? false,
+    });
+    return existing.id;
+  } else {
+    const newId = await db.insights.add({
+      createdAt: Date.now(),
+      date,
+      severity: insightData.severity || 'low',
+      biomarkerType: insightData.biomarkerType || 'healthy_balance',
+      title: insightData.title || '',
+      body: insightData.body || '',
+      suggestedAction: insightData.suggestedAction || '',
+      evidence: insightData.evidence || [],
+      dismissed: false,
+      provisional: insightData.provisional ?? true,
+      finalized: insightData.finalized ?? false,
+      ...insightData,
+    });
+    return newId;
+  }
+}
+
+/**
+ * Main Insight and Alert Generation Pipeline.
+ * STRICT: Preserves historical records, does NOT call db.insights.clear().
+ * Supports provisional (daytime) and finalized (day-closing) lifecycle states.
+ */
+export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   insights: Insight[];
   alerts: PredictiveAlert[];
 }> {
@@ -25,7 +63,15 @@ export async function generateInsightsAndAlerts(): Promise<{
   const biomarkers = synthesizeBiomarkers(anomalies);
   const alerts = evaluatePredictivePatterns(anomalies);
 
-  // 3. Prepare evidence history for each metric (last 7-14 days)
+  // 3. Automated crisis evaluation connected to daily aggregation & recent EMA mood reports
+  try {
+    const recentMoods = await db.moodReports.orderBy('date').reverse().limit(5).toArray();
+    checkAndTriggerCrisisIfNeeded(anomalies, recentMoods);
+  } catch {
+    // Graceful fallback in environments where moodReports may be empty
+  }
+
+  // 4. Prepare evidence history for each metric (last 7-14 days)
   async function buildEvidence(metricKey: MetricKey): Promise<EvidenceItem | null> {
     const def = METRIC_DEFINITIONS[metricKey];
     if (!def) return null;
@@ -79,6 +125,8 @@ export async function generateInsightsAndAlerts(): Promise<{
         suggestedAction: 'Şu an üst üste binen sorumluluklar arasında küçük bir nefes alanı açmak ve bugün zihnini dinlendirecek 20 dakikalık ekransız bir mola vermek nasıl hissettirirdi?',
         evidence: evidenceList,
         dismissed: false,
+        provisional: !isFinalized,
+        finalized: isFinalized,
       });
     } else if (bio.type === 'circadian_disruption') {
       const nightEv = await buildEvidence('night_usage_minutes');
@@ -95,6 +143,8 @@ export async function generateInsightsAndAlerts(): Promise<{
         suggestedAction: 'Yatmadan 45 dakika önce telefonunu yatak başucundan uzağa bırakıp uyku öncesi sakinleştirici bir rutin oluşturmayı denemek ister misin?',
         evidence: evidenceList,
         dismissed: false,
+        provisional: !isFinalized,
+        finalized: isFinalized,
       });
     } else if (bio.type === 'social_withdrawal') {
       const mobEv = await buildEvidence('mobility_index');
@@ -111,6 +161,8 @@ export async function generateInsightsAndAlerts(): Promise<{
         suggestedAction: 'Bugün dışarıda kısa bir hava alma yürüyüşü yapmayı ya da seni anlayan bir dostunla kısa bir merhaba paylaşmayı planlamak iyi gelebilir mi?',
         evidence: evidenceList,
         dismissed: false,
+        provisional: !isFinalized,
+        finalized: isFinalized,
       });
     } else if (bio.type === 'high_stress') {
       const scrollEv = await buildEvidence('touch_scroll_velocity');
@@ -127,6 +179,8 @@ export async function generateInsightsAndAlerts(): Promise<{
         suggestedAction: 'Birkaç derin diyafram nefesi alıp omuzlarını serbest bırakmayı ve ritmini yavaşlatmayı denemek ister misin?',
         evidence: evidenceList,
         dismissed: false,
+        provisional: !isFinalized,
+        finalized: isFinalized,
       });
     } else if (bio.type === 'healthy_balance') {
       const mobEv = await buildEvidence('mobility_index');
@@ -143,6 +197,8 @@ export async function generateInsightsAndAlerts(): Promise<{
         suggestedAction: 'Bu dingin ve sürdürülebilir ritmini korumak için günün keyfini çıkarabilirsin.',
         evidence: evidenceList,
         dismissed: false,
+        provisional: !isFinalized,
+        finalized: isFinalized,
       });
     }
   }
@@ -160,16 +216,20 @@ export async function generateInsightsAndAlerts(): Promise<{
       suggestedAction: 'Doğal ritminizi korumak için gününüze dengeli molalar eklemeye devam edebilirsiniz.',
       evidence: [mobEv, wpmEv].filter(Boolean) as EvidenceItem[],
       dismissed: false,
+      provisional: !isFinalized,
+      finalized: isFinalized,
     });
   }
 
-  // Clear previous insights & alerts and insert new ones
-  await db.insights.clear();
-  await db.predictiveAlerts.clear();
-
+  // STRICT: Do NOT clear past insights! Replace only today's (latestDate) insights.
+  const existingToday = await db.insights.where('date').equals(latestDate).toArray();
+  if (existingToday.length > 0) {
+    await db.insights.bulkDelete(existingToday.map(i => i.id!).filter(Boolean));
+  }
   if (generatedInsights.length > 0) {
     await db.insights.bulkAdd(generatedInsights);
   }
+
   if (alerts.length > 0) {
     await db.predictiveAlerts.bulkAdd(alerts);
     const topAlert = alerts[0];
