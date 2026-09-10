@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { AuthPanel } from '../components/auth/AuthPanel';
-import { db } from '../db';
 import {
   Settings,
   Sliders,
