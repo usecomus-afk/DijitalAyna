@@ -6,7 +6,6 @@ import {
   Settings,
   Sliders,
   Trash2,
-  Download,
   ShieldCheck,
   AlertTriangle,
   CheckCircle,
@@ -54,17 +53,6 @@ export const SettingsPage: React.FC = () => {
       await setUserProfile({ name: editedName.trim() });
       setIsEditingName(false);
     }
-  };
-
-  const handleExportJSON = async () => {
-    const jsonStr = await db.exportDataJSON();
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dutydijitalayna-export-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleWipeConfirm = async () => {
@@ -522,7 +510,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. VERİ DEMOKRASİSİ & YÖNETİMİ */}
+      {/* 4. VERİ YÖNETİMİ & KALICI SIFIRLAMA */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">
         <div className="flex items-center gap-2.5 mb-4">
           <div className="w-9 h-9 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
@@ -530,26 +518,18 @@ export const SettingsPage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-serif font-bold text-lg text-comus-navy">
-              Google Drive / JSON Yedekleme & Sıfırlama
+              Veri Yönetimi & Kalıcı Sıfırlama
             </h3>
             <p className="text-xs text-comus-sand-dark">
-              Verileriniz tamamen cihazınızdadır; istediğinizde dışa aktarın veya kalıcı olarak silin
+              Verileriniz tamamen cihazınızdadır; dilediğiniz an tüm yerel kayıtlarınızı kalıcı olarak silebilirsiniz
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={handleExportJSON}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-comus-navy text-white text-xs font-semibold hover:bg-comus-navy-light shadow-soft transition-all"
-          >
-            <Download className="w-4 h-4" />
-            <span>JSON Olarak İndir / Drive'a Aktar</span>
-          </button>
-
+        <div>
           <button
             onClick={() => setWipeModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-semibold transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-semibold transition-all cursor-pointer"
           >
             <Trash2 className="w-4 h-4 text-rose-600" />
             <span>Tüm Verilerimi Sil</span>
@@ -557,7 +537,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 5. ETİK VE GÜVEN TEMELLİ PLATFORM: 5 İLKE (PDF Sayfa 18) */}
+      {/* 5. ETİK VE GÜVEN TEMELLİ PLATFORM: 5 İLKE */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-700">
@@ -565,7 +545,7 @@ export const SettingsPage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-serif font-bold text-lg text-comus-navy">
-              Etik ve Güven Temelli Bir Platform (PDF Sayfa 18)
+              Etik ve Güven Temelli Bir Platform
             </h3>
             <p className="text-xs text-comus-sand-dark">
               Kullanıcı mahremiyeti ve veri egemenliğini koruyan 5 temel prensibimiz

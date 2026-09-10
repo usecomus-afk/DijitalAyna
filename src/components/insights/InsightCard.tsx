@@ -4,12 +4,15 @@ import { Insight } from '../../types/engine';
 import { EvidenceChart } from './EvidenceChart';
 import { db } from '../../db';
 import { shareContent } from '../../services/shareService';
+import { useAppStore } from '../../store/useAppStore';
 
 interface InsightCardProps {
   insight: Insight;
 }
 
 export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
+  const { baselineDayCount } = useAppStore();
+  const isLearning = baselineDayCount < 14;
   const [evidenceOpen, setEvidenceOpen] = useState(true);
   const [feedback, setFeedback] = useState<'helpful' | 'not_helpful' | undefined>(insight.feedback);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
@@ -154,31 +157,33 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </div>
 
         {/* Feedback Buttons */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-comus-sand mr-1">Bu içgörü faydalı mıydı?</span>
-          <button
-            onClick={() => handleFeedback('helpful')}
-            className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 transition-colors ${
-              feedback === 'helpful'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold'
-                : 'bg-comus-surface hover:bg-emerald-50/50 text-comus-sand-dark border-comus-sand-light/30'
-            }`}
-          >
-            <ThumbsUp className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Faydalı</span>
-          </button>
-          <button
-            onClick={() => handleFeedback('not_helpful')}
-            className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 transition-colors ${
-              feedback === 'not_helpful'
-                ? 'bg-rose-50 text-rose-700 border-rose-300 font-semibold'
-                : 'bg-comus-surface hover:bg-rose-50/50 text-comus-sand-dark border-comus-sand-light/30'
-            }`}
-          >
-            <ThumbsDown className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Değil</span>
-          </button>
-        </div>
+        {!isLearning && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-comus-sand mr-1">Bu içgörü faydalı mıydı?</span>
+            <button
+              onClick={() => handleFeedback('helpful')}
+              className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 transition-colors ${
+                feedback === 'helpful'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold'
+                  : 'bg-comus-surface hover:bg-emerald-50/50 text-comus-sand-dark border-comus-sand-light/30'
+              }`}
+            >
+              <ThumbsUp className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Faydalı</span>
+            </button>
+            <button
+              onClick={() => handleFeedback('not_helpful')}
+              className={`p-1.5 px-2.5 rounded-xl border flex items-center gap-1 transition-colors ${
+                feedback === 'not_helpful'
+                  ? 'bg-rose-50 text-rose-700 border-rose-300 font-semibold'
+                  : 'bg-comus-surface hover:bg-rose-50/50 text-comus-sand-dark border-comus-sand-light/30'
+              }`}
+            >
+              <ThumbsDown className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Değil</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

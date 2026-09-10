@@ -186,7 +186,7 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
       </div>
 
       <div className="mt-4 pt-3 border-t border-comus-sand-light/10 text-xs text-comus-sand-dark leading-relaxed">
-        💡 <strong>İpucu:</strong> Ruh halinin düştüğü günlerde veya hemen öncesinde {activeDef.label.toLowerCase()} değerindeki dalgalanmaları izleyerek kişisel erken uyarı sinyallerini keşfedebilirsin.
+        💡 <strong>Analiz Notu:</strong> Bu grafik, öznel ruh hali bildirimleriniz ile seçilen biyobelirtecin ({activeDef.label}) zamansal korelasyonunu gösterir. Duygudurum değişikliklerinden önceki biyometrik dalgalanmalar kişisel erken uyarı sinyallerinizi anlamlandırmanızı sağlar.
       </div>
     </div>
   );

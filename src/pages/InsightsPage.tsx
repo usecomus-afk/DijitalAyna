@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import { useAppStore } from '../store/useAppStore';
 import { InsightCard } from '../components/insights/InsightCard';
 import { Disclaimer } from '../components/common/Disclaimer';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const InsightsPage: React.FC = () => {
+  const { baselineDayCount } = useAppStore();
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const insights = useLiveQuery(() => db.insights.toArray()) || [];
+  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
+
+  const sampleDays = useMemo(() => new Set(dailyMetrics.map((m) => m.date)).size, [dailyMetrics]);
+  const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
+  const isLearning = effectiveDayCount < 14;
 
   const filteredInsights = insights.filter((ins) => {
+    if (isLearning && ins.biomarkerType === 'healthy_balance') return false;
     if (filter === 'all') return true;
     return ins.severity === filter;
   });
@@ -42,7 +50,7 @@ export const InsightsPage: React.FC = () => {
                 : 'text-comus-sand-dark hover:text-comus-navy'
             }`}
           >
-            Tümü ({insights.length})
+            Tümü ({filteredInsights.length})
           </button>
           <button
             onClick={() => setFilter('high')}
@@ -74,6 +82,30 @@ export const InsightsPage: React.FC = () => {
             <InsightCard key={insight.id || insight.createdAt} insight={insight} />
           ))}
         </div>
+      ) : isLearning ? (
+        <div className="bg-white rounded-3xl p-8 sm:p-10 text-center border border-comus-sand-light/20 shadow-soft space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <h3 className="font-serif font-bold text-lg text-comus-navy">
+            Kişisel Ritim Öğreniliyor ({effectiveDayCount}/14 Gün)
+          </h3>
+          <p className="text-xs sm:text-sm text-comus-sand-dark max-w-md mx-auto leading-relaxed">
+            Kişiselleştirilmiş davranışsal içgörüler ve anomali uyarıları, 14 günlük stabil baz hattınız tamamlandıktan sonra aktif hale gelecektir.
+          </p>
+          <div className="max-w-xs mx-auto pt-2">
+            <div className="flex justify-between text-xs text-comus-sand-dark mb-1 font-medium">
+              <span>Öğrenim İlerlemesi</span>
+              <span className="font-mono font-bold">%{Math.min(100, Math.round((Math.max(1, effectiveDayCount) / 14) * 100))}</span>
+            </div>
+            <div className="w-full bg-comus-sand-light/30 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-comus-copper h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (Math.max(1, effectiveDayCount) / 14) * 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="bg-white rounded-3xl p-10 text-center border border-comus-sand-light/20 shadow-soft">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
@@ -88,7 +120,7 @@ export const InsightsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Slide 10 & 20: Dijital Fenotipleme ile Erken Farkındalık Sağlanabilen 7 Durum */}
+      {/* Dijital Fenotipleme ile Erken Farkındalık Sağlanabilen 7 Durum */}
       <div className="bg-white rounded-3xl p-6 border border-comus-sand-light/30 shadow-soft space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -96,9 +128,6 @@ export const InsightsPage: React.FC = () => {
               <h3 className="font-serif font-bold text-base text-comus-navy">
                 Erken Farkındalık Sağlanan 7 Klinik Durum & Biyobelirteçler
               </h3>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
-                Slide 10 & 20
-              </span>
             </div>
             <p className="text-xs text-comus-sand-dark mt-0.5">
               Cihaz etkileşimlerinizden klinikte tanınan davranışsal örüntülere kurulan köprü

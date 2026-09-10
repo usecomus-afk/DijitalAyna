@@ -82,25 +82,25 @@ class CloudSyncService {
       ]);
 
       const now = Date.now();
-      const backupPayload: CloudBackupData = {
+      const rawPayload = {
         version: '1.0.0',
         email: userProfile.email || '',
-        uid: userProfile.uid,
+        uid: userProfile.uid || '',
         updatedAt: now,
         userProfile: {
-          name: userProfile.name,
-          email: userProfile.email,
-          picture: userProfile.picture,
-          age: userProfile.age,
-          gender: userProfile.gender,
-          isGoogleConnected: userProfile.isGoogleConnected,
-          isAppleConnected: userProfile.isAppleConnected,
+          name: userProfile.name || '',
+          email: userProfile.email || '',
+          picture: userProfile.picture || '',
+          age: userProfile.age ?? null,
+          gender: userProfile.gender || 'neutral',
+          isGoogleConnected: Boolean(userProfile.isGoogleConnected),
+          isAppleConnected: Boolean(userProfile.isAppleConnected),
         },
         settings: {
-          onboardingCompleted: settings.onboardingCompleted,
+          onboardingCompleted: Boolean(settings.onboardingCompleted),
           cloudBackupEnabled: true,
-          sensorsEnabled: settings.sensorsEnabled,
-          notificationsEnabled: settings.notificationsEnabled,
+          sensorsEnabled: settings.sensorsEnabled || {},
+          notificationsEnabled: Boolean(settings.notificationsEnabled),
         },
         dailyMetrics: dailyMetrics.map(({ id, ...rest }) => rest as DailyMetric),
         baselines: baselines.map(({ ...rest }) => rest as BaselineState),
@@ -108,6 +108,23 @@ class CloudSyncService {
         medications: medications.map(({ id, ...rest }) => rest as Medication),
         medicationLogs: medicationLogs.map(({ id, ...rest }) => rest as MedicationLog),
       };
+
+      const sanitizeForFirestore = (data: any): any => {
+        if (data === null || data === undefined) return null;
+        if (typeof data !== 'object') return data;
+        if (Array.isArray(data)) {
+          return data.filter((item) => item !== undefined).map(sanitizeForFirestore);
+        }
+        const clean: any = {};
+        for (const [key, val] of Object.entries(data)) {
+          if (val !== undefined) {
+            clean[key] = sanitizeForFirestore(val);
+          }
+        }
+        return clean;
+      };
+
+      const backupPayload = sanitizeForFirestore(rawPayload);
 
       const docRef = doc(firestore, 'users', docKey);
       await setDoc(docRef, backupPayload, { merge: true });

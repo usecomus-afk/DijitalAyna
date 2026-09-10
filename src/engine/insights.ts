@@ -57,6 +57,12 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
     return { insights: [], alerts: [] };
   }
   const latestDate = latestMetric.date;
+  let sampleDays = 0;
+  try {
+    const baselines = await db.baselines.toArray();
+    sampleDays = baselines.reduce((max, b) => Math.max(max, b.sampleCount || 0), 0);
+  } catch {}
+  const isLearning = sampleDays < 14;
 
   // 2. Detect anomalies for the latest date
   const anomalies = await detectAnomaliesForDay(latestDate);
@@ -192,9 +198,13 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         date: latestDate,
         severity: 'low',
         biomarkerType: 'healthy_balance',
-        title: 'Dengeli ve Kararlı Davranışsal Ritim',
-        body: 'Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel baz hattınla son derece uyumlu ve dengeli seyrediyor.',
-        suggestedAction: 'Bu dingin ve sürdürülebilir ritmini korumak için günün keyfini çıkarabilirsin.',
+        title: isLearning ? `Kişisel Baz Hattı Oluşturuluyor (${sampleDays}/14 Gün)` : 'Dengeli ve Kararlı Davranışsal Ritim',
+        body: isLearning
+          ? 'Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor. 14 günlük stabil baz hattınız oluştuktan sonra kişiselleştirilmiş içgörüler ve anomali analizleri üretilecektir.'
+          : 'Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel baz hattınla son derece uyumlu ve dengeli seyrediyor.',
+        suggestedAction: isLearning
+          ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
+          : 'Bu dingin ve sürdürülebilir ritmini korumak için günün keyfini çıkarabilirsin.',
         evidence: evidenceList,
         dismissed: false,
         provisional: !isFinalized,
@@ -211,9 +221,13 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       date: latestDate,
       severity: 'low',
       biomarkerType: 'healthy_balance',
-      title: 'Kişisel Baz Hattı ve Günlük Değerlendirme',
-      body: 'Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz başarıyla incelendi. Belirgin bir risk faktörü veya tükenmişlik sapması tespit edilmedi.',
-      suggestedAction: 'Doğal ritminizi korumak için gününüze dengeli molalar eklemeye devam edebilirsiniz.',
+      title: isLearning ? `Kişisel Baz Hattı Oluşturuluyor (${sampleDays}/14 Gün)` : 'Kişisel Baz Hattı ve Günlük Değerlendirme',
+      body: isLearning
+        ? 'Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor. 14 günlük stabil baz hattınız oluştuktan sonra kişiselleştirilmiş içgörüler ve anomali analizleri üretilecektir.'
+        : 'Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz başarıyla incelendi. Belirgin bir risk faktörü veya tükenmişlik sapması tespit edilmedi.',
+      suggestedAction: isLearning
+        ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
+        : 'Doğal ritminizi korumak için gününüze dengeli molalar eklemeye devam edebilirsiniz.',
       evidence: [mobEv, wpmEv].filter(Boolean) as EvidenceItem[],
       dismissed: false,
       provisional: !isFinalized,

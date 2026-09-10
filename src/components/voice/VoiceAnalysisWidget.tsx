@@ -42,9 +42,6 @@ export const VoiceAnalysisWidget: React.FC = () => {
               <h3 className="font-serif font-bold text-base text-comus-navy">
                 Ses Analizi (Kullanıcı Onaylı Biyobelirteç)
               </h3>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
-                Slide 7 & 10
-              </span>
             </div>
             <p className="text-xs text-comus-sand-dark mt-0.5">
               Konuşma tonu, perde dalgalanması (pitch variance) ve duraksama ritmi

@@ -67,7 +67,7 @@ export const TriggersPage: React.FC = () => {
           {/* Main Dual-Axis Timeline Chart */}
           <MoodTimelineChart metrics={dailyMetrics} moods={moodReports} />
 
-          {/* Tetikleyici Analizi (PDF Sayfa 9) */}
+          {/* Tetikleyici Analizi */}
           <div className="bg-white rounded-3xl p-6 border border-comus-sand-light/30 shadow-soft space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -75,9 +75,6 @@ export const TriggersPage: React.FC = () => {
                   <h3 className="font-serif font-bold text-base text-comus-navy">
                     Tetikleyici Analizi: Modu Yükselten & Düşüren Faktörler
                   </h3>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-comus-copper-subtle text-comus-copper-dark border border-comus-copper/20">
-                    Slide 9
-                  </span>
                 </div>
                 <p className="text-xs text-comus-sand-dark mt-0.5">
                   Hangi aktivitelerin ruh halinizi düşürdüğünü, hangilerinin yükselttiğini net bir şekilde görün

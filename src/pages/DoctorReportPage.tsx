@@ -3,7 +3,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import {
-  Printer,
   Calendar,
   ShieldCheck,
   Share2,
@@ -24,7 +23,7 @@ import { shareContent } from '../services/shareService';
 import { NORMATIVE_DEFAULTS } from '../engine/seedCalibration';
 
 export const DoctorReportPage: React.FC = () => {
-  const { userProfile } = useAppStore();
+  const { userProfile, baselineDayCount } = useAppStore();
   const [selectedRange, setSelectedRange] = useState<7 | 14 | 30>(14);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
@@ -45,6 +44,10 @@ export const DoctorReportPage: React.FC = () => {
   const medications = useLiveQuery(() => db.medications.toArray()) || [];
   const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) || [];
   const moods = useLiveQuery(() => db.moodReports.toArray()) || [];
+
+  const sampleDays = useMemo(() => new Set(dailyMetrics.map((m) => m.date)).size, [dailyMetrics]);
+  const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
+  const isLearning = effectiveDayCount < 14;
 
   // Compute summary stats for the report - all 19 indicators always active & guaranteed via NORMATIVE_DEFAULTS
   const reportStats = useMemo(() => {
@@ -121,10 +124,6 @@ export const DoctorReportPage: React.FC = () => {
     return medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods));
   }, [medications, dailyMetrics, baselines, moods]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const toggleTakeDose = async (medId: number) => {
     const existing = todaysLogs.find((l) => l.medicationId === medId);
     if (existing && existing.id) {
@@ -177,17 +176,57 @@ export const DoctorReportPage: React.FC = () => {
     const tableText = reportStats
       .map(
         (s) =>
-          `• ${s.label}: Baz ${s.baselineMean} ${s.unit} -> Ortalama ${s.periodAvg} ${s.unit} (Değişim: %${s.deviationPercent})`
+          `• ${s.label}: Baz ${s.baselineMean} ${s.unit} -> Ortalama ${s.periodAvg} ${s.unit} (Değişim: ${s.deviationPercent > 0 ? '+' : ''}${s.deviationPercent}%)`
       )
       .join('\n');
 
-    const medText = medications.length > 0
-      ? `\n\nReçeteli İlaçlar:\n` + medications.map(m => `• ${m.name} ${m.dosageMg}mg (Günde ${m.frequencyPerDay}x, Başlangıç: ${m.startDate})`).join('\n')
-      : '';
+    const medSectionText = medImpactReports.length > 0
+      ? `\n\n═════════════════════════════════════════════\nKLİNİK İLAÇ VE TEDAVİ YANITI (ÖNCESİ / SONRASI DELTA ANALİZİ)\n═════════════════════════════════════════════\n` +
+        medImpactReports.map(ir => {
+          const deltaLines = ir.deltas.map(d =>
+            `  • ${d.label}: İlaç Öncesi ${d.preAvg} ${d.unit} ➔ İlaç Sonrası ${d.postAvg} ${d.unit} (Değişim: ${d.changePercent > 0 ? '+' : ''}${d.changePercent}%)\n    Klinik Yansıma: ${d.interpretation}`
+          ).join('\n');
+          return `▶ İlaç: ${ir.medication.name} (${ir.medication.dosageMg}mg - Günde ${ir.medication.frequencyPerDay}x)\n  Başlangıç: ${ir.medication.startDate} (${ir.daysActive}. Günlük Tedavi Seyri)\n  Özet: ${ir.overallSummary}\n  Biyobelirteç Değişimleri (T-14 vs T+14):\n${deltaLines}`;
+        }).join('\n\n')
+      : (medications.length > 0
+          ? `\n\nReçeteli İlaçlar:\n` + medications.map(m => `• ${m.name} ${m.dosageMg}mg (Günde ${m.frequencyPerDay}x, Başlangıç: ${m.startDate})`).join('\n')
+          : '');
+
+    const clinicalNotesText = isLearning
+      ? `Henüz baz hattı öğrenme aşamasında (${effectiveDayCount}/14 Gün). 14 günlük stabil baz hattı tamamlandıktan sonra kişisel farkındalık notları oluşturulacaktır.`
+      : (insights.length > 0
+          ? insights.slice(0, 4).map(ins => `• ${ins.title}: ${ins.body}`).join('\n')
+          : 'Tüm biyobelirteçler kişisel bazal referans sınırları içerisinde stabildir.');
+
+    const shareBody = [
+      `DUTYDİJİTALAYNA — KLİNİK DAVRANIŞSAL DİJİTAL FENOTİP RAPORU`,
+      `═════════════════════════════════════════════`,
+      `DANIŞAN / KULLANICI BİLGİLERİ`,
+      `• Ad Soyad: ${userProfile.name}`,
+      `• Cinsiyet: ${userProfile.gender === 'female' ? 'Kadın' : 'Erkek'}`,
+      `• Yaş: ${userProfile.age || 'Belirtilmedi'}`,
+      `• Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      `• İncelenen Dönem: Son ${selectedRange} Gün`,
+      `• Baz Hattı Durumu: ${isLearning ? `Öğrenme Döneminde (${effectiveDayCount}/14 Gün)` : `Stabil Baz Hattı Aktif (${effectiveDayCount} Gün)`}`,
+      ``,
+      `═════════════════════════════════════════════`,
+      `SAYISAL GÖSTERGELER & EWMA BAZ HATTI DEĞİŞİMİ`,
+      `═════════════════════════════════════════════`,
+      tableText,
+      medSectionText,
+      ``,
+      `═════════════════════════════════════════════`,
+      `FARKINDALIK VE SİSTEM NOTLARI`,
+      `═════════════════════════════════════════════`,
+      clinicalNotesText,
+      ``,
+      `═════════════════════════════════════════════`,
+      `* Yasal Uyarı: Bu rapor tıbbi teşhis veya tanı belgesi niteliğinde değildir. Kullanıcının cihaz kullanım alışkanlıkları ve biyobelirteçlerine ilişkin istatistiksel karar-destek verisidir.`,
+    ].filter(Boolean).join('\n');
 
     const result = await shareContent({
       title: `DutyDijitalAyna Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
-      text: `DutyDijitalAyna Davranışsal Fenotip & İlaç Raporu\nDanışan / Kullanıcı: ${userProfile.name}\nRapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}\nİncelenen Dönem: Son ${selectedRange} Gün\n\nÖzet Göstergeler (Tüm Göstergeler Aktif):\n${tableText}${medText}\n\n* Bu bir tanı belgesi değildir. İstatistiksel dijital fenotip farkındalık çıktısıdır.`,
+      text: shareBody,
     });
 
     setShareFeedback(result.message);
@@ -208,18 +247,10 @@ export const DoctorReportPage: React.FC = () => {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleShareReport}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white border border-comus-sand-light/40 hover:bg-comus-surface text-comus-navy text-xs sm:text-sm font-semibold shadow-soft transition-all"
-            >
-              <Share2 className="w-4 h-4 text-comus-copper shrink-0" />
-              <span className="whitespace-nowrap">Paylaş</span>
-            </button>
-
-            <button
-              onClick={handlePrint}
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all"
             >
-              <Printer className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Yazdır / PDF</span>
+              <Share2 className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">Raporu Paylaş</span>
             </button>
           </div>
         </div>
@@ -231,18 +262,18 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         )}
 
-        {/* Terapistler ve Doktorlar İçin: Hatırlama Yanlılığını (Recall Bias) Aşmak (Slide 13) */}
+        {/* Terapistler ve Doktorlar İçin: Hatırlama Yanlılığını (Recall Bias) Aşmak */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 border border-comus-sand-light/30 shadow-soft space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-comus-copper">
-                Klinik Amaç (PDF Sayfa 13)
+                Klinik Amaç:
               </span>
               <span className="text-xs font-bold text-comus-navy">
                 Hatırlama Yanlılığını (Recall Bias) Aşmak
               </span>
             </div>
-            <span className="text-[11px] bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-0.5 rounded-full font-semibold">
+            <span className="text-[11px] bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap self-start sm:self-auto shrink-0">
               Nesnel Dijital Veri
             </span>
           </div>
@@ -507,17 +538,10 @@ export const DoctorReportPage: React.FC = () => {
                 );
               })
             ) : (
-              <div className="p-6 text-center rounded-2xl bg-comus-surface border border-comus-sand-light/30 space-y-3">
+              <div className="p-5 text-center rounded-2xl bg-comus-surface border border-comus-sand-light/30">
                 <p className="text-xs text-comus-sand-dark">
-                  Henüz kayıtlı ilaç bulunmuyor. İlaç ve doz takibi için "Yeni İlaç Ekle" butonunu kullanabilirsiniz.
+                  Henüz kayıtlı ilaç bulunmuyor. Takip listenize ilaç eklemek için yukarıdaki <strong className="text-teal-900">"Yeni İlaç Ekle"</strong> butonunu kullanabilirsiniz.
                 </p>
-                <button
-                  onClick={() => setIsAddMedModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-700 text-white text-xs font-semibold shadow-soft cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Yeni İlaç Ekle</span>
-                </button>
               </div>
             )}
           </div>
@@ -604,14 +628,7 @@ export const DoctorReportPage: React.FC = () => {
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-xs text-comus-sand-dark">
-                      <p className="mb-2">Henüz kayıtlı ilaç bulunmuyor. İlaç ve doz takibi için "Yeni İlaç Ekle" butonunu kullanabilirsiniz.</p>
-                      <button
-                        onClick={() => setIsAddMedModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-700 text-white text-xs font-semibold shadow-soft cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Yeni İlaç Ekle</span>
-                      </button>
+                      <p>Henüz kayıtlı ilaç bulunmuyor. Takip listenize ilaç eklemek için yukarıdaki <strong className="text-teal-900">"Yeni İlaç Ekle"</strong> butonunu kullanabilirsiniz.</p>
                     </td>
                   </tr>
                 )}
@@ -837,10 +854,14 @@ export const DoctorReportPage: React.FC = () => {
         {/* 6. Insights Summary */}
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy mb-2">
-            {medications.length > 0 ? '6.' : '5.'} Sistem Tarafından Üretilen Farkındalık Notları ({insights.length})
+            {medications.length > 0 ? '6.' : '5.'} Sistem Tarafından Üretilen Farkındalık Notları
           </h4>
           <div className="space-y-2">
-            {insights.length > 0 ? (
+            {isLearning ? (
+              <div className="p-3.5 rounded-xl bg-comus-surface border border-comus-sand-light/20 text-xs text-comus-sand-dark">
+                Henüz baz hattı öğrenme aşamasında ({effectiveDayCount}/14 Gün). 14 günlük stabil baz hattı tamamlandıktan sonra kişisel farkındalık notları oluşturulacaktır.
+              </div>
+            ) : insights.length > 0 ? (
               insights.slice(0, 4).map((ins, i) => (
                 <div key={i} className="p-3 rounded-xl bg-comus-surface border border-comus-sand-light/20 text-xs">
                   <div className="font-semibold text-comus-navy mb-0.5">{ins.title}</div>

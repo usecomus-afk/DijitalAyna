@@ -339,7 +339,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { holdZ: zHold, backspaceInc },
-              notificationBody: `Dijital Ayna: Son 3 gündür klavye yazım hızınızda belirgin yavaşlama ve silme tuşu kullanımınızda %${Math.round(backspaceInc)} artış gözlemlendi. Zihinsel yorgunluk işaretleri olabilir; dinlenme ihtiyacınızı gözden geçirebilirsiniz.`,
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz duygusal tükenmişlik (burnout) ve zihinsel yorgunluk tablosuna işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }
@@ -371,7 +371,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { homestayPct, zRadius },
-              notificationBody: 'Dijital Ayna: Son günlerde evde geçirilen sürenizde belirgin artış ve günlük hareket alanınızda %50\'nin üzerinde daralma gözlemlendi. Temiz hava molası ve sosyal bir temas iyi gelebilir.',
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz sosyal izolasyon ve depresif içe çekilme tablosuna işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }
@@ -403,7 +403,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { zNocturnal, solMinutes },
-              notificationBody: 'Dijital Ayna: Gece 02:00-04:00 saatleri arasında ekran aktivitenizde artış ve uykuya dalma sürenizde uzama fark edildi. Rahatlatıcı bir uyku rutini oluşturmayı deneyebilirsiniz.',
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz anksiyete ve uyku düzeni bozulmasına işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }
@@ -435,7 +435,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { appSwitches, avgSessionSec },
-              notificationBody: 'Dijital Ayna: Gün içinde sık uygulama geçişleri ve kısa ekran oturumları ile dikkat bölünmesi örüntüsü saptandı. Bildirimleri sınırlandırmak odağınızı korumanıza yardımcı olabilir.',
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz dikkat dağınıklığı ve odak parçalanmasına işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }
@@ -466,7 +466,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { zIKI, sri },
-              notificationBody: 'Dijital Ayna: Son haftalarda uyku düzenliliğinizde parçalanma ve klavye etkileşim aralıklarınızda uzama tespit edildi. Bu biyobelirteç değişimlerini bir sonraki doktor randevunuzda paylaşabilirsiniz.',
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz bilişsel icra hızı ve sirkadiyen ritim değişimine işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }
@@ -498,7 +498,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { unlocks, quickCheckRatio },
-              notificationBody: 'Dijital Ayna: Cihaz kontrol sıklığınızda ve hızlı kilit açıp-kapama oranınızda belirgin artış kaydedildi. Bedeninizi dinlendirmek ve nefes egzersizi yapmak rahatlatıcı olabilir.',
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz hipervijilans ve kontrol arayışına işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }
@@ -532,7 +532,7 @@ export class ClinicalPhenotypeClassifier {
               severity: rule.severity,
               timestamp: now,
               contributingMetrics: { socialMinutes, outwardRatio, lateNightScroll, emaDrop },
-              notificationBody: `Dijital Ayna: Bugün sosyal medyada pasif izleyici modunda uzun bir süre (${Math.round(socialMinutes)} dk) geçirdiğiniz ve bu süreçte duygu durumunuzda düşüş eğilimi oluştuğu fark edildi. Ekran dışı bir mola vermek iyi gelebilir.`,
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz sosyal medyada pasif izleyici moduna ve düşük özsaygı örüntüsüne işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }

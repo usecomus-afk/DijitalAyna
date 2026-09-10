@@ -101,9 +101,6 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
               <h2 className="font-serif font-bold text-xl text-comus-navy">
                 Bilişsel Koruma & Dijital Fren
               </h2>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                Slide 25 & 26
-              </span>
             </div>
             <p className="text-xs text-comus-sand-dark mt-0.5">
               Yorgunluk anında karar erteleme kalkanı ve dürtüsel davranış freni (Dijital Narkoz)
@@ -138,13 +135,13 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
           </button>
         </div>
 
-        {/* TAB 1: Bilişsel Yorgunluk Freni (Slide 25) */}
+        {/* TAB 1: Bilişsel Yorgunluk Freni */}
         {activeTab === 'decision_fatigue' && (
           <div className="space-y-4 animate-fadeIn">
             <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 space-y-1">
               <div className="font-bold flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-700" />
-                <span>Nasıl Çalışır? (PDF Sayfa 25)</span>
+                <span>Nasıl Çalışır?</span>
               </div>
               <p className="leading-relaxed">
                 Klavye dinamikleri (yavaşlayan vuruş hızı, artan backspace) ve ekran kullanım süresinden
@@ -237,13 +234,13 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
           </div>
         )}
 
-        {/* TAB 2: Dürtüsel Davranış Freni - "Dijital Narkoz" (Slide 26) */}
+        {/* TAB 2: Dürtüsel Davranış Freni - "Dijital Narkoz" */}
         {activeTab === 'impulse_narkoz' && (
           <div className="space-y-4 animate-fadeIn">
             <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200/80 text-xs text-teal-950 space-y-1">
               <div className="font-bold flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-teal-700" />
-                <span>Temel Felsefe (PDF Sayfa 26)</span>
+                <span>Temel Felsefe</span>
               </div>
               <p className="leading-relaxed">
                 Gece yarısı kumar, agresif online alışveriş veya ani duygu patlamasıyla gelen eylemlerde

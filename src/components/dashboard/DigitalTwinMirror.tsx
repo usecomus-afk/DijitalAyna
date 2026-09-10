@@ -14,7 +14,8 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
   const { avatarSrc, avatarAlt, mirrorText, moodPill } = useMentalTwinAvatar();
 
   const severeAnomalies = anomalies.filter((a) => a.isAnomaly);
-  const isLearning = sampleDays < 7;
+  const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
+  const isLearning = effectiveDayCount < 14;
 
   return (
     <div className="bg-gradient-to-br from-comus-navy to-comus-navy-dark text-white rounded-3xl p-5 sm:p-7 shadow-soft-lg relative overflow-hidden">
@@ -35,25 +36,25 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-white/80 shrink-0">
-            <Calendar className="w-3.5 h-3.5 text-comus-copper-light" />
-            <span>
-              {isLearning ? `Öğrenim Aşaması: ${baselineDayCount}/7 Gün` : `${sampleDays} Günlük Baz Hattı Aktif`}
-            </span>
-          </div>
+          {!isLearning && (
+            <div className="flex items-center gap-1.5 text-xs text-white/80 shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-comus-copper-light" />
+              <span>{effectiveDayCount} Günlük Baz Hattı Aktif</span>
+            </div>
+          )}
         </div>
 
-        {/* Learning Progress Bar */}
+        {/* Learning Progress Bar (Strict 14 Days) */}
         {isLearning && (
           <div className="mb-4 bg-white/10 p-3 rounded-2xl border border-white/10">
             <div className="flex items-center justify-between text-xs text-white/90 mb-1.5 font-medium">
               <span className="truncate mr-2">{userProfile.name} — Kişisel Baz Hattı Oluşturuluyor...</span>
-              <span className="shrink-0 font-mono font-bold">%{Math.round((baselineDayCount / 7) * 100)}</span>
+              <span className="shrink-0 font-mono font-bold">%{Math.min(100, Math.round((Math.max(1, effectiveDayCount) / 14) * 100))}</span>
             </div>
             <div className="w-full bg-white/15 h-2 rounded-full overflow-hidden">
               <div
                 className="bg-comus-copper h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, (baselineDayCount / 7) * 100)}%` }}
+                style={{ width: `${Math.min(100, (Math.max(1, effectiveDayCount) / 14) * 100)}%` }}
               />
             </div>
           </div>
