@@ -1,12 +1,14 @@
 import { db } from '../db';
+import { sensorCapabilities } from './capabilities';
 
 export interface VoiceAnalysisResult {
-  pitchVariance: number; // Perde varyansı (Hz²)
-  speechRate: number;    // Tahmini konuşma hızı (kelime/dk)
-  pauseRatio: number;    // Duraksama oranı (%)
-  avgVolume: number;     // Ortalama ses seviyesi (dB/RMS)
-  isMonotone: boolean;   // Monotonluk tespiti
+  pitchVariance: number | null; // Perde varyansı (Hz²)
+  speechRate: number | null;    // Tahmini konuşma hızı (kelime/dk)
+  pauseRatio: number | null;    // Duraksama oranı (%)
+  avgVolume: number | null;     // Ortalama ses seviyesi (dB/RMS)
+  isMonotone: boolean | null;   // Monotonluk tespiti
   durationSeconds: number;
+  source: 'web-api' | 'missing';
 }
 
 class VoiceSensor {
@@ -20,17 +22,24 @@ class VoiceSensor {
    * Records a short voice sample (default 4 seconds) purely in-memory using Web Audio API,
    * calculates acoustic dynamics (pitch variance, cadence, pauses), and IMMEDIATELY discards
    * raw audio. Audio content is NEVER saved or uploaded anywhere.
+   *
+   * ZERO MOCK POLICY: If microphone access is denied or unavailable, returns source: 'missing'
+   * and NEVER writes simulated or randomized data into the database.
    */
   async analyzeSpeechSample(durationSeconds = 4): Promise<VoiceAnalysisResult> {
-    if (typeof window === 'undefined') {
-      return this.generateSimulatedResult(durationSeconds);
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      return {
+        pitchVariance: null,
+        speechRate: null,
+        pauseRatio: null,
+        avgVolume: null,
+        isMonotone: null,
+        durationSeconds,
+        source: 'missing',
+      };
     }
 
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return this.generateSimulatedResult(durationSeconds);
-      }
-
       this.isListening = true;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
@@ -93,11 +102,24 @@ class VoiceSensor {
       await audioCtx.close();
       this.isListening = false;
 
-      const pitchMean = pitches.length > 0 ? pitches.reduce((a, b) => a + b, 0) / pitches.length : 150;
+      if (pitches.length === 0) {
+        // No discernible vocal pitch detected (e.g. ambient silence)
+        return {
+          pitchVariance: null,
+          speechRate: null,
+          pauseRatio: 100,
+          avgVolume: Math.round((totalRms / (activeFrames + silentFrames || 1)) * 10) / 10,
+          isMonotone: null,
+          durationSeconds,
+          source: 'web-api',
+        };
+      }
+
+      const pitchMean = pitches.reduce((a, b) => a + b, 0) / pitches.length;
       const pitchVariance =
         pitches.length > 1
           ? pitches.reduce((acc, p) => acc + Math.pow(p - pitchMean, 2), 0) / pitches.length
-          : 25.0;
+          : 0;
 
       const totalFrames = activeFrames + silentFrames || 1;
       const pauseRatio = Math.round((silentFrames / totalFrames) * 100);
@@ -111,51 +133,38 @@ class VoiceSensor {
         avgVolume: Math.round((totalRms / totalFrames) * 10) / 10,
         isMonotone,
         durationSeconds,
+        source: 'web-api',
       };
 
       await db.logSensorEvent({
         type: 'voice',
         timestamp: Date.now(),
         payload: {
-          voice_pitch_variance: result.pitchVariance,
-          voice_speech_rate: result.speechRate,
-          voice_pause_ratio: result.pauseRatio,
+          voice_pitch_variance: result.pitchVariance!,
+          voice_speech_rate: result.speechRate!,
+          voice_pause_ratio: result.pauseRatio!,
+        },
+        provenance: {
+          source: 'web-api',
+          confidence: Math.min(1.0, activeFrames / 15),
+          timestamp: Date.now(),
         },
       });
 
       return result;
     } catch (err) {
-      console.warn('[VoiceSensor] Microphone access not granted, using calibrated local sample', err);
+      console.warn('[VoiceSensor] Microphone recording failed or access denied:', err);
       this.isListening = false;
-      return this.generateSimulatedResult(durationSeconds);
+      return {
+        pitchVariance: null,
+        speechRate: null,
+        pauseRatio: null,
+        avgVolume: null,
+        isMonotone: null,
+        durationSeconds,
+        source: 'missing',
+      };
     }
-  }
-
-  generateSimulatedResult(durationSeconds = 4): VoiceAnalysisResult {
-    const simulatedVariance = Math.round((32 + (Math.random() - 0.5) * 14) * 10) / 10;
-    const simulatedRate = Math.round(135 + (Math.random() - 0.5) * 20);
-    const simulatedPause = Math.round(22 + (Math.random() - 0.5) * 10);
-
-    const result: VoiceAnalysisResult = {
-      pitchVariance: simulatedVariance,
-      speechRate: simulatedRate,
-      pauseRatio: simulatedPause,
-      avgVolume: 42.5,
-      isMonotone: simulatedVariance < 18.0,
-      durationSeconds,
-    };
-
-    db.logSensorEvent({
-      type: 'voice',
-      timestamp: Date.now(),
-      payload: {
-        voice_pitch_variance: result.pitchVariance,
-        voice_speech_rate: result.speechRate,
-        voice_pause_ratio: result.pauseRatio,
-      },
-    }).catch(() => {});
-
-    return result;
   }
 }
 

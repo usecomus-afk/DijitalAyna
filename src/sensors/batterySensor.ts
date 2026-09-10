@@ -24,9 +24,8 @@ class BatterySensorCollector {
       } catch (err) {
         console.log('[BatterySensor] Web Battery API not accessible:', err);
       }
-    } else {
-      await this.logBattery();
     }
+    // ZERO MOCK POLICY: If neither native nor web battery API is available, do NOT log fake 85%.
 
     // Periodic flush every 15 minutes
     this.intervalTimer = setInterval(() => this.logBattery(), 15 * 60000);
@@ -51,29 +50,44 @@ class BatterySensorCollector {
   };
 
   private async logBattery(): Promise<void> {
-    let level = 85;
-    let charging = 0;
+    let level: number | null = null;
+    let charging: number | null = null;
+    let source: 'native-sensor' | 'web-api' = 'web-api';
 
     if (Capacitor.isNativePlatform()) {
+      source = 'native-sensor';
       try {
         const info = await Device.getBatteryInfo();
-        level = Math.round((info.batteryLevel ?? 0.85) * 100);
-        charging = info.isCharging ? 1 : 0;
+        if (typeof info.batteryLevel === 'number' && !isNaN(info.batteryLevel)) {
+          level = Math.round(info.batteryLevel * 100);
+          charging = info.isCharging ? 1 : 0;
+        }
       } catch (e) {
         console.warn('[BatterySensor] Native battery reading failed:', e);
       }
     } else if (this.batteryObj) {
-      level = Math.round((this.batteryObj.level || 0.85) * 100);
-      charging = this.batteryObj.charging ? 1 : 0;
+      source = 'web-api';
+      if (typeof this.batteryObj.level === 'number' && !isNaN(this.batteryObj.level)) {
+        level = Math.round(this.batteryObj.level * 100);
+        charging = this.batteryObj.charging ? 1 : 0;
+      }
     }
+
+    // ZERO MOCK POLICY: If level could not be read, do NOT write fake fallback numbers
+    if (level === null) return;
 
     await db.logSensorEvent({
       type: 'battery',
       timestamp: Date.now(),
       payload: {
         battery_level: level,
-        is_charging: charging,
-      }
+        is_charging: charging ?? 0,
+      },
+      provenance: {
+        source,
+        confidence: 1.0,
+        timestamp: Date.now(),
+      },
     });
   }
 }

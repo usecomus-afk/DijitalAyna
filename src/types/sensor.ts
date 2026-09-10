@@ -1,10 +1,19 @@
 export type SensorType = 'motion' | 'typing' | 'touch' | 'session' | 'light' | 'battery' | 'network' | 'voice';
 
+export type DataProvenanceSource = 'native-sensor' | 'web-api' | 'missing';
+
+export interface DataProvenance {
+  source: DataProvenanceSource;
+  confidence: number; // 0 to 1
+  timestamp: number;
+}
+
 export interface SensorEvent {
   id?: number;
   type: SensorType;
   timestamp: number; // Unix timestamp ms
   payload: Record<string, number>; // Strictly numeric metadata - privacy-by-design
+  provenance?: DataProvenance;
 }
 
 export type MetricKey =

@@ -2,6 +2,7 @@ import { db } from '../db';
 import { runDailyAggregationAndCleanup } from '../db/aggregations';
 import { App } from '@capacitor/app';
 import { Capacitor, PluginListenerHandle } from '@capacitor/core';
+import { TelemetryPipeline } from './telemetry';
 
 class SessionSensorCollector {
   private sessionStartTime = 0;
@@ -22,11 +23,13 @@ class SessionSensorCollector {
           if (isActive) {
             this.isVisible = true;
             this.sessionStartTime = Date.now();
+            TelemetryPipeline.getInstance().ingestScreenEvent('UNLOCK', this.sessionStartTime);
             this.checkNightUsage();
             this.logImmediateSession();
             runDailyAggregationAndCleanup();
           } else {
             this.isVisible = false;
+            TelemetryPipeline.getInstance().ingestScreenEvent('OFF', Date.now());
             this.endSession();
           }
         });
@@ -37,6 +40,10 @@ class SessionSensorCollector {
 
     // 2. Web fallback (visibilitychange)
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
+
+    if (this.isVisible) {
+      TelemetryPipeline.getInstance().ingestScreenEvent('UNLOCK', this.sessionStartTime);
+    }
 
     // Immediately log session activity
     await this.logImmediateSession();
@@ -69,11 +76,13 @@ class SessionSensorCollector {
     if (document.visibilityState === 'visible') {
       this.isVisible = true;
       this.sessionStartTime = Date.now();
+      TelemetryPipeline.getInstance().ingestScreenEvent('UNLOCK', this.sessionStartTime);
       this.checkNightUsage();
       this.logImmediateSession();
       runDailyAggregationAndCleanup();
     } else {
       this.isVisible = false;
+      TelemetryPipeline.getInstance().ingestScreenEvent('OFF', Date.now());
       this.endSession();
     }
   };
@@ -87,7 +96,12 @@ class SessionSensorCollector {
       payload: {
         session_duration: Math.round(elapsedMinutes * 10) / 10,
         screen_on_time: Math.round(elapsedMinutes * 10) / 10,
-      }
+      },
+      provenance: {
+        source: Capacitor.isNativePlatform() ? 'native-sensor' : 'web-api',
+        confidence: 1.0,
+        timestamp: Date.now(),
+      },
     });
   }
 
@@ -101,7 +115,12 @@ class SessionSensorCollector {
         payload: {
           session_duration: Math.round(durationMinutes * 10) / 10,
           screen_on_time: Math.round(durationMinutes * 10) / 10,
-        }
+        },
+        provenance: {
+          source: Capacitor.isNativePlatform() ? 'native-sensor' : 'web-api',
+          confidence: 1.0,
+          timestamp: Date.now(),
+        },
       });
     }
     this.sessionStartTime = 0;
@@ -117,7 +136,12 @@ class SessionSensorCollector {
         timestamp: Date.now(),
         payload: {
           night_usage_minutes: 0.5,
-        }
+        },
+        provenance: {
+          source: Capacitor.isNativePlatform() ? 'native-sensor' : 'web-api',
+          confidence: 1.0,
+          timestamp: Date.now(),
+        },
       });
     }
   }

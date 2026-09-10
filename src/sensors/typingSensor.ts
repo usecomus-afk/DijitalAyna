@@ -1,8 +1,10 @@
 import { db } from '../db';
+import { TelemetryPipeline } from './telemetry';
 
 class TypingSensorCollector {
   private isRunning = false;
   private lastKeyDownTime = 0;
+  private activeKeyDownTimestamps: Map<string, number> = new Map();
   private interKeyIntervals: number[] = [];
   private totalKeystrokes = 0;
   private backspaceCount = 0;
@@ -14,12 +16,14 @@ class TypingSensorCollector {
     if (this.isRunning || typeof window === 'undefined') return;
     this.isRunning = true;
     window.addEventListener('keydown', this.handleKeyDown, { capture: true, passive: true });
+    window.addEventListener('keyup', this.handleKeyUp, { capture: true, passive: true });
   }
 
   stop(): void {
     if (!this.isRunning || typeof window === 'undefined') return;
     this.isRunning = false;
     window.removeEventListener('keydown', this.handleKeyDown, { capture: true });
+    window.removeEventListener('keyup', this.handleKeyUp, { capture: true });
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
@@ -38,8 +42,9 @@ class TypingSensorCollector {
       this.typingSessionStart = now;
     }
 
+    let iki = 120;
     if (this.lastKeyDownTime > 0) {
-      const iki = now - this.lastKeyDownTime;
+      iki = now - this.lastKeyDownTime;
       if (iki < 4000) { // filter out long breaks
         this.interKeyIntervals.push(iki);
         if (iki > 1200) {
@@ -50,13 +55,44 @@ class TypingSensorCollector {
     this.lastKeyDownTime = now;
     this.totalKeystrokes++;
 
-    if (event.key === 'Backspace' || event.key === 'Delete') {
+    const isBackspace = event.key === 'Backspace' || event.key === 'Delete';
+    if (isBackspace) {
       this.backspaceCount++;
     }
+
+    // Save keydown start using code or anonymized index to track hold time
+    const anonymizedKeySlot = `${event.code || 'Key'}_${this.totalKeystrokes % 10}`;
+    this.activeKeyDownTimestamps.set(anonymizedKeySlot, now);
+
+    // Ingest into TelemetryPipeline with strict privacy guardrails
+    TelemetryPipeline.getInstance().ingestKeystroke({
+      eventType: isBackspace ? 'BACKSPACE' : 'KEY_DOWN',
+      durationMs: 80, // Updated accurately on keyup if captured
+      interKeyDelayMs: Math.max(10, Math.min(5000, iki)),
+      timestamp: now,
+    });
 
     // Debounce flush 2.5 seconds after typing stops
     if (this.flushTimer) clearTimeout(this.flushTimer);
     this.flushTimer = setTimeout(() => this.flush(), 2500);
+  };
+
+  handleKeyUp = (event: KeyboardEvent) => {
+    const now = Date.now();
+    const anonymizedKeySlot = `${event.code || 'Key'}_${this.totalKeystrokes % 10}`;
+    const downTime = this.activeKeyDownTimestamps.get(anonymizedKeySlot);
+    if (downTime) {
+      const holdTimeMs = Math.max(10, Math.min(2000, now - downTime));
+      this.activeKeyDownTimestamps.delete(anonymizedKeySlot);
+
+      // Ingest KEY_UP hold time into pipeline
+      TelemetryPipeline.getInstance().ingestKeystroke({
+        eventType: 'KEY_UP',
+        durationMs: holdTimeMs,
+        interKeyDelayMs: 0,
+        timestamp: now,
+      });
+    }
   };
 
   async flush(): Promise<void> {
@@ -82,7 +118,12 @@ class TypingSensorCollector {
         typing_iki: Math.round(avgIki),
         typing_backspace_rate: backspaceRate,
         typing_pause_count: this.pauseCount,
-      }
+      },
+      provenance: {
+        source: 'web-api',
+        confidence: Math.min(1.0, this.totalKeystrokes / 15),
+        timestamp: Date.now(),
+      },
     });
 
     this.reset();
@@ -90,6 +131,7 @@ class TypingSensorCollector {
 
   private reset(): void {
     this.lastKeyDownTime = 0;
+    this.activeKeyDownTimestamps.clear();
     this.interKeyIntervals = [];
     this.totalKeystrokes = 0;
     this.backspaceCount = 0;

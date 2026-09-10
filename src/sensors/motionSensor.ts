@@ -1,30 +1,18 @@
 import { db } from '../db';
 import { Motion } from '@capacitor/motion';
 import { Capacitor, PluginListenerHandle } from '@capacitor/core';
+import { sensorCapabilities } from './capabilities';
+import { TelemetryPipeline } from './telemetry';
 
 class MotionSensorCollector {
   private isRunning = false;
   private accelMagnitudes: number[] = [];
   private lastSampleTime = 0;
   private intervalTimer: any = null;
-  private lastPointerX = 0;
-  private lastPointerY = 0;
   private nativeListenerHandle: PluginListenerHandle | null = null;
 
   async requestPermission(): Promise<boolean> {
-    if (Capacitor.isNativePlatform()) {
-      return true; // Native iOS handles CoreMotion via Info.plist usage description
-    }
-    if (typeof (DeviceMotionEvent as any)?.requestPermission === 'function') {
-      try {
-        const response = await (DeviceMotionEvent as any).requestPermission();
-        return response === 'granted';
-      } catch (err) {
-        console.warn('[MotionSensor] Web permission request error:', err);
-        return false;
-      }
-    }
-    return true;
+    return await sensorCapabilities.requestMotionPermission();
   }
 
   async start(): Promise<void> {
@@ -52,18 +40,18 @@ class MotionSensorCollector {
           if (this.accelMagnitudes.length > 200) {
             this.accelMagnitudes.shift();
           }
+
+          // Forward to Telemetry Pipeline
+          TelemetryPipeline.getInstance().ingestAccelerometer({ x, y, z, timestamp: now });
         });
       } catch (e) {
-        console.warn('[MotionSensor] Native motion listener error, falling back to web:', e);
+        console.warn('[MotionSensor] Native motion listener error:', e);
       }
     } else {
-      // 2. Web fallback (devicemotion)
-      if (window.DeviceMotionEvent) {
+      // 2. Web fallback (devicemotion only - NO pointer/mouse simulation)
+      if (typeof window !== 'undefined' && window.DeviceMotionEvent) {
         window.addEventListener('devicemotion', this.handleMotion, { passive: true });
       }
-
-      // Pointer / mouse movement as desktop/laptop fallback for motion index
-      window.addEventListener('pointermove', this.handlePointerMove, { passive: true });
     }
 
     // Flush aggregated motion metric every 30 seconds
@@ -79,8 +67,9 @@ class MotionSensorCollector {
       this.nativeListenerHandle = null;
     }
 
-    window.removeEventListener('devicemotion', this.handleMotion);
-    window.removeEventListener('pointermove', this.handlePointerMove);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('devicemotion', this.handleMotion);
+    }
 
     if (this.intervalTimer) {
       clearInterval(this.intervalTimer);
@@ -106,31 +95,17 @@ class MotionSensorCollector {
     if (this.accelMagnitudes.length > 200) {
       this.accelMagnitudes.shift();
     }
-  };
 
-  private handlePointerMove = (event: PointerEvent) => {
-    const now = Date.now();
-    if (now - this.lastSampleTime < 120) return;
-    this.lastSampleTime = now;
-
-    const dx = event.clientX - this.lastPointerX;
-    const dy = event.clientY - this.lastPointerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    this.lastPointerX = event.clientX;
-    this.lastPointerY = event.clientY;
-
-    if (dist > 0 && dist < 1000) {
-      // Map pointer pixel velocity to equivalent acceleration magnitude
-      const simulatedMag = Math.min(25, Math.max(9.8, 9.8 + dist * 0.05));
-      this.accelMagnitudes.push(simulatedMag);
-      if (this.accelMagnitudes.length > 200) {
-        this.accelMagnitudes.shift();
-      }
-    }
+    // Forward to Telemetry Pipeline
+    TelemetryPipeline.getInstance().ingestAccelerometer({ x, y, z, timestamp: now });
   };
 
   async flush(): Promise<void> {
-    if (this.accelMagnitudes.length < 2) return;
+    // STRICT ZERO MOCK POLICY: If no genuine accelerometer readings were recorded, do NOT log arbitrary numbers
+    if (this.accelMagnitudes.length < 5) {
+      this.accelMagnitudes = [];
+      return;
+    }
 
     const mean = this.accelMagnitudes.reduce((a, b) => a + b, 0) / this.accelMagnitudes.length;
     const variance = this.accelMagnitudes.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / this.accelMagnitudes.length;
@@ -142,7 +117,12 @@ class MotionSensorCollector {
       payload: {
         mobility_index: mobilityScore,
         tremor_variance: Math.round(variance * 1000) / 1000,
-      }
+      },
+      provenance: {
+        source: Capacitor.isNativePlatform() ? 'native-sensor' : 'web-api',
+        confidence: Math.min(1.0, this.accelMagnitudes.length / 50),
+        timestamp: Date.now(),
+      },
     });
 
     this.accelMagnitudes = [];
