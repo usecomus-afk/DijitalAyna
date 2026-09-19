@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
-import { getAvatarMap } from '../../constants/avatars';
 import {
   X,
   Sparkles,
@@ -15,96 +14,29 @@ import {
 export const MentalTwinModal: React.FC = () => {
   const { emergencyModalOpen, setEmergencyModalOpen, userProfile } = useAppStore();
   const {
-    score: effectiveMoodScore,
+    avatarSrc,
     affectiveIndex,
     phenoLabel,
     clinicalInsight,
     sensorStatus,
+    modalTitle,
+    modalSubtitle,
+    badgeClass,
+    auraGradient,
+    glowColor,
+    bgBase,
+    dialogue,
+    energyText,
   } = useMentalTwinAvatar();
 
   if (!emergencyModalOpen) return null;
-
-  // Avatar state configuration according to emotional balance score
-  // 1: Zorlu (44.png)
-  // 2: Düşük (45.png)
-  // 3: Normal (46.png)
-  // 4: İyi (47.png)
-  const avatarMap = getAvatarMap(userProfile.gender);
-
-  const getAvatarConfig = (score: number) => {
-    switch (score) {
-      case 1:
-        return {
-          title: 'Zorlayıcı & Yorgun',
-          subtitle: 'Zorlu Durum • Zihinsel Yük & Stres Sinyali',
-          badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
-          auraGradient: 'from-rose-500/25 via-purple-600/20 to-slate-900/30',
-          glowColor: '#f43f5e',
-          bgBase: 'bg-gradient-to-b from-rose-950/20 to-purple-950/30',
-          avatarSrc: avatarMap.zorlu,
-          dialogue: `${userProfile.name}, zihnim bugün oldukça ağır ve yorgun. Sensör ve hareketlilik sinyallerin yoğun bir zihinsel yük altında olduğunu gösteriyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`,
-          energyText: `%${affectiveIndex} Duygusal Denge`,
-        };
-      case 2:
-        return {
-          title: 'Düşük & Melankolik',
-          subtitle: 'Düşük Durum • Düşük Motivasyon',
-          badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-          auraGradient: 'from-amber-500/20 via-orange-600/15 to-slate-800/30',
-          glowColor: '#f59e0b',
-          bgBase: 'bg-gradient-to-b from-amber-950/20 to-slate-900/30',
-          avatarSrc: avatarMap.dusuk,
-          dialogue: `Bugün tempomuz biraz düşük ${userProfile.name}. Klavyedeki yazım akışın ve hareketliliğin içe çekildiğimizi hissettiriyor. Her gün yüzde yüz performansla koşmak zorunda değiliz; bugün dinlenme günü olsun.`,
-          energyText: `%${affectiveIndex} Duygusal Denge`,
-        };
-      case 3:
-        return {
-          title: 'Normal & Dengeli',
-          subtitle: 'Normal Durum • Ritim Stabil',
-          badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-          auraGradient: 'from-cyan-500/20 via-indigo-500/15 to-blue-900/20',
-          glowColor: '#6366f1',
-          bgBase: 'bg-gradient-to-b from-indigo-950/20 to-slate-900/30',
-          avatarSrc: avatarMap.normal,
-          dialogue: `Şu an dingin ve dengeli bir akıştayız ${userProfile.name}. Sensör dinamiklerin standart kişisel baz hattınla uyumlu. Rutinine sakin adımlarla devam edebilirsin.`,
-          energyText: `%${affectiveIndex} Duygusal Denge`,
-        };
-      case 4:
-        return {
-          title: 'İyi & Canlı',
-          subtitle: 'İyi Durum • Akıcı Ritim',
-          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-          auraGradient: 'from-emerald-500/25 via-teal-500/20 to-cyan-900/20',
-          glowColor: '#10b981',
-          bgBase: 'bg-gradient-to-b from-emerald-950/20 to-slate-900/30',
-          avatarSrc: avatarMap.iyi,
-          dialogue: `Yüzüm gülüyor ${userProfile.name}! Yazım tempon akıcı, günlük hareketliliğin canlı. Zihinsel enerjimizin bu pozitif dalgasını güzel hedeflere dönüştürebilirsin.`,
-          energyText: `%${affectiveIndex} Duygusal Denge`,
-        };
-      case 5:
-      default:
-        return {
-          title: 'Harika & Işıltılı',
-          subtitle: 'Harika Durum • Zirve Enerji',
-          badgeClass: 'bg-amber-100 text-amber-900 border-amber-400',
-          auraGradient: 'from-amber-400/30 via-comus-copper/25 to-rose-500/20',
-          glowColor: '#f59e0b',
-          bgBase: 'bg-gradient-to-b from-amber-950/25 to-comus-navy/40',
-          avatarSrc: avatarMap.harika,
-          dialogue: `Işıl ışıl bir zihin durumundayız ${userProfile.name}! Zihinsel berraklığımız ve motivasyonumuz zirvede. Bu neşeli ve ilham verici enerjinin tadını çıkar!`,
-          energyText: `%${affectiveIndex} Duygusal Denge`,
-        };
-    }
-  };
-
-  const avatar = getAvatarConfig(effectiveMoodScore);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-comus-navy/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-soft-lg border-2 border-comus-copper/30 relative my-auto overflow-hidden">
         {/* Ambient Mood Glow Background */}
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${avatar.auraGradient} opacity-60 pointer-events-none transition-all duration-700`}
+          className={`absolute inset-0 bg-gradient-to-br ${auraGradient} opacity-60 pointer-events-none transition-all duration-700`}
         />
 
         {/* Close Button */}
@@ -132,34 +64,34 @@ export const MentalTwinModal: React.FC = () => {
             </div>
           </div>
 
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border shrink-0 ${avatar.badgeClass}`}>
-            {avatar.title}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold border shrink-0 ${badgeClass}`}>
+            {modalTitle}
           </span>
         </div>
 
         {/* Avatar Display Arena (Custom 3D Avatar Image) */}
-        <div className={`relative z-10 rounded-3xl p-6 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${avatar.bgBase} backdrop-blur-sm transition-all duration-500`}>
+        <div className={`relative z-10 rounded-3xl p-6 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}>
           {/* 3D Rendered Avatar Card */}
           <div className="relative w-44 h-44 sm:w-52 sm:h-52 mb-3 flex items-center justify-center">
             {/* Glowing Aura Ring */}
             <div
               className="absolute inset-0 rounded-3xl blur-2xl opacity-60 transition-all duration-700 animate-pulse"
-              style={{ backgroundColor: avatar.glowColor }}
+              style={{ backgroundColor: glowColor }}
             />
 
             {/* Custom 3D Avatar Image */}
             <img
-              src={avatar.avatarSrc}
-              alt={avatar.title}
+              src={avatarSrc}
+              alt={modalTitle}
               className="w-full h-full object-contain rounded-3xl relative z-10 drop-shadow-xl transition-transform duration-500 hover:scale-105"
             />
           </div>
 
           {/* Subtitle & Affective Balance Gauge */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold text-comus-navy">{avatar.subtitle}</span>
+            <span className="text-xs font-semibold text-comus-navy">{modalSubtitle}</span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/80 border border-comus-sand-light/30 text-comus-sand-dark font-bold">
-              {avatar.energyText}
+              {energyText}
             </span>
           </div>
 
@@ -167,7 +99,7 @@ export const MentalTwinModal: React.FC = () => {
           <div className="relative bg-white/95 rounded-2xl p-3.5 sm:p-4 border border-comus-sand-light/30 shadow-soft text-left mt-1 w-full max-w-lg">
             <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-t border-l border-comus-sand-light/30" />
             <p className="text-xs sm:text-sm text-comus-navy leading-relaxed italic font-serif">
-              "{avatar.dialogue}"
+              "{dialogue}"
             </p>
           </div>
         </div>

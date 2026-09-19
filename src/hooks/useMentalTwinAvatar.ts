@@ -5,6 +5,12 @@ import { ClinicalPhenotypeClassifier } from '../classifier/ClinicalPhenotypeClas
 import { BaselineEngine, MIN_BASELINE_DAYS } from '../engine/BaselineEngine';
 import { getAvatarByScore } from '../constants/avatars';
 import { useAppStore } from '../store/useAppStore';
+import {
+  calculateRecentMoodScore,
+  calculateEmotionalBalanceIndex,
+  deriveAvatarScore,
+  generateAvatarNarrative,
+} from '../engine/avatarNarrative';
 
 export interface MentalTwinAvatarState {
   score: 1 | 2 | 3 | 4 | 5;
@@ -24,6 +30,17 @@ export interface MentalTwinAvatarState {
     mobility: number;
     tremor: number;
   };
+  modalTitle: string;
+  modalSubtitle: string;
+  badgeClass: string;
+  auraGradient: string;
+  glowColor: string;
+  bgBase: string;
+  dialogue: string;
+  energyText: string;
+  learningCardText: string;
+  recentMoodScore: number | null;
+  topTags: string[];
 }
 
 export function useMentalTwinAvatar(): MentalTwinAvatarState {
@@ -31,10 +48,13 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
-  const latestMood = useLiveQuery(() => db.moodReports.orderBy('timestamp').reverse().first());
+  const moodReports = useLiveQuery(() => db.moodReports.orderBy('timestamp').reverse().toArray()) || [];
 
   return useMemo(() => {
-    // Determine effective days of baseline data
+    // 1. Process active EMA mood reports (last 7 days, 48h weighted 2x)
+    const { score: recentMoodScore, topTags } = calculateRecentMoodScore(moodReports);
+
+    // 2. Determine effective days of baseline data
     const distinctDates = new Set(dailyMetrics.map((m) => m.date));
     const effectiveDays = Math.max(baselineDayCount, distinctDates.size, 1);
 
@@ -70,9 +90,16 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
           detectedAt: latestDate,
         };
 
-    const balanceIndex = isEstablished
+    const rawPassiveScore = isEstablished
       ? ClinicalPhenotypeClassifier.calculateAffectiveStateIndex(zScores)
       : 70; // Reference baseline midpoint
+
+    // 3. Hybrid Emotional Balance Index
+    const balanceIndex = calculateEmotionalBalanceIndex({
+      recentMoodScore,
+      passiveScore: rawPassiveScore,
+      isEstablished,
+    });
 
     // Telemetry summary values
     const typing = todays.find((m) => m.metricKey === 'typing_wpm')?.value || 42;
@@ -80,25 +107,11 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
     const mobility = todays.find((m) => m.metricKey === 'mobility_index')?.value || 70;
     const tremor = todays.find((m) => m.metricKey === 'tremor_variance')?.value || 0.15;
 
+    // 4. Derive discrete avatar score (1..5)
     let derivedScore: 1 | 2 | 3 | 4 | 5 = 3;
-    let avatarAlt = 'Öğrenme Dönemi';
-    let stateLabel = `Öğrenme Aşaması (${effectiveDays}/14 Gün)`;
-    let mirrorText = `Merhaba ${userProfile.name}! DutyDijitalAyna şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını (normalini) öğreniyor (${effectiveDays}/14 Gün).`;
-    let moodPill = {
-      text: `Öğrenme Dönemi (${effectiveDays}/14 Gün)`,
-      color: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/40',
-    };
-    let colorClass = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]';
 
-    // COLD START PROTECTION:
-    // If baseline is not established (n < 14 days), strictly do NOT render clinical pathology states
     if (!isEstablished) {
-      // If user voluntarily logged an EMA mood report today, reflect subtle valence (3, 4, 5) without pathology
-      if (latestMood && latestMood.score >= 3 && latestMood.score <= 5) {
-        derivedScore = latestMood.score as 3 | 4 | 5;
-      } else {
-        derivedScore = 3; // Stable baseline learning
-      }
+      derivedScore = deriveAvatarScore(balanceIndex, recentMoodScore, false);
     } else {
       // BASELINE ESTABLISHED (>= 14 days)
       if (todays.length > 0) {
@@ -121,63 +134,57 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
         } else {
           derivedScore = 5; // Harika
         }
-      } else if (latestMood && latestMood.score >= 1 && latestMood.score <= 5) {
-        derivedScore = latestMood.score as 1 | 2 | 3 | 4 | 5;
-      }
-
-      if (derivedScore === 1) {
-        avatarAlt = 'Zorlayıcı & Yorgun';
-        stateLabel = 'Zorlu Durum • Stres Sinyali';
-        mirrorText = `${userProfile.name}, son günlerde bilişsel tepki süresi ve sirkadiyen dinlenme ritminde belirgin dalgalanmalar saptandı. Zihinsel bir yorgunluk hissediyor olabilir misin?`;
-        moodPill = { text: 'Zihinsel Yorgunluk Sinyali', color: 'bg-rose-500/20 text-rose-200 border-rose-500/40' };
-        colorClass = 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]';
-      } else if (derivedScore === 2) {
-        avatarAlt = 'Düşük & Dalgalı Ritim';
-        stateLabel = 'Düşük Ritim • Hafif Sapma';
-        mirrorText = `${userProfile.name}, hareketlilik ve etkileşim frekansın olağan baz hattının altında seyrediyor. Kendine küçük bir mola ayırmayı düşünebilirsin.`;
-        moodPill = { text: 'Düşük Hareketlilik', color: 'bg-amber-500/20 text-amber-200 border-amber-500/40' };
-        colorClass = 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]';
-      } else if (derivedScore === 3) {
-        avatarAlt = 'Normal & Dengeli';
-        stateLabel = 'Dengeli & Stabil';
-        mirrorText = `${userProfile.name}, cihaz içi biyobelirteçlerin referans aralığında. Dijital ikizin stabil durumda.`;
-        moodPill = { text: 'Dengeli Ritim', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
-        colorClass = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]';
-      } else if (derivedScore === 4) {
-        avatarAlt = 'İyi & Canlı';
-        stateLabel = 'Pozitif & Akıcı Ritim';
-        mirrorText = `${userProfile.name}, tuş akıcılığın ve sirkadiyen düzenin güçlü bir denge gösteriyor.`;
-        moodPill = { text: 'Canlı & Pozitif', color: 'bg-teal-500/20 text-teal-200 border-teal-500/40' };
-        colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
       } else {
-        avatarAlt = 'Harika & Yüksek Enerji';
-        stateLabel = 'Yüksek Odak & Canlılık';
-        mirrorText = `${userProfile.name}, tüm biyobelirteçler en yüksek dengede. Zihinsel akış ve etkileşim hızın mükemmel.`;
-        moodPill = { text: 'Yüksek Enerji', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
-        colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
+        derivedScore = deriveAvatarScore(balanceIndex, recentMoodScore, true);
       }
     }
+
+    // 5. Generate clinical and safe avatar narrative
+    const narrative = generateAvatarNarrative({
+      userName: userProfile.name,
+      score: derivedScore,
+      affectiveIndex: balanceIndex,
+      isEstablished,
+      effectiveDays,
+      topTags,
+      recentMoodScore,
+    });
+
+    const finalClinicalInsight = !isEstablished
+      ? narrative.learningCardText
+      : phenoInference.clinicalInsight;
 
     const avatarSrc = getAvatarByScore(derivedScore, userProfile.gender);
 
     return {
       score: derivedScore,
       avatarSrc,
-      avatarAlt,
-      stateLabel,
+      avatarAlt: narrative.title,
+      stateLabel: narrative.subtitle,
       affectiveIndex: balanceIndex,
       phenoState: phenoInference.state,
       phenoLabel: phenoInference.label,
-      clinicalInsight: phenoInference.clinicalInsight,
-      colorClass,
-      mirrorText,
-      moodPill,
+      clinicalInsight: finalClinicalInsight,
+      colorClass: narrative.colorClass,
+      mirrorText: narrative.mirrorText,
+      moodPill: narrative.moodPill,
       sensorStatus: {
         typing,
         night,
         mobility,
         tremor,
       },
+      modalTitle: narrative.title,
+      modalSubtitle: narrative.subtitle,
+      badgeClass: narrative.badgeClass,
+      auraGradient: narrative.auraGradient,
+      glowColor: narrative.glowColor,
+      bgBase: narrative.bgBase,
+      dialogue: narrative.dialogue,
+      energyText: narrative.energyText,
+      learningCardText: narrative.learningCardText,
+      recentMoodScore,
+      topTags,
     };
-  }, [dailyMetrics, baselines, latestMood, baselineDayCount, userProfile.name, userProfile.gender]);
+  }, [dailyMetrics, baselines, moodReports, baselineDayCount, userProfile.name, userProfile.gender]);
 }
