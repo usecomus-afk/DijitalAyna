@@ -67,10 +67,10 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
         </div>
 
         {/* Metric Selector Tabs */}
-        <div className="flex items-center gap-1 bg-comus-surface p-1 rounded-2xl border border-comus-sand-light/30 text-xs overflow-x-auto max-w-full">
+        <div className="grid grid-cols-4 gap-1 bg-comus-surface p-1 rounded-2xl border border-comus-sand-light/30 text-[11px] sm:text-xs w-full sm:w-auto">
           <button
             onClick={() => setSelectedOverlay('typing_wpm')}
-            className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${
+            className={`px-1 sm:px-3 py-1.5 rounded-xl font-medium text-center transition-all ${
               selectedOverlay === 'typing_wpm'
                 ? 'bg-comus-navy text-white shadow-sm'
                 : 'text-comus-sand-dark hover:text-comus-navy'
@@ -80,7 +80,7 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
           </button>
           <button
             onClick={() => setSelectedOverlay('night_usage_minutes')}
-            className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${
+            className={`px-1 sm:px-3 py-1.5 rounded-xl font-medium text-center transition-all ${
               selectedOverlay === 'night_usage_minutes'
                 ? 'bg-comus-navy text-white shadow-sm'
                 : 'text-comus-sand-dark hover:text-comus-navy'
@@ -90,7 +90,7 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
           </button>
           <button
             onClick={() => setSelectedOverlay('mobility_index')}
-            className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${
+            className={`px-1 sm:px-3 py-1.5 rounded-xl font-medium text-center transition-all ${
               selectedOverlay === 'mobility_index'
                 ? 'bg-comus-navy text-white shadow-sm'
                 : 'text-comus-sand-dark hover:text-comus-navy'
@@ -100,7 +100,7 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
           </button>
           <button
             onClick={() => setSelectedOverlay('typing_backspace_rate')}
-            className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${
+            className={`px-1 sm:px-3 py-1.5 rounded-xl font-medium text-center transition-all ${
               selectedOverlay === 'typing_backspace_rate'
                 ? 'bg-comus-navy text-white shadow-sm'
                 : 'text-comus-sand-dark hover:text-comus-navy'
