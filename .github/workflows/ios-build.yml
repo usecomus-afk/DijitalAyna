@@ -54,13 +54,13 @@ jobs:
           cd ios/App/build/Build/Products/Release-iphoneos
           mkdir -p Payload
           cp -r App.app Payload/
-          zip -r "DutyDijitalAyna.ipa" Payload
-          cp "DutyDijitalAyna.ipa" DijitalAyna-iOS-Unsigned.ipa
+          zip -r "DijitalMentalIkizim.ipa" Payload
+          cp "DijitalMentalIkizim.ipa" DijitalAyna-iOS-Unsigned.ipa
 
       - name: IPA Dosyasını GitHub Artifacts Olarak Yükle
         uses: actions/upload-artifact@v4
         with:
-          name: DutyDijitalAyna-iOS-Unsigned
-          path: "ios/App/build/Build/Products/Release-iphoneos/DutyDijitalAyna.ipa"
+          name: DijitalMentalIkizim-iOS-Unsigned
+          path: "ios/App/build/Build/Products/Release-iphoneos/DijitalMentalIkizim.ipa"
           retention-days: 14
           if-no-files-found: error

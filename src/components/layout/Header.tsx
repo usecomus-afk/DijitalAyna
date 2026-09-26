@@ -4,9 +4,10 @@ import { ShieldCheck, RotateCw } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import { forceAppUpdate } from '../../utils/updateManager';
+import logoImg from '../../assets/logo.png';
 
 export const Header: React.FC = () => {
-  const { userProfile, setEmergencyModalOpen } = useAppStore();
+  const { setEmergencyModalOpen } = useAppStore();
   const { avatarSrc, colorClass, avatarAlt } = useMentalTwinAvatar();
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -20,12 +21,12 @@ export const Header: React.FC = () => {
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         {/* Brand with New Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center p-1 border border-comus-sand-light/30 shadow-soft group-hover:scale-105 transition-transform">
-            <img src="/logo.png" alt="DutyDijitalAyna Logo" className="w-full h-full object-contain" />
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-comus-sand-light/30 shadow-soft group-hover:scale-105 transition-transform">
+            <img src={logoImg} alt="Dijital Mental İkizim Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">DutyDijitalAyna</span>
+              <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">Dijital Mental İkizim</span>
             </div>
             <p className="text-[11px] text-comus-sand-dark flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline" />
@@ -34,45 +35,23 @@ export const Header: React.FC = () => {
           </div>
         </NavLink>
 
-        {/* Actions & Real User Profile Pill */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* Actions & Avatar */}
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Quick Refresh / Clear Cache Button */}
           <button
             onClick={handleRefreshApp}
             disabled={isUpdating}
-            className="p-2 rounded-xl bg-white border border-comus-sand-light/30 shadow-soft hover:bg-comus-surface text-comus-sand-dark hover:text-comus-navy transition-all"
+            className="p-2 rounded-xl bg-white border border-comus-sand-light/30 shadow-soft hover:bg-comus-surface text-comus-sand-dark hover:text-comus-navy transition-all cursor-pointer"
             title="Uygulamayı Yenile ve Son Sürümü Al"
             aria-label="Uygulamayı Yenile"
           >
             <RotateCw className={`w-3.5 h-3.5 ${isUpdating ? 'animate-spin text-comus-copper' : ''}`} />
           </button>
 
-          {/* User Profile Link */}
-          <NavLink
-            to="/profile"
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white border border-comus-sand-light/30 shadow-soft hover:bg-comus-surface transition-all text-xs font-medium text-comus-navy"
-          >
-            {userProfile.picture ? (
-              <img
-                src={userProfile.picture}
-                alt={userProfile.name}
-                className="w-5 h-5 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-comus-navy-subtle flex items-center justify-center text-comus-navy text-[10px] font-bold">
-                {userProfile.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="font-semibold max-w-[80px] sm:max-w-[100px] truncate">{userProfile.name}</span>
-            {userProfile.isGoogleConnected && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500" title="Google ile Bağlı" />
-            )}
-          </NavLink>
-
           {/* Digital Mental Twin 3D Avatar Button */}
           <button
             onClick={() => setEmergencyModalOpen(true)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl bg-white hover:bg-comus-surface border border-comus-sand-light/40 text-xs font-semibold text-comus-navy shadow-soft hover:shadow-soft-lg transition-all group relative"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-comus-surface border border-comus-sand-light/40 text-xs font-semibold text-comus-navy shadow-soft hover:shadow-soft-lg transition-all group relative cursor-pointer"
             title="Dijital Mental İkiz Avatarı"
           >
             <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-comus-sand-light/40 group-hover:scale-110 transition-transform">

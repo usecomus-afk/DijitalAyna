@@ -21,7 +21,7 @@ public struct PDFKitView: UIViewRepresentable {
     }
 }
 
-/// Primary Native iOS "Dijital Ayna" Dashboard View
+/// Primary Native iOS "Dijital Mental İkizim" Dashboard View
 public struct DigitalMirrorDashboardView: View {
     @State private var showingPDFSheet = false
     @State private var pdfData: Data?
@@ -175,7 +175,7 @@ public struct DigitalMirrorDashboardView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle")
                             .foregroundColor(Color.gray)
-                        Text("Dijital Ayna tıbbi teşhis koymaz. Yalnızca istatistiksel bazal sapmaları hekiminizle paylaşmanız için raporlar.")
+                        Text("Dijital Mental İkizim tıbbi teşhis koymaz. Yalnızca istatistiksel bazal sapmaları hekiminizle paylaşmanız için raporlar.")
                             .font(.system(size: 10.5))
                             .foregroundColor(Color.gray)
                             .lineSpacing(2)

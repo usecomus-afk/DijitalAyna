@@ -59,13 +59,13 @@ export interface DailyPhenotypeFeatures {
   stationaryClustersCount: number;
 
   // Keystroke Dynamics (BiAffect)
-  meanHoldTimeMs: number;
-  varHoldTimeMs: number;
-  meanFlightTimeMs: number; // IKI
-  varFlightTimeMs: number;
-  backspaceRate: number;
-  burstinessIndex: number;
-  typingSpeedWpm: number;
+  meanHoldTimeMs: number | null;
+  varHoldTimeMs: number | null;
+  meanFlightTimeMs: number | null; // IKI
+  varFlightTimeMs: number | null;
+  backspaceRate: number | null;
+  burstinessIndex: number | null;
+  typingSpeedWpm: number | null;
 
   // Circadian & Screen Dynamics (StudentLife)
   nocturnalScreenMinutes: number; // 00:00-06:00
@@ -97,6 +97,8 @@ export type ClinicalPhenotypeState =
   | 'cognitive_decline_risk_phenotype'
   | 'ptsd_hypervigilance_phenotype'
   | 'low_self_esteem_phenotype'
+  | 'gaming_avoidance_phenotype'
+  | 'appearance_sensitivity_phenotype'
   | 'euthymic_healthy_balance';
 
 export interface ClinicalPhenotypeInference {
@@ -117,8 +119,11 @@ export interface ClinicalInsightAlert {
     | 'anxietySleep'
     | 'neurodiversity'
     | 'cognitiveDecline'
+    | 'CognitivePattern'
     | 'ptsdHypervigilance'
-    | 'lowSelfEsteemPassiveSocial';
+    | 'lowSelfEsteemPassiveSocial'
+    | 'gamingAvoidance'
+    | 'appearanceSensitivityCamera';
   title: string;
   personalizedDeviationStatement: string;
   explainableEvidences: string[];
@@ -129,3 +134,5 @@ export interface ClinicalInsightAlert {
   notificationBody: string;
   isAddedToDoctorReport?: boolean;
 }
+
+export * from './biomarkers';

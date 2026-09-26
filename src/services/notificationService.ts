@@ -23,7 +23,7 @@ class NotificationService {
       if (Capacitor.isNativePlatform()) {
         // Register standard notification channels
         await LocalNotifications.createChannel({
-          id: 'dijital_ayna_reminders',
+          id: 'dijital_mental_ikizim_reminders',
           name: 'Günlük Farkındalık Hatırlatıcıları',
           description: 'Sabah ve akşam ruh hali / bilişsel yoklama bildirimleri',
           importance: 4,
@@ -32,7 +32,7 @@ class NotificationService {
         }).catch(() => {});
 
         await LocalNotifications.createChannel({
-          id: 'dijital_ayna_alerts',
+          id: 'dijital_mental_ikizim_alerts',
           name: 'Bilişsel Fren & Öngörücü Uyarılar',
           description: 'Anomali ve stres kayması acil durum bildirimleri',
           importance: 5,
@@ -110,17 +110,17 @@ class NotificationService {
           notifications: [
             {
               id: 9999,
-              title: 'DutyDijitalAyna Bildirim Sistemi 🔔',
+              title: 'Dijital Mental İkizim Bildirim Sistemi 🔔',
               body: 'iOS bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
               schedule: { at: new Date(Date.now() + 1000) },
               sound: 'beep.wav',
-              channelId: 'dijital_ayna_alerts',
+              channelId: 'dijital_mental_ikizim_alerts',
               extra: { type: 'test' },
             },
           ],
         });
       } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('DutyDijitalAyna Bildirim Sistemi 🔔', {
+        new Notification('Dijital Mental İkizim Bildirim Sistemi 🔔', {
           body: 'Bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
           icon: '/logo.png',
         });
@@ -166,7 +166,7 @@ class NotificationService {
           notifications: [
             {
               id: 1001,
-              title: 'Günün İlk DutyDijitalAyna Yansıması 🪞',
+              title: 'Günün İlk Dijital Mental İkizim Yansıması 🪞',
               body: 'Güne nasıl başladınız? Anlık hissiyatınızı ve sabah enerjinizi kaydetmek için dokunun.',
               schedule: {
                 at: morning,
@@ -174,7 +174,7 @@ class NotificationService {
                 every: 'day',
               },
               sound: 'beep.wav',
-              channelId: 'dijital_ayna_reminders',
+              channelId: 'dijital_mental_ikizim_reminders',
               extra: { type: 'morning_checkin' },
             },
             {
@@ -187,7 +187,7 @@ class NotificationService {
                 every: 'day',
               },
               sound: 'beep.wav',
-              channelId: 'dijital_ayna_reminders',
+              channelId: 'dijital_mental_ikizim_reminders',
               extra: { type: 'evening_reflection' },
             },
           ],
@@ -215,7 +215,7 @@ class NotificationService {
               body,
               schedule: { at: new Date(Date.now() + 500) },
               sound: 'beep.wav',
-              channelId: 'dijital_ayna_alerts',
+              channelId: 'dijital_mental_ikizim_alerts',
               extra: { type: 'predictive_alert' },
             },
           ],

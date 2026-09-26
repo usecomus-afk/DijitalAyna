@@ -5,7 +5,7 @@ import UserNotifications
 /// Manages background task scheduling, nightly aggregation, and low-energy edge computation
 public final class BackgroundSyncManager {
     public static let shared = BackgroundSyncManager()
-    public static let taskIdentifier = "com.dijitalayna.app.analytics"
+    public static let taskIdentifier = "com.dijitalmentalikizim.app.analytics"
 
     private init() {}
 

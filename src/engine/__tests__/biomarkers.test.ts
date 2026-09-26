@@ -59,6 +59,31 @@ describe('Biomarker Synthesis Rules & Academic Phenotyping', () => {
     expect(biomarkers[0].type).toBe('healthy_balance');
   });
 
+  it('should trigger Gaming Avoidance on high gaming duration and reduced mobility', () => {
+    const anomalies: AnomalyResult[] = [
+      createMock('gaming_duration', 2.5),
+      createMock('mobility_index', -2.0),
+    ];
+
+    const biomarkers = synthesizeBiomarkers(anomalies);
+    const gaming = biomarkers.find(b => b.type === 'gaming_avoidance');
+    expect(gaming).toBeDefined();
+    expect(gaming?.confidence).toBe('high');
+    expect(gaming?.label).toContain('Kaçınma ve Sanal Dünyaya Sığınma');
+  });
+
+  it('should trigger Appearance & Self-Worth Sensitivity on high camera interaction', () => {
+    const anomalies: AnomalyResult[] = [
+      createMock('camera_interaction_count', 2.4),
+      createMock('session_switching_entropy', 1.6),
+    ];
+
+    const biomarkers = synthesizeBiomarkers(anomalies);
+    const appearance = biomarkers.find(b => b.type === 'appearance_sensitivity');
+    expect(appearance).toBeDefined();
+    expect(appearance?.label).toContain('Öz-Değer ve Görünüm Hassasiyeti');
+  });
+
   it('should calculate Affective State Index accurately from weighted Z-scores', () => {
     const balancedAnomalies: AnomalyResult[] = [
       createMock('mobility_index', 0.5),

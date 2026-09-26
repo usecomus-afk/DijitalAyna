@@ -1,6 +1,6 @@
 export type SensorType = 'motion' | 'typing' | 'touch' | 'session' | 'light' | 'battery' | 'network' | 'voice';
 
-export type DataProvenanceSource = 'native-sensor' | 'web-api' | 'missing';
+export type DataProvenanceSource = 'native-sensor' | 'web-api' | 'missing' | 'screen-brightness-proxy';
 
 export interface DataProvenance {
   source: DataProvenanceSource;
@@ -29,13 +29,16 @@ export type MetricKey =
   | 'night_usage_minutes'
   | 'screen_on_time'
   | 'light_ambient_lux'
+  | 'night_light_violations'
   | 'battery_level'
   | 'is_charging'
   | 'network_online'
   | 'voice_pitch_variance'
   | 'voice_speech_rate'
   | 'cognitive_fatigue_score'
-  | 'impulse_risk_index';
+  | 'impulse_risk_index'
+  | 'gaming_duration'
+  | 'camera_interaction_count';
 
 export interface MetricDefinition {
   key: MetricKey;
@@ -143,6 +146,14 @@ export const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     description: 'Kullanım sırasındaki tahmini veya ölçülen ortam aydınlığı.',
     healthyTrend: 'higher',
   },
+  night_light_violations: {
+    key: 'night_light_violations',
+    label: 'Gece Yüksek Işık (Sirkadiyen)',
+    unit: 'kez',
+    category: 'light',
+    description: 'Gece (23:00-06:00) saatlerinde ekran/ortam ışığının yüksek olması durumu.',
+    healthyTrend: 'lower',
+  },
   battery_level: {
     key: 'battery_level',
     label: 'Pil Seviyesi',
@@ -198,5 +209,21 @@ export const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     category: 'session',
     description: 'Gece yarısı ani işlem ve agresif ekran döngülerinde hesaplanan dürtüsellik skoru.',
     healthyTrend: 'lower',
+  },
+  gaming_duration: {
+    key: 'gaming_duration',
+    label: 'Oyun Oturumu Süresi',
+    unit: 'dk',
+    category: 'session',
+    description: 'Günlük toplam oyun süresi ve tekil en uzun oyun oturumu süresi.',
+    healthyTrend: 'balanced',
+  },
+  camera_interaction_count: {
+    key: 'camera_interaction_count',
+    label: 'Kamera Etkileşim Sıklığı',
+    unit: 'kez',
+    category: 'session',
+    description: 'Kısa sürede tekrarlayan kamera açılış sıklığı ve çekim-silme oranı.',
+    healthyTrend: 'balanced',
   },
 };

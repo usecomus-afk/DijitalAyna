@@ -59,8 +59,9 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   const latestDate = latestMetric.date;
   let sampleDays = 0;
   try {
-    const baselines = await db.baselines.toArray();
-    sampleDays = baselines.reduce((max, b) => Math.max(max, b.sampleCount || 0), 0);
+    const metrics = await db.dailyMetrics.toArray();
+    const distinctDates = new Set(metrics.map(m => m.date));
+    sampleDays = distinctDates.size;
   } catch {}
   const isLearning = sampleDays < 14;
 
@@ -72,7 +73,9 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   // 3. Automated crisis evaluation connected to daily aggregation & recent EMA mood reports
   try {
     const recentMoods = await db.moodReports.orderBy('date').reverse().limit(5).toArray();
-    checkAndTriggerCrisisIfNeeded(anomalies, recentMoods);
+    if (!isLearning) {
+      checkAndTriggerCrisisIfNeeded(anomalies, recentMoods);
+    }
   } catch {
     // Graceful fallback in environments where moodReports may be empty
   }

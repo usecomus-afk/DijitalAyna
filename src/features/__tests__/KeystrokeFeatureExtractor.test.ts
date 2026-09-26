@@ -10,7 +10,7 @@ describe('KeystrokeFeatureExtractor - BiAffect Dynamics & Typing Analysis', () =
       { eventType: 'KEY_DOWN', durationMs: 90, interKeyDelayMs: 130, timestamp: 1400 },
     ];
 
-    const stats = KeystrokeFeatureExtractor.holdTimeStats(events);
+    const stats = KeystrokeFeatureExtractor.holdTimeStats(events)!;
     expect(stats.mean).toBe(90);
     expect(stats.variance).toBeGreaterThan(0);
     expect(stats.std).toBeCloseTo(8.16, 1);
@@ -23,7 +23,7 @@ describe('KeystrokeFeatureExtractor - BiAffect Dynamics & Typing Analysis', () =
       { eventType: 'KEY_DOWN', durationMs: 75, interKeyDelayMs: 300, timestamp: 1500 },
     ];
 
-    const stats = KeystrokeFeatureExtractor.flightTimeStats(events);
+    const stats = KeystrokeFeatureExtractor.flightTimeStats(events)!;
     expect(stats.mean).toBe(200);
     expect(stats.std).toBeGreaterThan(50);
   });

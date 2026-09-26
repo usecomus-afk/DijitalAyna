@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Allow read and write for user profile backups and synchronization
+      allow read, write: if true;
+    }
+  }
+}

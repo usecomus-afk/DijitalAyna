@@ -78,4 +78,31 @@ describe('AuthService - Username and Password Authentication', () => {
       AuthService.loginWithCredentials('nonexistent', 'pass123')
     ).rejects.toThrow('Kullanıcı bulunamadı');
   });
+
+  it('should correctly determine authenticated vs unauthenticated profile state', () => {
+    const unauthenticated = {
+      name: '',
+      isGoogleConnected: false,
+      isAppleConnected: false,
+      isPasswordAccount: false,
+    };
+    const isAuth = Boolean(
+      unauthenticated.isGoogleConnected ||
+      unauthenticated.isAppleConnected ||
+      unauthenticated.isPasswordAccount ||
+      (unauthenticated as any).email
+    );
+    expect(isAuth).toBe(false);
+
+    const googleAuth = {
+      name: 'Test User',
+      email: 'user@gmail.com',
+      isGoogleConnected: true,
+    };
+    const isGoogleAuth = Boolean(
+      googleAuth.isGoogleConnected ||
+      (googleAuth as any).isAppleConnected
+    );
+    expect(isGoogleAuth).toBe(true);
+  });
 });

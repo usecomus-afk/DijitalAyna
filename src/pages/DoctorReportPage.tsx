@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
@@ -21,6 +22,65 @@ import { calculateZScore } from '../engine/anomaly';
 import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
 import { shareContent } from '../services/shareService';
 import { NORMATIVE_DEFAULTS } from '../engine/seedCalibration';
+import { sensorCapabilities } from '../sensors/capabilities';
+import { sensorManager } from '../sensors/SensorManager';
+import { healthService } from '../services/native/healthService';
+
+export type MetricDisplayStatus = 'active' | 'permission_required' | 'unsupported' | 'waiting_data' | 'self_report_required';
+
+export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDisplayStatus {
+  if (hasData) return 'active';
+  if (key === 'mobility_index' || key === 'tremor_variance' || key === 'voice_pitch_variance' || key === 'voice_speech_rate' || key === 'camera_interaction_count') {
+    return 'permission_required';
+  }
+  if (key === 'gaming_duration') {
+    return 'self_report_required';
+  }
+  return 'waiting_data';
+}
+
+// Technical explanation helper for unavailable sensor telemetry (Strict Zero-Mock Policy)
+function getUnavailableReason(key: MetricKey): string {
+  switch (key) {
+    case 'typing_wpm':
+    case 'typing_iki':
+    case 'typing_backspace_rate':
+    case 'typing_pause_count':
+      return 'Uygulama içi yazım kaydı bekleniyor';
+    case 'touch_scroll_velocity':
+    case 'touch_interaction_frequency':
+      return 'Uygulama içi dokunma/kaydırma kaydı bekleniyor';
+    case 'session_duration':
+    case 'screen_on_time':
+      return 'Aktif oturum süresi henüz kaydedilmedi';
+    case 'night_usage_minutes':
+      return '02:00–04:00 gece penceresinde kullanım kaydı saptanmadı';
+    case 'mobility_index':
+      return 'Apple Sağlık (HealthKit) / Hareket izni bekleniyor';
+    case 'tremor_variance':
+      return 'Cihaz Hareket (Motion) sensör izni bekleniyor';
+    case 'camera_interaction_count':
+      return 'Kamera izni bekleniyor';
+    case 'light_ambient_lux':
+      return 'Ekran parlaklığı vekili üzerinden ortam ışığı kaydı bekleniyor';
+    case 'battery_level':
+    case 'is_charging':
+      return 'Pil telemetrisi kaydedilemedi (iOS WebKit kısıtı)';
+    case 'network_online':
+      return 'Ağ bağlantı telemetrisi kaydedilemedi';
+    case 'voice_pitch_variance':
+    case 'voice_speech_rate':
+      return 'Mikrofon izni verilmedi veya ses kaydı yok';
+    case 'gaming_duration':
+      return 'iOS Sandbox kısıtı nedeniyle öz-bildirim gereklidir';
+    case 'cognitive_fatigue_score':
+      return 'Bilişsel yorgunluk analizi için 14 günlük baz hattı bekleniyor';
+    case 'impulse_risk_index':
+      return 'Gece kullanım ve agresif dokunma verisi yetersiz';
+    default:
+      return 'Sensör verisi mevcut değil';
+  }
+}
 
 export const DoctorReportPage: React.FC = () => {
   const { userProfile, baselineDayCount } = useAppStore();
@@ -49,7 +109,26 @@ export const DoctorReportPage: React.FC = () => {
   const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
   const isLearning = effectiveDayCount < 14;
 
-  // Compute summary stats for the report - all 19 indicators always active & guaranteed via NORMATIVE_DEFAULTS
+  const handleRequestPermission = async (key: MetricKey) => {
+    try {
+      if (key === 'mobility_index') {
+        const granted = await sensorCapabilities.requestHealthPermission();
+        if (granted) await healthService.syncHealthBiomarkers();
+      } else if (key === 'tremor_variance') {
+        await sensorCapabilities.requestMotionPermission();
+      } else if (key === 'voice_pitch_variance' || key === 'voice_speech_rate') {
+        await sensorCapabilities.requestMicrophonePermission();
+      } else if (key === 'camera_interaction_count') {
+        await sensorCapabilities.requestCameraPermission();
+      }
+      await sensorManager.flushAndCollectAll();
+      await sensorManager.evaluateNow();
+    } catch (e) {
+      console.warn('[DoctorReport] Permission request error:', e);
+    }
+  };
+
+  // Compute summary stats for the report - all 21 indicators with strict Zero-Mock transparency
   const reportStats = useMemo(() => {
     const baselineMap = new Map(baselines.map((b) => [b.metricKey, b]));
     const now = new Date();
@@ -64,10 +143,13 @@ export const DoctorReportPage: React.FC = () => {
       label: string;
       unit: string;
       category: string;
-      baselineMean: number;
-      periodAvg: number;
-      deviationPercent: number;
-      zScore: number;
+      hasData: boolean;
+      baselineMean: number | null;
+      periodAvg: number | null;
+      deviationPercent: number | null;
+      zScore: number | null;
+      status: MetricDisplayStatus;
+      unavailableReason: string;
     }[] = [];
 
     const allKeys = Object.keys(METRIC_DEFINITIONS) as MetricKey[];
@@ -83,7 +165,10 @@ export const DoctorReportPage: React.FC = () => {
         .filter((m) => m.metricKey === key)
         .map((m) => m.value);
 
-      if (values.length > 0) {
+      const hasData = values.length > 0;
+      const statusType = getMetricStatusType(key, hasData);
+
+      if (hasData) {
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
         const dev =
           ewmaMean !== 0
@@ -96,28 +181,37 @@ export const DoctorReportPage: React.FC = () => {
           label: def.label,
           unit: def.unit,
           category: def.category,
+          hasData: true,
           baselineMean: ewmaMean,
           periodAvg: Math.round(avg * 100) / 100,
           deviationPercent: dev,
           zScore: z,
+          status: 'active',
+          unavailableReason: '',
         });
       } else {
-        // Include baseline for complete visibility
+        // Zero-Mock Transparency: NEVER fabricate or fallback to default numbers!
         stats.push({
           key,
           label: def.label,
           unit: def.unit,
           category: def.category,
-          baselineMean: ewmaMean,
-          periodAvg: ewmaMean,
-          deviationPercent: 0,
-          zScore: 0,
+          hasData: false,
+          baselineMean: null,
+          periodAvg: null,
+          deviationPercent: null,
+          zScore: null,
+          status: statusType,
+          unavailableReason: getUnavailableReason(key),
         });
       }
     }
 
     return stats;
   }, [dailyMetrics, baselines, selectedRange]);
+
+  const activeCount = useMemo(() => reportStats.filter(s => s.hasData).length, [reportStats]);
+  const unavailableCount = reportStats.length - activeCount;
 
   // Compute medication impact reports
   const medImpactReports = useMemo(() => {
@@ -174,10 +268,12 @@ export const DoctorReportPage: React.FC = () => {
 
   const handleShareReport = async () => {
     const tableText = reportStats
-      .map(
-        (s) =>
-          `• ${s.label}: Baz ${s.baselineMean} ${s.unit} -> Ortalama ${s.periodAvg} ${s.unit} (Değişim: ${s.deviationPercent > 0 ? '+' : ''}${s.deviationPercent}%)`
-      )
+      .map((s) => {
+        if (s.hasData) {
+          return `• ${s.label}: Baz ${s.baselineMean} ${s.unit} -> Ortalama ${s.periodAvg} ${s.unit} (Değişim: ${(s.deviationPercent || 0) > 0 ? '+' : ''}${s.deviationPercent}%) [Aktif]`;
+        }
+        return `• ${s.label}: Veri Alınamıyor (${s.unavailableReason})`;
+      })
       .join('\n');
 
     const medSectionText = medImpactReports.length > 0
@@ -199,18 +295,18 @@ export const DoctorReportPage: React.FC = () => {
           : 'Tüm biyobelirteçler kişisel bazal referans sınırları içerisinde stabildir.');
 
     const shareBody = [
-      `DUTYDİJİTALAYNA — KLİNİK DAVRANIŞSAL DİJİTAL FENOTİP RAPORU`,
+      `MENTALDİJİTALAYNA — KLİNİK DAVRANIŞSAL DİJİTAL FENOTİP RAPORU`,
       `═════════════════════════════════════════════`,
       `DANIŞAN / KULLANICI BİLGİLERİ`,
       `• Ad Soyad: ${userProfile.name}`,
       `• Cinsiyet: ${userProfile.gender === 'female' ? 'Kadın' : 'Erkek'}`,
       `• Yaş: ${userProfile.age || 'Belirtilmedi'}`,
       `• Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
-      `• İncelenen Dönem: Son ${selectedRange} Gün`,
+      `• İncelenen Dönem: Son ${selectedRange} Gün (${activeCount}/21 Gösterge Aktif)`,
       `• Baz Hattı Durumu: ${isLearning ? `Öğrenme Döneminde (${effectiveDayCount}/14 Gün)` : `Stabil Baz Hattı Aktif (${effectiveDayCount} Gün)`}`,
       ``,
       `═════════════════════════════════════════════`,
-      `SAYISAL GÖSTERGELER & EWMA BAZ HATTI DEĞİŞİMİ`,
+      `SAYISAL GÖSTERGELER & EWMA BAZ HATTI DEĞİŞİMİ (21 GÖSTERGE)`,
       `═════════════════════════════════════════════`,
       tableText,
       medSectionText,
@@ -225,7 +321,7 @@ export const DoctorReportPage: React.FC = () => {
     ].filter(Boolean).join('\n');
 
     const result = await shareContent({
-      title: `DutyDijitalAyna Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
+      title: `Dijital Mental İkizim Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
       text: shareBody,
     });
 
@@ -247,7 +343,7 @@ export const DoctorReportPage: React.FC = () => {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleShareReport}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer"
             >
               <Share2 className="w-4 h-4 shrink-0" />
               <span className="whitespace-nowrap">Raporu Paylaş</span>
@@ -287,30 +383,10 @@ export const DoctorReportPage: React.FC = () => {
             </div>
 
             <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
-              <strong className="text-emerald-950 block mb-1">DutyDijitalAyna Çözümü: Nesnel Biyobelirteçler</strong>
+              <strong className="text-emerald-950 block mb-1">Dijital Mental İkizim Çözümü: Nesnel Biyobelirteçler</strong>
               <p className="text-emerald-900">
                 Pazartesi ve Çarşamba 03:00'e kadar süren ekran aktivitesi, 4 saatlik uyku ve yazım yavaşlamasını net verilerle sunar. Hekimin doğru tanı ve tedavi planı oluşturmasını hızlandırır.
               </p>
-            </div>
-          </div>
-
-          {/* 4-Step Process */}
-          <div className="pt-2 border-t border-comus-sand-light/20 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-comus-navy">
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="w-5 h-5 rounded-full bg-comus-navy text-white text-[10px] flex items-center justify-center font-bold">1</span>
-              <span>"Doktorumla Paylaş"</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="w-5 h-5 rounded-full bg-comus-navy text-white text-[10px] flex items-center justify-center font-bold">2</span>
-              <span>Verileri Seç</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="w-5 h-5 rounded-full bg-comus-navy text-white text-[10px] flex items-center justify-center font-bold">3</span>
-              <span>Görsel Rapor Üret</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="w-5 h-5 rounded-full bg-comus-navy text-white text-[10px] flex items-center justify-center font-bold">4</span>
-              <span>Hekime Güvenli İlet</span>
             </div>
           </div>
         </div>
@@ -336,9 +412,9 @@ export const DoctorReportPage: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1 font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>19 Gösterge Aktif & Rapora Dahil</span>
+          <div className="text-[11px] text-teal-800 bg-teal-50 px-3 py-1 rounded-xl border border-teal-200 flex items-center gap-1.5 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{activeCount} / 21 Gösterge Aktif ({unavailableCount} Gösterge İçin İzin veya Donanım Desteği Gerekli)</span>
           </div>
         </div>
       </div>
@@ -349,7 +425,7 @@ export const DoctorReportPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-serif font-bold text-2xl text-comus-navy">DutyDijitalAyna</span>
+              <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Mental İkizim</span>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper border border-comus-copper/30 px-2 py-0.5 rounded">
                 Davranışsal Fenotip, İlaç Talimatı & Doz Takip Raporu
               </span>
@@ -363,7 +439,7 @@ export const DoctorReportPage: React.FC = () => {
             <div><strong>Rapor Tarihi:</strong> {new Date().toLocaleDateString('tr-TR')}</div>
             <div><strong>Danışan / Kullanıcı:</strong> {userProfile.name}</div>
             {userProfile.email && <div><strong>E-posta:</strong> {userProfile.email}</div>}
-            <div><strong>İncelenen Pencere:</strong> Son {selectedRange} Gün (Tüm Göstergeler Aktif)</div>
+            <div><strong>İncelenen Pencere:</strong> Son {selectedRange} Gün ({activeCount}/21 Gösterge Aktif)</div>
           </div>
         </div>
 
@@ -374,7 +450,7 @@ export const DoctorReportPage: React.FC = () => {
             <span>1. Genel Özet & Fenotipik Eğilim</span>
           </h4>
           <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed">
-            {userProfile.name} adlı kullanıcının son {selectedRange} günlük cihaz içi etkileşimleri, yazım temposu, hata düzeltme oranları, fiziksel hareketlilik ve sirkadiyen dinlenme pencereleri EWMA kişisel baz hattı ile boylamsal olarak karşılaştırılmıştır. Sistemdeki tüm 19 davranışsal gösterge eksiksiz olarak analize dahil edilmiştir. Bu veriler klinik tanı içermemekte olup uzman hekim ve terapist değerlendirmesine destek amacıyla sunulmuştur.
+            {userProfile.name} adlı kullanıcının son {selectedRange} günlük cihaz içi etkileşimleri, yazım temposu, hata düzeltme oranları, fiziksel hareketlilik ve sirkadiyen dinlenme pencereleri EWMA kişisel baz hattı ile boylamsal olarak karşılaştırılmıştır. Sistemde ölçümlenen {activeCount} aktif biyobelirteç analize dahil edilmiştir ({unavailableCount} gösterge donanım/izin kısıtı nedeniyle veri toplayamamaktadır). Bu veriler klinik tanı içermemekte olup uzman hekim ve terapist değerlendirmesine destek amacıyla sunulmuştur.
           </p>
         </div>
 
@@ -722,72 +798,127 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         )}
 
-        {/* 5. Complete Metrics Table (All 19 Indicators Active, Responsive Without Horizontal Drag) */}
+        {/* 5. Complete Metrics Table (All 21 Indicators with Strict Zero-Mock Transparency) */}
         <div>
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
               {medications.length > 0 ? '5.' : '4.'} Sayısal Göstergeler & EWMA Baz Hattı Sapma Tablosu ({reportStats.length} Gösterge)
             </h4>
-            <span className="text-[10.5px] text-comus-sand-dark font-medium">
-              Tüm Sensör Kategorileri Aktif
+            <span className="text-[11px] text-comus-sand-dark font-medium">
+              <strong className="text-emerald-700 font-bold">{activeCount}</strong> / 21 Gösterge Aktif • <span className="text-amber-800 font-bold">{unavailableCount}</span> İzin/Sensör Bekleniyor
             </span>
           </div>
 
           {/* MOBILE VIEW: Clean Cards - No Horizontal Scrolling Required */}
           <div className="block sm:hidden space-y-2">
             {reportStats.map((st) => {
-              const isAnomaly = Math.abs(st.zScore) >= 2.0;
+              const isAnomaly = st.hasData && st.zScore !== null && Math.abs(st.zScore) >= 2.0;
               return (
                 <div
                   key={st.key}
                   className={`p-3 rounded-2xl border transition-all ${
-                    isAnomaly ? 'bg-rose-50/50 border-rose-200' : 'bg-white border-comus-sand-light/30 shadow-soft'
+                    !st.hasData
+                      ? 'bg-stone-50/60 border-stone-200/80'
+                      : isAnomaly
+                      ? 'bg-rose-50/50 border-rose-200'
+                      : 'bg-white border-comus-sand-light/30 shadow-soft'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="flex-1">
                       <div className="font-semibold text-xs text-comus-navy">{st.label}</div>
                       <div className="text-[10px] text-comus-sand-dark capitalize">{st.category} sensörü</div>
+                      {!st.hasData && (
+                        <p className="text-[10px] text-stone-500 italic mt-0.5">{st.unavailableReason}</p>
+                      )}
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                      isAnomaly
-                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                    }`}>
-                      {isAnomaly ? 'Sapma Var' : 'Dengeli'}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        st.hasData
+                          ? isAnomaly
+                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : st.status === 'permission_required'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
+                          : st.status === 'self_report_required'
+                          ? 'bg-purple-100 text-purple-900 border border-purple-300 font-bold'
+                          : st.status === 'unsupported'
+                          ? 'bg-stone-100 text-stone-600 border border-stone-200'
+                          : 'bg-stone-100 text-stone-600 border border-stone-200'
+                      }`}>
+                        {st.hasData
+                          ? isAnomaly ? 'Sapma Var' : (st.key === 'light_ambient_lux' ? 'Aktif / Vekil Donanım' : 'Aktif / Native')
+                          : st.status === 'permission_required'
+                          ? 'İzin Bekleniyor'
+                          : st.status === 'self_report_required'
+                          ? 'Öz-Bildirim Gerekli'
+                          : st.status === 'unsupported'
+                          ? 'Desteklenmiyor'
+                          : 'Veri Bekleniyor'}
+                      </span>
+                      {!st.hasData && st.status === 'permission_required' && (
+                        <button
+                          onClick={() => handleRequestPermission(st.key)}
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
+                        >
+                          {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : st.key === 'camera_interaction_count' ? 'Kamera İzni İste' : 'İzin Ver'}
+                        </button>
+                      )}
+                      {!st.hasData && st.status === 'self_report_required' && (
+                        <NavLink
+                          to="/journal"
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-comus-copper text-white hover:bg-comus-copper-dark active:scale-95 transition-all shadow-xs inline-flex items-center gap-1"
+                        >
+                          Günlük'te Doldur
+                        </NavLink>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-comus-sand-light/20 text-center">
                     <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
                       <span className="text-[9px] text-comus-sand-dark block">Kişisel Baz</span>
                       <strong className="font-mono text-[11px] text-comus-navy font-semibold">
-                        {st.baselineMean}
+                        {st.hasData && st.baselineMean !== null ? `${st.baselineMean} ${st.unit}` : '—'}
                       </strong>
                     </div>
 
                     <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
                       <span className="text-[9px] text-comus-sand-dark block">Dönem Ort.</span>
                       <strong className="font-mono text-[11px] text-comus-navy font-semibold">
-                        {st.periodAvg}
+                        {st.hasData && st.periodAvg !== null ? `${st.periodAvg} ${st.unit}` : '—'}
                       </strong>
                     </div>
 
                     <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
                       <span className="text-[9px] text-comus-sand-dark block">Değişim</span>
                       <strong className={`font-mono text-[11px] font-bold ${
-                        st.deviationPercent > 0 ? 'text-amber-700' : st.deviationPercent < 0 ? 'text-indigo-700' : 'text-comus-sand-dark'
+                        !st.hasData
+                          ? 'text-stone-400'
+                          : (st.deviationPercent || 0) > 0
+                          ? 'text-amber-700'
+                          : (st.deviationPercent || 0) < 0
+                          ? 'text-indigo-700'
+                          : 'text-comus-sand-dark'
                       }`}>
-                        {st.deviationPercent > 0 ? `+${st.deviationPercent}%` : `${st.deviationPercent}%`}
+                        {st.hasData && st.deviationPercent !== null
+                          ? `${st.deviationPercent > 0 ? '+' : ''}${st.deviationPercent}%`
+                          : '—'}
                       </strong>
                     </div>
 
                     <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
                       <span className="text-[9px] text-comus-sand-dark block">Z-Skoru</span>
                       <strong className={`font-mono text-[11px] font-bold ${
-                        isAnomaly ? 'text-rose-600' : 'text-comus-sand-dark'
+                        !st.hasData
+                          ? 'text-stone-400'
+                          : isAnomaly
+                          ? 'text-rose-600'
+                          : 'text-comus-sand-dark'
                       }`}>
-                        {st.zScore > 0 ? `+${st.zScore}` : st.zScore}
+                        {st.hasData && st.zScore !== null
+                          ? `${st.zScore > 0 ? '+' : ''}${st.zScore}`
+                          : '—'}
                       </strong>
                     </div>
                   </div>
@@ -801,47 +932,92 @@ export const DoctorReportPage: React.FC = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-comus-sand-subtle text-comus-navy font-semibold border-b border-comus-sand-light/30">
-                  <th className="p-3 w-[30%]">Gösterge / Biyobelirteç</th>
-                  <th className="p-3 text-right w-[16%]">Kişisel Baz</th>
-                  <th className="p-3 text-right w-[18%]">Dönem Ort.</th>
-                  <th className="p-3 text-right w-[14%]">Değişim</th>
-                  <th className="p-3 text-right w-[11%]">Z-Skoru</th>
-                  <th className="p-3 text-center w-[11%]">Durum</th>
+                  <th className="p-3 w-[34%]">Gösterge / Biyobelirteç</th>
+                  <th className="p-3 text-right w-[14%]">Kişisel Baz</th>
+                  <th className="p-3 text-right w-[15%]">Dönem Ort.</th>
+                  <th className="p-3 text-right w-[11%]">Değişim</th>
+                  <th className="p-3 text-right w-[9%]">Z-Skoru</th>
+                  <th className="p-3 text-center w-[17%]">Durum</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-comus-sand-light/20">
                 {reportStats.map((st) => {
-                  const isAnomaly = Math.abs(st.zScore) >= 2.0;
+                  const isAnomaly = st.hasData && st.zScore !== null && Math.abs(st.zScore) >= 2.0;
                   return (
-                    <tr key={st.key} className={isAnomaly ? 'bg-rose-50/40' : 'hover:bg-comus-surface/50'}>
+                    <tr key={st.key} className={!st.hasData ? 'bg-stone-50/40 text-stone-500' : isAnomaly ? 'bg-rose-50/40' : 'hover:bg-comus-surface/50'}>
                       <td className="p-3 font-medium text-comus-navy">
                         <div className="font-semibold">{st.label}</div>
                         <div className="text-[10px] text-comus-sand-dark capitalize">{st.category} sensörü</div>
+                        {!st.hasData && (
+                          <div className="text-[10px] text-stone-500 italic mt-0.5">{st.unavailableReason}</div>
+                        )}
                       </td>
                       <td className="p-3 text-right font-mono tabular-nums text-comus-sand-dark whitespace-nowrap">
-                        {st.baselineMean} {st.unit}
+                        {st.hasData && st.baselineMean !== null ? `${st.baselineMean} ${st.unit}` : '—'}
                       </td>
                       <td className="p-3 text-right font-mono tabular-nums font-semibold text-comus-navy whitespace-nowrap">
-                        {st.periodAvg} {st.unit}
+                        {st.hasData && st.periodAvg !== null ? `${st.periodAvg} ${st.unit}` : '—'}
                       </td>
                       <td className="p-3 text-right font-mono tabular-nums font-medium whitespace-nowrap">
-                        <span className={st.deviationPercent > 0 ? 'text-amber-700' : st.deviationPercent < 0 ? 'text-indigo-700' : 'text-comus-sand-dark'}>
-                          {st.deviationPercent > 0 ? `+${st.deviationPercent}%` : `${st.deviationPercent}%`}
-                        </span>
+                        {st.hasData && st.deviationPercent !== null ? (
+                          <span className={st.deviationPercent > 0 ? 'text-amber-700' : st.deviationPercent < 0 ? 'text-indigo-700' : 'text-comus-sand-dark'}>
+                            {st.deviationPercent > 0 ? `+${st.deviationPercent}%` : `${st.deviationPercent}%`}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className="p-3 text-right font-mono tabular-nums font-bold whitespace-nowrap">
-                        <span className={isAnomaly ? 'text-rose-600' : 'text-comus-sand-dark'}>
-                          {st.zScore > 0 ? `+${st.zScore}` : st.zScore}
-                        </span>
+                        {st.hasData && st.zScore !== null ? (
+                          <span className={isAnomaly ? 'text-rose-600' : 'text-comus-sand-dark'}>
+                            {st.zScore > 0 ? `+${st.zScore}` : st.zScore}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className="p-3 text-center whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isAnomaly
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {isAnomaly ? 'Sapma Var' : 'Dengeli'}
-                        </span>
+                        <div className="inline-flex items-center justify-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            st.hasData
+                              ? isAnomaly
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                              : st.status === 'permission_required'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : st.status === 'self_report_required'
+                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                              : st.status === 'unsupported'
+                              ? 'bg-stone-100 text-stone-600 border border-stone-200'
+                              : 'bg-stone-100 text-stone-600 border border-stone-200'
+                          }`}>
+                            {st.hasData
+                              ? isAnomaly ? 'Sapma Var' : (st.key === 'light_ambient_lux' ? 'Aktif / Vekil Donanım' : 'Aktif / Native')
+                              : st.status === 'permission_required'
+                              ? 'İzin Bekleniyor'
+                              : st.status === 'self_report_required'
+                              ? 'Öz-Bildirim Gerekli'
+                              : st.status === 'unsupported'
+                              ? 'Desteklenmiyor'
+                              : 'Veri Bekleniyor'}
+                          </span>
+                          {!st.hasData && st.status === 'permission_required' && (
+                            <button
+                              onClick={() => handleRequestPermission(st.key)}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
+                            >
+                              {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : st.key === 'camera_interaction_count' ? 'Kamera İzni İste' : 'İzin Ver'}
+                            </button>
+                          )}
+                          {!st.hasData && st.status === 'self_report_required' && (
+                            <NavLink
+                              to="/journal"
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-comus-copper text-white hover:bg-comus-copper-dark active:scale-95 transition-all shadow-xs inline-flex items-center gap-1"
+                            >
+                              Günlük'te Doldur
+                            </NavLink>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

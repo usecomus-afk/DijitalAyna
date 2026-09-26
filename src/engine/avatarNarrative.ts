@@ -81,7 +81,7 @@ export function calculateRecentMoodScore(
 
 export interface BalanceIndexOptions {
   recentMoodScore: number | null;
-  passiveScore: number;
+  passiveScore: number | null;
   isEstablished: boolean;
 }
 
@@ -98,22 +98,13 @@ export function calculateEmotionalBalanceIndex({
   recentMoodScore,
   passiveScore,
   isEstablished,
-}: BalanceIndexOptions): number {
+}: BalanceIndexOptions): number | null {
   if (recentMoodScore === null) {
-    return Math.round(isEstablished ? passiveScore : 70);
+    return isEstablished && passiveScore !== null ? Math.round(passiveScore) : null;
   }
 
-  if (!isEstablished) {
-    // When baseline is not established, passive score uses uncalibrated defaults (~70-75).
-    // If user EMA indicates distress, cap the passive score at (recentMoodScore + 15)
-    // so that: 0.75 * 20 + 0.25 * 35 = 15 + 8.75 = 23.75 ~ 24 (strictly in 20-30 band).
-    const effectivePassive =
-      recentMoodScore <= 35
-        ? Math.min(passiveScore, recentMoodScore + 15)
-        : passiveScore;
-
-    const hybrid = 0.75 * recentMoodScore + 0.25 * effectivePassive;
-    return Math.max(1, Math.min(100, Math.round(hybrid)));
+  if (!isEstablished || passiveScore === null) {
+    return Math.max(1, Math.min(100, Math.round(recentMoodScore)));
   } else {
     const hybrid = 0.5 * recentMoodScore + 0.5 * passiveScore;
     return Math.max(1, Math.min(100, Math.round(hybrid)));
@@ -124,7 +115,7 @@ export function calculateEmotionalBalanceIndex({
  * Derives avatar discrete score (1..5) from affective balance index and recent EMA.
  */
 export function deriveAvatarScore(
-  affectiveIndex: number,
+  affectiveIndex: number | null,
   recentMoodScore: number | null = null,
   isEstablished: boolean = false
 ): 1 | 2 | 3 | 4 | 5 {
@@ -135,6 +126,8 @@ export function deriveAvatarScore(
     if (recentMoodScore <= 88) return 4;
     return 5;
   }
+
+  if (affectiveIndex === null) return 3;
 
   if (affectiveIndex <= 35) return 1;
   if (affectiveIndex <= 55) return 2;
@@ -165,7 +158,7 @@ export function sanitizeAgainstTranquilityWhenDistressed(
 export interface AvatarNarrativeOptions {
   userName: string;
   score: 1 | 2 | 3 | 4 | 5;
-  affectiveIndex: number;
+  affectiveIndex: number | null;
   isEstablished: boolean;
   effectiveDays: number;
   topTags: string[];
@@ -204,18 +197,18 @@ export function generateAvatarNarrative({
     ? 'Kişisel sensör baz hattınız aktif; 15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.'
     : `Kişisel sensör baz hattınız oluşturuluyor (%${percentComplete} tamamlandı). Ancak anlık zihin yansımanız, girdiğiniz aktif ruh hali kayıtlarına göre anında güncellenmektedir.`;
 
-  let title = 'Normal & Dengeli';
-  let subtitle = 'Normal Durum • Ritim Stabil';
+  let title = affectiveIndex === null ? 'Veri Toplanıyor' : 'Normal & Dengeli';
+  let subtitle = affectiveIndex === null ? 'Öğrenme Aşaması (0/14 Gün)' : 'Normal Durum • Ritim Stabil';
   let badgeClass = 'bg-indigo-100 text-indigo-800 border-indigo-300';
   let auraGradient = 'from-cyan-500/20 via-indigo-500/15 to-blue-900/20';
   let glowColor = '#6366f1';
   let bgBase = 'bg-gradient-to-b from-indigo-950/20 to-slate-900/30';
   let dialogue = '';
   let mirrorText = '';
-  let energyText = `%${affectiveIndex} Duygusal Denge`;
+  let energyText = affectiveIndex === null ? 'Veri Bekleniyor' : `%${affectiveIndex} Duygusal Denge`;
   let moodPill = {
     text: `Öğrenme Dönemi (${effectiveDays}/14 Gün)`,
-    color: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/40',
+    color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   };
   let colorClass = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]';
 
@@ -231,14 +224,14 @@ export function generateAvatarNarrative({
       energyText = `%${affectiveIndex} Duygusal Denge (Düşük)`;
       moodPill = {
         text: 'Zorlu Ritim • Yüksek Yük',
-        color: 'bg-rose-500/20 text-rose-200 border-rose-500/40',
+        color: 'bg-rose-50 text-rose-800 border-rose-200',
       };
 
       if (!isEstablished) {
         const tagClause = tagListText
           ? ` Özellikle ${tagListText} etiketleri yoğun bir baskıya işaret ediyor.`
           : '';
-        dialogue = `Son dönemdeki bildirimlerinde kendini sıklıkla 'Zorlu' hissettiğini belirttin ${safeName}.${tagClause} Sensör baz hattın henüz öğrenme aşamasında (${effectiveDays}/14 Gün) olsa da, dijital aynan şu an zihninin ve bedeninin dinlenmeye ihtiyaç duyduğunu yansıtıyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`;
+        dialogue = `Son dönemdeki bildirimlerinde kendini sıklıkla 'Zorlu' hissettiğini belirttin ${safeName}.${tagClause} Sensör baz hattın henüz öğrenme aşamasında (${effectiveDays}/14 Gün) olsa da, dijital mental ikizimn şu an zihninin ve bedeninin dinlenmeye ihtiyaç duyduğunu yansıtıyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`;
         mirrorText = `${safeName}, aktif ruh hali kayıtların son günlerde yüksek bir zihinsel yük altında olduğunu gösteriyor. Dijital ikizin bu sinyali doğrulayarak dinlenmeni öneriyor.`;
       } else {
         const tagClause = tagListText
@@ -261,7 +254,7 @@ export function generateAvatarNarrative({
       energyText = `%${affectiveIndex} Duygusal Denge (Hassas)`;
       moodPill = {
         text: 'Düşük Hareketlilik & Ritim',
-        color: 'bg-amber-500/20 text-amber-200 border-amber-500/40',
+        color: 'bg-amber-50 text-amber-900 border-amber-200',
       };
 
       const tagClause = tagListText ? ` (${tagListText})` : '';
@@ -285,12 +278,12 @@ export function generateAvatarNarrative({
       colorClass = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]';
       energyText = `%${affectiveIndex} Duygusal Denge (Dengeli)`;
       moodPill = isEstablished
-        ? { text: 'Dengeli Ritim', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
-        : { text: `Öğrenme Dönemi (${effectiveDays}/14 Gün)`, color: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/40' };
+        ? { text: 'Dengeli Ritim', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' }
+        : { text: `Öğrenme Dönemi (${effectiveDays}/14 Gün)`, color: 'bg-indigo-50 text-indigo-800 border-indigo-200' };
 
       if (!isEstablished) {
         dialogue = `Merhaba ${safeName}! Kişisel baz hattın oluşturulurken (${effectiveDays}/14 Gün) hissiyatın ve sensör verilerin dengeli bir akışta seyrediyor.`;
-        mirrorText = `Merhaba ${safeName}! DutyDijitalAyna şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
+        mirrorText = `Merhaba ${safeName}! Dijital Mental İkizim şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
       } else {
         dialogue = `Şu an dingin ve dengeli bir akıştayız ${safeName}. Sensör dinamiklerin standart kişisel baz hattınla uyumlu. Rutinine sakin adımlarla devam edebilirsin.`;
         mirrorText = `${safeName}, cihaz içi biyobelirteçlerin referans aralığında. Dijital ikizin stabil durumda.`;
@@ -307,7 +300,7 @@ export function generateAvatarNarrative({
       bgBase = 'bg-gradient-to-b from-emerald-950/20 to-slate-900/30';
       colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
       energyText = `%${affectiveIndex} Duygusal Denge (Pozitif)`;
-      moodPill = { text: 'Canlı & Pozitif', color: 'bg-teal-500/20 text-teal-200 border-teal-500/40' };
+      moodPill = { text: 'Canlı & Pozitif', color: 'bg-teal-50 text-teal-800 border-teal-200' };
 
       dialogue = `Yüzüm gülüyor ${safeName}! Yazım tempon akıcı, günlük hareketliliğin canlı. Zihinsel enerjimizin bu pozitif dalgasını güzel hedeflere dönüştürebilirsin.`;
       mirrorText = `${safeName}, tuş akıcılığın ve sirkadiyen düzenin güçlü bir denge gösteriyor.`;
@@ -324,7 +317,7 @@ export function generateAvatarNarrative({
       bgBase = 'bg-gradient-to-b from-amber-950/25 to-comus-navy/40';
       colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
       energyText = `%${affectiveIndex} Duygusal Denge (Yüksek)`;
-      moodPill = { text: 'Yüksek Enerji', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
+      moodPill = { text: 'Yüksek Enerji', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
 
       dialogue = `Işıl ışıl bir zihin durumundayız ${safeName}! Zihinsel berraklığımız ve motivasyonumuz zirvede. Bu neşeli ve ilham verici enerjinin tadını çıkar!`;
       mirrorText = `${safeName}, tüm biyobelirteçler en yüksek dengede. Zihinsel akış ve etkileşim hızın mükemmel.`;
@@ -333,8 +326,8 @@ export function generateAvatarNarrative({
   }
 
   // Safety filter against calm words when distressed
-  dialogue = sanitizeAgainstTranquilityWhenDistressed(dialogue, score, affectiveIndex);
-  mirrorText = sanitizeAgainstTranquilityWhenDistressed(mirrorText, score, affectiveIndex);
+  dialogue = sanitizeAgainstTranquilityWhenDistressed(dialogue, score, affectiveIndex ?? 75);
+  mirrorText = sanitizeAgainstTranquilityWhenDistressed(mirrorText, score, affectiveIndex ?? 75);
 
   return {
     title,

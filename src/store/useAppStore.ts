@@ -31,11 +31,14 @@ interface AppState {
   dismissPredictiveAlert: () => void;
   runAnalysisPipeline: () => Promise<void>;
   wipeAllData: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
-  name: 'Kullanıcı',
+  name: '',
   isGoogleConnected: false,
+  isAppleConnected: false,
+  isPasswordAccount: false,
   createdAt: Date.now(),
 };
 
@@ -163,21 +166,45 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     // Automatically check and restore cloud backup for this Google account if available
     if (googleProfile.email) {
-      await get().restoreFromCloudNow(googleProfile.email);
+      const res = await get().restoreFromCloudNow(googleProfile.email);
+      if (!res.restored) {
+        // First-time or new device login without previous cloud backup:
+        // Automatically enable cloud backup and proceed to personal mirror
+        const updated = { ...get().settings, onboardingCompleted: true, cloudBackupEnabled: true };
+        set({ settings: updated });
+        await db.settings.put({ key: 'app_settings', value: updated });
+      }
+    } else {
+      const updated = { ...get().settings, onboardingCompleted: true };
+      set({ settings: updated });
+      await db.settings.put({ key: 'app_settings', value: updated });
     }
     await sensorManager.evaluateNow();
   },
 
   disconnectGoogleProfile: async () => {
+    await get().logout();
+  },
+
+  logout: async () => {
     await signOutGoogle();
-    const current = get().userProfile;
-    const updated: UserProfile = {
-      name: current.name.replace(' (Google)', ''),
+    const cleanProfile: UserProfile = {
+      name: '',
       isGoogleConnected: false,
-      createdAt: current.createdAt,
+      isAppleConnected: false,
+      isPasswordAccount: false,
+      createdAt: Date.now(),
     };
-    set({ userProfile: updated });
-    await db.settings.put({ key: 'user_profile', value: updated });
+    const cleanSettings: UserSettings = {
+      ...get().settings,
+      onboardingCompleted: false,
+    };
+    set({
+      userProfile: cleanProfile,
+      settings: cleanSettings,
+    });
+    await db.settings.put({ key: 'user_profile', value: cleanProfile });
+    await db.settings.put({ key: 'app_settings', value: cleanSettings });
   },
 
   toggleSensor: async (sensor) => {

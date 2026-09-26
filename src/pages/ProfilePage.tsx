@@ -19,22 +19,38 @@ import {
   Cloud,
   CloudOff,
   RefreshCw,
+  Download,
+  Upload,
+  Camera,
 } from 'lucide-react';
 import { getAvatarByScore } from '../constants/avatars';
 import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
+import { exportLocalDataAsJson, importDataFromJson } from '../services/cloudSyncService';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, settings, baselineDayCount, setUserProfile, disconnectGoogleProfile, syncCloudDataNow } = useAppStore();
+  const { userProfile, settings, baselineDayCount, setUserProfile, logout, syncCloudDataNow } = useAppStore();
   const mentalTwin = useMentalTwinAvatar();
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(userProfile.name);
   const [age, setAge] = useState<number>(userProfile.age || 28);
   const [gender, setGender] = useState<UserGender>(userProfile.gender || 'prefer_not_to_say');
+  const [customPicture, setCustomPicture] = useState<string | undefined>(userProfile.picture);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  // Resolved user Google or Gravatar/Unavatar profile photo URL
+  const profilePhotoUrl = useMemo(() => {
+    if (userProfile.picture && !userProfile.picture.includes('default-user')) {
+      return userProfile.picture;
+    }
+    if (userProfile.email) {
+      return `https://unavatar.io/${encodeURIComponent(userProfile.email)}`;
+    }
+    return userProfile.picture || undefined;
+  }, [userProfile.picture, userProfile.email]);
 
   // Real device metrics and reports
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
@@ -50,19 +66,79 @@ export const ProfilePage: React.FC = () => {
     if (isSyncing) return;
     setIsSyncing(true);
     setSyncFeedback(null);
+
+    const safetyTimer = setTimeout(() => {
+      setIsSyncing(false);
+      setSyncFeedback('İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.');
+    }, 12000);
+
     try {
       const res = await syncCloudDataNow();
+      clearTimeout(safetyTimer);
       if (res.success) {
         setSyncFeedback('Buluta başarıyla yedeklendi.');
       } else {
         setSyncFeedback(res.message || 'Yedekleme başarısız.');
       }
-    } catch {
-      setSyncFeedback('Bağlantı hatası oluştu.');
+    } catch (err: any) {
+      clearTimeout(safetyTimer);
+      setSyncFeedback(err?.message || 'Bağlantı hatası oluştu.');
     } finally {
+      clearTimeout(safetyTimer);
       setIsSyncing(false);
-      setTimeout(() => setSyncFeedback(null), 3000);
+      setTimeout(() => setSyncFeedback(null), 3500);
     }
+  };
+
+  const [exportFeedback, setExportFeedback] = useState<string | null>(null);
+
+  const handleExportJson = async () => {
+    try {
+      const json = await exportLocalDataAsJson();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      const safeName = (userProfile.name || 'Kullanici').replace(/\s+/g, '_');
+      a.href = url;
+      a.download = `DijitalMentalIkizim_Yedek_${safeName}_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setExportFeedback('9 günlük tüm verileriniz telefonunuza dosya olarak indirildi.');
+    } catch {
+      setExportFeedback('Dosya dışa aktarılamadı.');
+    } finally {
+      setTimeout(() => setExportFeedback(null), 4000);
+    }
+  };
+
+  const handleImportJson = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const res = await importDataFromJson(text);
+      setExportFeedback(`${res.restoredMetrics} metrik ve ${res.restoredReports} ruh hali kaydı başarıyla yüklendi.`);
+    } catch (err: any) {
+      setExportFeedback(err?.message || 'Yedek yüklenirken hata oluştu.');
+    } finally {
+      e.target.value = '';
+      setTimeout(() => setExportFeedback(null), 4500);
+    }
+  };
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setCustomPicture(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -71,6 +147,7 @@ export const ProfilePage: React.FC = () => {
       name: name.trim() || 'Kullanıcı',
       age,
       gender,
+      picture: customPicture,
     });
     setIsEditing(false);
     setSaveSuccess(true);
@@ -78,19 +155,8 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (userProfile.isGoogleConnected) {
-      await disconnectGoogleProfile();
-    } else {
-      await setUserProfile({
-        name: 'Kullanıcı',
-        username: undefined,
-        email: undefined,
-        picture: undefined,
-        isGoogleConnected: false,
-        isAppleConnected: false,
-        isPasswordAccount: false,
-      });
-    }
+    await logout();
+    navigate('/');
   };
 
   const genderLabels: Record<UserGender, string> = {
@@ -105,29 +171,22 @@ export const ProfilePage: React.FC = () => {
       {/* Profile Header Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-          {/* Always guaranteed in-app avatar profile photo - never empty */}
+          {/* Always guaranteed in-app avatar profile photo - completely fills container without blank space */}
           <div className="relative shrink-0">
-            <div className="w-20 h-20 rounded-3xl p-1 bg-gradient-to-br from-comus-surface via-white to-comus-copper/10 border-2 border-comus-copper/30 shadow-soft overflow-hidden flex items-center justify-center">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-[#F5F2EB] to-[#EAE5DC] border-2 border-comus-copper/40 shadow-soft overflow-hidden relative flex items-center justify-center">
               <img
                 src={mentalTwin.avatarSrc}
-                alt={mentalTwin.avatarAlt || 'DutyDijitalAyna Dijital İkiz Profil Fotoğrafı'}
-                className="w-full h-full object-contain drop-shadow-sm"
+                alt={mentalTwin.avatarAlt || 'Dijital Mental İkizim Profil Fotoğrafı'}
+                className="w-full h-full object-contain drop-shadow-sm select-none"
               />
             </div>
-            {userProfile.picture && (
-              <img
-                src={userProfile.picture}
-                alt={userProfile.name}
-                title="Bağlı Google Hesabı"
-                className="w-6 h-6 rounded-full border-2 border-white absolute -bottom-1 -right-1 shadow-md object-cover"
-              />
-            )}
+
           </div>
 
           <div className="flex-1 space-y-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h1 className="font-serif font-bold text-2xl text-comus-navy">
-                {userProfile.name}
+                {userProfile.name || 'Profilim'}
               </h1>
               {userProfile.isGoogleConnected && (
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
@@ -176,6 +235,7 @@ export const ProfilePage: React.FC = () => {
               setName(userProfile.name);
               setAge(userProfile.age || 28);
               setGender(userProfile.gender || 'prefer_not_to_say');
+              setCustomPicture(userProfile.picture || profilePhotoUrl);
               setIsEditing(!isEditing);
             }}
             className="p-2.5 text-comus-sand-dark hover:text-comus-navy rounded-2xl hover:bg-comus-surface transition-colors cursor-pointer border border-comus-sand-light/30"
@@ -195,6 +255,54 @@ export const ProfilePage: React.FC = () => {
         {/* Edit Profile Form */}
         {isEditing && (
           <form onSubmit={handleSave} className="mt-5 pt-5 border-t border-comus-sand-light/20 space-y-4 animate-fadeIn">
+            {/* Profile Photo Customization */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-comus-surface/60 border border-comus-sand-light/30">
+              <label className="text-xs font-semibold text-comus-navy block">Google / Profil Fotoğrafı:</label>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-white shadow-soft bg-white shrink-0 flex items-center justify-center">
+                  {customPicture ? (
+                    <img
+                      src={customPicture}
+                      alt="Profil Önizleme"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-comus-sand" />
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-comus-copper/10 border border-comus-sand-light/40 text-xs font-semibold text-comus-navy transition-colors shadow-soft">
+                    <Camera className="w-3.5 h-3.5 text-comus-copper" />
+                    <span>Fotoğraf Seç</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                  {userProfile.email && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomPicture(`https://unavatar.io/${encodeURIComponent(userProfile.email || '')}`)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100/70 border border-blue-200 text-xs font-semibold text-blue-800 transition-colors cursor-pointer"
+                    >
+                      <span>Google'dan Getir</span>
+                    </button>
+                  )}
+                  {customPicture && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomPicture(undefined)}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    >
+                      Kaldır
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-comus-navy block">Ad Soyad:</label>
@@ -301,14 +409,6 @@ export const ProfilePage: React.FC = () => {
               </p>
             </div>
           </div>
-
-          <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
-            distinctDays >= 7
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-amber-50 text-amber-700 border border-amber-200'
-          }`}>
-            {distinctDays >= 7 ? 'Baz Hattı Aktif' : `Kalibrasyon (${distinctDays}/7 Gün)`}
-          </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
@@ -354,19 +454,47 @@ export const ProfilePage: React.FC = () => {
                 {syncFeedback}
               </span>
             )}
+            {exportFeedback && (
+              <span className="text-[10.5px] font-semibold text-blue-600 mt-0.5 block animate-fadeIn">
+                {exportFeedback}
+              </span>
+            )}
           </div>
         </div>
 
-        {settings.cloudBackupEnabled && (
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+          {settings.cloudBackupEnabled && (
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-comus-surface hover:bg-comus-copper-subtle/50 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors cursor-pointer shrink-0 disabled:opacity-50 shadow-soft"
+              title="Doğrudan Google Firestore bulutuna yedekle"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-comus-copper ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
+            </button>
+          )}
+
           <button
-            onClick={handleManualSync}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-comus-surface hover:bg-comus-copper-subtle/50 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+            onClick={handleExportJson}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold border border-emerald-200 transition-colors cursor-pointer shrink-0 shadow-soft"
+            title="9 günlük verilerinizi telefonunuza JSON dosyası olarak indirin"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-comus-copper ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Yedeği İndir (.json)</span>
           </button>
-        )}
+
+          <label className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold border border-stone-200 transition-colors cursor-pointer shrink-0 shadow-soft">
+            <Upload className="w-3.5 h-3.5 text-stone-500" />
+            <span>Geri Yükle</span>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportJson}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
 
       {/* Quick Navigation Cards */}

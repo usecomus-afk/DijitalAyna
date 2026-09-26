@@ -11,7 +11,7 @@ export const Navbar: React.FC = () => {
     {
       to: '/',
       label: 'Ayna',
-      fullName: 'DutyDijitalAyna',
+      fullName: 'Dijital Mental İkizim',
       icon: Activity,
     },
     {

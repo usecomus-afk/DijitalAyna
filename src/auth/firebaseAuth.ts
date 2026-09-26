@@ -37,10 +37,14 @@ export function getFirebaseAuth(): Auth {
 
 export function formatUserProfile(user: User): UserProfile {
   const isApple = user.providerData?.some((p) => p.providerId === 'apple.com') || false;
+  let photo = user.photoURL || undefined;
+  if (photo && photo.includes('googleusercontent.com')) {
+    photo = photo.replace(/=s\d+(-c)?$/, '=s400-c');
+  }
   return {
     name: user.displayName || user.email?.split('@')[0] || (isApple ? 'Apple Kullanıcısı' : 'Google Kullanıcısı'),
     email: user.email || undefined,
-    picture: user.photoURL || undefined,
+    picture: photo || (user.email ? `https://unavatar.io/${encodeURIComponent(user.email)}` : undefined),
     isGoogleConnected: !isApple,
     isAppleConnected: isApple,
     createdAt: Date.now(),
@@ -81,13 +85,13 @@ export function handleAuthDeepLink(urlStr: string): UserProfile | null {
 }
 
 /**
- * Native iOS Google Sign In via Safari & custom URL scheme (dijitalayna://auth-callback)
+ * Native iOS Google Sign In via Safari & custom URL scheme (dijitalmentalikizim://auth-callback)
  */
 export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
   const listener = await CapApp.addListener('appUrlOpen', async (event) => {
     if (
-      event.url.startsWith('dijitalayna://auth-callback') ||
-      event.url.startsWith('dijitalayna://google-auth') ||
+      event.url.startsWith('dijitalmentalikizim://auth-callback') ||
+      event.url.startsWith('dijitalmentalikizim://google-auth') ||
       event.url.includes('googleusercontent.apps')
     ) {
       try {
@@ -109,13 +113,13 @@ export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) =
 }
 
 /**
- * Native iOS Apple Sign In via Safari & custom URL scheme (dijitalayna://auth-callback)
+ * Native iOS Apple Sign In via Safari & custom URL scheme (dijitalmentalikizim://auth-callback)
  */
 export async function signInWithAppleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
   const listener = await CapApp.addListener('appUrlOpen', async (event) => {
     if (
-      event.url.startsWith('dijitalayna://auth-callback') ||
-      event.url.startsWith('dijitalayna://apple-auth')
+      event.url.startsWith('dijitalmentalikizim://auth-callback') ||
+      event.url.startsWith('dijitalmentalikizim://apple-auth')
     ) {
       try {
         await Browser.close();
@@ -148,6 +152,10 @@ export async function signInWithApple(): Promise<UserProfile | null> {
     const result = await signInWithPopup(authInstance, appleProvider);
     return formatUserProfile(result.user);
   } catch (err: any) {
+    if (err?.code === 'auth/popup-closed-by-user') {
+      console.log('[FirebaseAuth] Apple popup closed by user.');
+      return null;
+    }
     console.warn('[FirebaseAuth] Apple popup error, trying redirect:', err);
     await signInWithRedirect(authInstance, appleProvider);
     return null;
@@ -160,6 +168,9 @@ export async function signInWithApple(): Promise<UserProfile | null> {
 export async function signInWithGoogle(): Promise<UserProfile | null> {
   const authInstance = getFirebaseAuth();
   const googleProvider = new GoogleAuthProvider();
+  googleProvider.addScope('profile');
+  googleProvider.addScope('email');
+  googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
   googleProvider.setCustomParameters({
     prompt: 'select_account',
   });
@@ -168,6 +179,10 @@ export async function signInWithGoogle(): Promise<UserProfile | null> {
     const result = await signInWithPopup(authInstance, googleProvider);
     return formatUserProfile(result.user);
   } catch (err: any) {
+    if (err?.code === 'auth/popup-closed-by-user') {
+      console.log('[FirebaseAuth] Google popup closed by user.');
+      return null;
+    }
     console.warn('[FirebaseAuth] Google popup error, trying redirect:', err);
     await signInWithRedirect(authInstance, googleProvider);
     return null;

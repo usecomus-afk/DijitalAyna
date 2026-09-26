@@ -11,11 +11,11 @@ export const QuickMoodWidget: React.FC = () => {
   const avatarMap = getAvatarMap(userProfile?.gender);
 
   const moodOptions = [
-    { score: 1, avatarSrc: avatarMap.zorlu, label: 'Zorlu', fullLabel: 'Çok Zorlayıcı' },
-    { score: 2, avatarSrc: avatarMap.dusuk, label: 'Düşük', fullLabel: 'Düşük Enerji' },
-    { score: 3, avatarSrc: avatarMap.normal, label: 'Normal', fullLabel: 'Nötr / Normal' },
-    { score: 4, avatarSrc: avatarMap.iyi, label: 'İyi', fullLabel: 'İyi / Dengeli' },
-    { score: 5, avatarSrc: avatarMap.harika, label: 'Harika', fullLabel: 'Çok Dengeli / Yüksek' },
+    { score: 1, avatarSrc: avatarMap.zorlu, label: 'Zorlu', fullLabel: 'Çok Zorlayıcı', bgColor: 'bg-rose-50', hoverBg: 'hover:bg-rose-100' },
+    { score: 2, avatarSrc: avatarMap.dusuk, label: 'Düşük', fullLabel: 'Düşük Enerji', bgColor: 'bg-[#FEF5E7]', hoverBg: 'hover:bg-[#FDEED2]' }, // Custom orange/amber
+    { score: 3, avatarSrc: avatarMap.normal, label: 'Normal', fullLabel: 'Nötr / Normal', bgColor: 'bg-[#EEF2FA]', hoverBg: 'hover:bg-[#E2E8F4]' }, // Custom blue
+    { score: 4, avatarSrc: avatarMap.iyi, label: 'İyi', fullLabel: 'İyi / Dengeli', bgColor: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-100' },
+    { score: 5, avatarSrc: avatarMap.harika, label: 'Harika', fullLabel: 'Çok Dengeli / Yüksek', bgColor: 'bg-purple-50', hoverBg: 'hover:bg-purple-100' },
   ];
 
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
@@ -119,8 +119,8 @@ export const QuickMoodWidget: React.FC = () => {
             title={opt.fullLabel}
             className={`flex flex-col items-center justify-center h-24 sm:h-26 p-2 rounded-2xl border transition-all duration-200 group ${
               selectedScore === opt.score
-                ? 'bg-comus-copper text-white border-comus-copper shadow-soft scale-105'
-                : 'bg-comus-surface hover:bg-comus-copper-subtle/40 border-comus-sand-light/30 text-comus-navy'
+                ? `${opt.bgColor} text-comus-navy font-bold border-comus-copper shadow-md scale-105 ring-1 ring-comus-copper`
+                : `${opt.bgColor} ${opt.hoverBg} border-transparent text-comus-navy/80`
             }`}
           >
             <img

@@ -7,13 +7,17 @@ export interface MetricCardProps {
   title: string;
   metricKey: MetricKey;
   icon: LucideIcon;
-  currentValue: number;
-  baselineValue: number;
+  currentValue: number | null;
+  baselineValue: number | null;
   unit: string;
-  zScore: number;
-  deviationPercent: number;
+  zScore: number | null;
+  deviationPercent: number | null;
   history: { date: string; value: number }[];
   description: string;
+  hasData?: boolean;
+  unavailableReason?: string;
+  onActionClick?: () => void;
+  actionLabel?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -26,26 +30,37 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   deviationPercent,
   history,
   description,
+  hasData = true,
+  unavailableReason,
+  onActionClick,
+  actionLabel,
 }) => {
-  const isAnomaly = Math.abs(zScore) >= 2.0;
-  const isElevated = Math.abs(zScore) >= 1.5;
+  const isDataAvailable = hasData && currentValue !== null && !isNaN(currentValue);
+  const isAnomaly = isDataAvailable && zScore !== null && Math.abs(zScore) >= 2.0;
+  const isElevated = isDataAvailable && zScore !== null && Math.abs(zScore) >= 1.5;
 
   let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  let badgeText = 'Normal';
+  let badgeText = 'Aktif / Native';
   let TrendIcon = Minus;
 
-  if (deviationPercent > 5) {
+  if (!isDataAvailable) {
+    badgeColor = actionLabel ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-stone-100 text-stone-600 border-stone-200';
+    badgeText = actionLabel ? 'İzin Bekleniyor' : 'Veri Bekleniyor';
+    TrendIcon = Minus;
+  } else if ((deviationPercent || 0) > 5) {
     TrendIcon = TrendingUp;
-  } else if (deviationPercent < -5) {
+  } else if ((deviationPercent || 0) < -5) {
     TrendIcon = TrendingDown;
   }
 
-  if (isAnomaly) {
-    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
-    badgeText = zScore > 0 ? `+${Math.abs(deviationPercent)}% Sapma` : `-${Math.abs(deviationPercent)}% Sapma`;
-  } else if (isElevated) {
-    badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
-    badgeText = `${deviationPercent > 0 ? '+' : ''}${deviationPercent}% Değişim`;
+  if (isDataAvailable) {
+    if (isAnomaly) {
+      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
+      badgeText = (zScore || 0) > 0 ? `+${Math.abs(deviationPercent || 0)}% Sapma` : `-${Math.abs(deviationPercent || 0)}% Sapma`;
+    } else if (isElevated) {
+      badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+      badgeText = `${(deviationPercent || 0) > 0 ? '+' : ''}${deviationPercent}% Değişim`;
+    }
   }
 
   const chartData = history.map((item) => ({
@@ -88,16 +103,45 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <div className="flex items-baseline justify-between my-3">
           <div>
             <div className="text-2xl sm:text-3xl font-bold font-serif text-comus-navy tracking-tight">
-              {currentValue} <span className="text-sm font-sans font-normal text-comus-sand-dark">{unit}</span>
+              {isDataAvailable ? (
+                <>
+                  {currentValue} <span className="text-sm font-sans font-normal text-comus-sand-dark">{unit}</span>
+                </>
+              ) : (
+                <span className="text-stone-400 font-mono text-2xl">—</span>
+              )}
             </div>
             <div className="text-xs text-comus-sand-dark mt-0.5">
-              Baz Hattı Normali: <span className="font-medium text-comus-navy">{baselineValue} {unit}</span>
+              {isDataAvailable && baselineValue !== null ? (
+                <>Baz Hattı Normali: <span className="font-medium text-comus-navy">{baselineValue} {unit}</span></>
+              ) : unavailableReason ? (
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  <span className="text-stone-500 italic">{unavailableReason}</span>
+                  {onActionClick && actionLabel && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onActionClick();
+                      }}
+                      className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-sm"
+                    >
+                      {actionLabel}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <span className="text-stone-500 italic">Yeterli ölçüm verisi bulunmuyor</span>
+              )}
             </div>
           </div>
 
           <div className="text-right">
             <div className="text-xs font-mono font-medium text-comus-sand-dark">
-              Z-Skoru: <span className={`font-semibold ${isAnomaly ? 'text-rose-600' : 'text-comus-navy'}`}>{zScore > 0 ? `+${zScore}` : zScore}</span>
+              Z-Skoru: <span className={`font-semibold ${!isDataAvailable ? 'text-stone-400' : isAnomaly ? 'text-rose-600' : 'text-comus-navy'}`}>
+                {isDataAvailable && zScore !== null ? (zScore > 0 ? `+${zScore}` : zScore) : '—'}
+              </span>
             </div>
           </div>
         </div>
@@ -105,41 +149,49 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* Sparkline Chart */}
       <div className="h-20 w-full mt-2 pt-2 border-t border-comus-sand-light/10">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={isAnomaly ? '#C0674F' : '#1E3A5F'} stopOpacity={0.25} />
-                <stop offset="95%" stopColor={isAnomaly ? '#C0674F' : '#1E3A5F'} stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
-            <YAxis domain={['auto', 'auto']} hide />
-            <ReferenceLine y={baselineValue} stroke="#8C827A" strokeDasharray="3 3" strokeWidth={1} />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="bg-comus-navy text-white text-[11px] px-2 py-1 rounded-lg shadow-md font-sans">
-                      <span>{payload[0].payload.date}: </span>
-                      <strong className="font-bold">{payload[0].value} {unit}</strong>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke={isAnomaly ? '#C0674F' : '#1E3A5F'}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill={`url(#${gradientId})`}
-              dot={false}
-              activeDot={{ r: 4, fill: '#C0674F' }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={isAnomaly ? '#C0674F' : '#1E3A5F'} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={isAnomaly ? '#C0674F' : '#1E3A5F'} stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <YAxis domain={['auto', 'auto']} hide />
+              {baselineValue !== null && (
+                <ReferenceLine y={baselineValue} stroke="#8C827A" strokeDasharray="3 3" strokeWidth={1} />
+              )}
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-comus-navy text-white text-[11px] px-2 py-1 rounded-lg shadow-md font-sans">
+                        <span>{payload[0].payload.date}: </span>
+                        <strong className="font-bold">{payload[0].value} {unit}</strong>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={isAnomaly ? '#C0674F' : '#1E3A5F'}
+                strokeWidth={2}
+                fillOpacity={1}
+                fill={`url(#${gradientId})`}
+                dot={false}
+                activeDot={{ r: 4, fill: '#C0674F' }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex items-center justify-center text-[11px] text-stone-400 italic">
+            Sensör okumaları kaydedildikçe grafik oluşturulur
+          </div>
+        )}
       </div>
     </div>
   );

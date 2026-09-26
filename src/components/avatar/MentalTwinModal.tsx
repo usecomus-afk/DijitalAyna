@@ -165,10 +165,7 @@ export const MentalTwinModal: React.FC = () => {
         </div>
 
         {/* Footer Actions */}
-        <div className="relative z-10 mt-4 pt-3 border-t border-comus-sand-light/20 flex items-center justify-between text-xs text-comus-sand-dark">
-          <span className="text-[11px] truncate mr-2">
-            Dijital Mental İkiz, cihaz içi sensörler ve biyobelirteçlerinizle anlık senkronizedir.
-          </span>
+        <div className="relative z-10 mt-4 pt-3 border-t border-comus-sand-light/20 flex items-center justify-end text-xs text-comus-sand-dark">
           <button
             onClick={() => setEmergencyModalOpen(false)}
             className="px-4 py-2 rounded-xl bg-comus-navy text-white font-medium hover:bg-comus-navy-light transition-colors shrink-0 shadow-soft"

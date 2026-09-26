@@ -12,7 +12,30 @@ class MotionSensorCollector {
   private nativeListenerHandle: PluginListenerHandle | null = null;
 
   async requestPermission(): Promise<boolean> {
-    return await sensorCapabilities.requestMotionPermission();
+    const granted = await sensorCapabilities.requestMotionPermission();
+    if (granted) {
+      if (typeof window !== 'undefined' && (window as any).DeviceMotionEvent) {
+        window.removeEventListener('devicemotion', this.handleMotion);
+        window.addEventListener('devicemotion', this.handleMotion, { passive: true });
+      }
+      this.isRunning = false;
+      await this.start();
+    }
+    return granted;
+  }
+
+  isPermissionRequired(): boolean {
+    if (typeof window === 'undefined') return false;
+    if (Capacitor.isNativePlatform()) return false;
+    return typeof (window as any).DeviceMotionEvent?.requestPermission === 'function';
+  }
+
+  getSampleCount(): number {
+    return this.accelMagnitudes.length;
+  }
+
+  isActive(): boolean {
+    return this.isRunning;
   }
 
   async start(): Promise<void> {

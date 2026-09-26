@@ -15,15 +15,18 @@ export const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; 
   touch_interaction_frequency: { mean: 32, std: 6, min: 5, max: 90 },
   session_duration: { mean: 5.2, std: 1.5, min: 0.5, max: 60 },
   night_usage_minutes: { mean: 1.5, std: 1.2, min: 0, max: 120 },
-  screen_on_time: { mean: 55, std: 15, min: 5, max: 300 },
-  light_ambient_lux: { mean: 180, std: 50, min: 10, max: 1000 },
-  battery_level: { mean: 78, std: 12, min: 10, max: 100 },
+  screen_on_time: { mean: 210, std: 35, min: 30, max: 480 },
+  light_ambient_lux: { mean: 450, std: 100, min: 10, max: 2000 },
+  night_light_violations: { mean: 0.1, std: 0.3, min: 0, max: 3 },
+  battery_level: { mean: 65, std: 20, min: 5, max: 100 },
   is_charging: { mean: 0, std: 0.4, min: 0, max: 1 },
   network_online: { mean: 1, std: 0.1, min: 0, max: 1 },
   voice_pitch_variance: { mean: 34.5, std: 5.2, min: 5, max: 80 },
   voice_speech_rate: { mean: 130, std: 15, min: 60, max: 220 },
   cognitive_fatigue_score: { mean: 22, std: 6, min: 0, max: 100 },
   impulse_risk_index: { mean: 18, std: 5, min: 0, max: 100 },
+  gaming_duration: { mean: 20, std: 15, min: 0, max: 360 },
+  camera_interaction_count: { mean: 1.5, std: 1.0, min: 0, max: 20 },
 };
 
 /**

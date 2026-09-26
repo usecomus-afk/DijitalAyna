@@ -9,8 +9,8 @@ export class KeystrokeFeatureExtractor {
   /**
    * Calculates Mean, Variance, and Standard Deviation of Hold Time (ms)
    */
-  static holdTimeStats(events: KeystrokeMetadataEvent[]): { mean: number; variance: number; std: number } {
-    if (events.length === 0) return { mean: 80, variance: 100, std: 10 };
+  static holdTimeStats(events: KeystrokeMetadataEvent[]): { mean: number; variance: number; std: number } | null {
+    if (events.length === 0) return null;
 
     const holdTimes = events.map((e) => Math.max(10, Math.min(2000, e.durationMs)));
     const mean = holdTimes.reduce((a, b) => a + b, 0) / holdTimes.length;
@@ -31,14 +31,14 @@ export class KeystrokeFeatureExtractor {
    * Prolonged flight time = psychomotor slowing (depression).
    * Short erratic flight time = agitation / hypomania.
    */
-  static flightTimeStats(events: KeystrokeMetadataEvent[]): { mean: number; variance: number; std: number } {
-    if (events.length <= 1) return { mean: 150, variance: 400, std: 20 };
+  static flightTimeStats(events: KeystrokeMetadataEvent[]): { mean: number; variance: number; std: number } | null {
+    if (events.length <= 1) return null;
 
     const flightTimes = events
       .map((e) => e.interKeyDelayMs)
       .filter((iki) => iki >= 10 && iki <= 4000); // Exclude long multi-minute breaks
 
-    if (flightTimes.length === 0) return { mean: 150, variance: 400, std: 20 };
+    if (flightTimes.length === 0) return null;
 
     const mean = flightTimes.reduce((a, b) => a + b, 0) / flightTimes.length;
     const variance =
@@ -56,8 +56,8 @@ export class KeystrokeFeatureExtractor {
    * Computes Backspace & Error Correction Rate:
    * $$Rate = \frac{N_{backspace}}{N_{total}}$$
    */
-  static backspaceRate(events: KeystrokeMetadataEvent[]): number {
-    if (events.length === 0) return 0.04;
+  static backspaceRate(events: KeystrokeMetadataEvent[]): number | null {
+    if (events.length === 0) return null;
 
     const backspaceCount = events.filter((e) => e.eventType === 'BACKSPACE').length;
     const rate = (backspaceCount / events.length) * 100; // As percentage
@@ -72,12 +72,12 @@ export class KeystrokeFeatureExtractor {
    * - $B \approx 0$: Poissonian memoryless typing.
    * - $B < 0$: Highly regular periodic typing.
    */
-  static burstinessIndex(events: KeystrokeMetadataEvent[]): number {
+  static burstinessIndex(events: KeystrokeMetadataEvent[]): number | null {
     const flightTimes = events
       .map((e) => e.interKeyDelayMs)
       .filter((iki) => iki >= 10 && iki <= 4000);
 
-    if (flightTimes.length < 3) return 0;
+    if (flightTimes.length < 3) return null;
 
     const mean = flightTimes.reduce((a, b) => a + b, 0) / flightTimes.length;
     const variance =
@@ -94,11 +94,14 @@ export class KeystrokeFeatureExtractor {
    * Estimates Typing Speed in Words Per Minute (WPM) based on keystroke frequency
    * (Assuming standard 5 characters = 1 word)
    */
-  static estimateTypingSpeedWpm(events: KeystrokeMetadataEvent[]): number {
-    if (events.length < 5) return 40;
+  static estimateTypingSpeedWpm(events: KeystrokeMetadataEvent[]): number | null {
+    if (events.length < 5) return null;
 
     const flightStats = KeystrokeFeatureExtractor.flightTimeStats(events);
     const holdStats = KeystrokeFeatureExtractor.holdTimeStats(events);
+    
+    if (!flightStats || !holdStats) return null;
+
     const totalStrokeTimeMs = Math.max(100, flightStats.mean + holdStats.mean);
 
     // Characters per minute = (60,000 / totalStrokeTimeMs)

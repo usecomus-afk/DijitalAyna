@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { calculateZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
+import { healthService } from '../services/native/healthService';
 
 export const DashboardPage: React.FC = () => {
   const { isAnalyzing, activePredictiveAlertDismissed, dismissPredictiveAlert, baselineDayCount, runAnalysisPipeline } = useAppStore();
@@ -91,23 +92,24 @@ export const DashboardPage: React.FC = () => {
 
   const activeAlert = predictiveAlerts.length > 0 && !activePredictiveAlertDismissed ? predictiveAlerts[0] : null;
 
-  // Helper to safely get metric info
-  const getMetricData = (key: any, defaultVal = 0, defaultBase = 0) => {
-    const curr = latestMetricsByKey.get(key) ?? defaultVal;
-    const base = baselineMap.get(key)?.ewmaMean ?? defaultBase;
+  // Helper to safely get metric info without mocking
+  const getMetricData = (key: any, unavailableReason = '') => {
+    const hasData = latestMetricsByKey.has(key);
+    const curr = hasData ? (latestMetricsByKey.get(key) ?? null) : null;
+    const base = baselineMap.get(key)?.ewmaMean ?? null;
     const std = baselineMap.get(key)?.ewmaStd ?? 1;
-    const z = calculateZScore(curr, base, std);
-    const dev = base !== 0 ? Math.round(((curr - base) / base) * 100) : 0;
+    const z = curr !== null && base !== null ? calculateZScore(curr, base, std) : null;
+    const dev = curr !== null && base !== null && base !== 0 ? Math.round(((curr - base) / base) * 100) : null;
     const hist = (historyByKey.get(key) || []).slice(-14);
-    return { curr, base, z, dev, hist };
+    return { hasData, curr, base, z, dev, hist, unavailableReason };
   };
 
-  const mobility = getMetricData('mobility_index', 74, 74);
-  const typing = getMetricData('typing_wpm', 44, 44);
-  const backspace = getMetricData('typing_backspace_rate', 3.8, 3.8);
-  const night = getMetricData('night_usage_minutes', 0, 1.5);
-  const touch = getMetricData('touch_interaction_frequency', 32, 32);
-  const battery = getMetricData('battery_level', 80, 80);
+  const mobility = getMetricData('mobility_index', '[Veri Alınamıyor / İzin Bekleniyor]');
+  const typing = getMetricData('typing_wpm', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
+  const backspace = getMetricData('typing_backspace_rate', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
+  const night = getMetricData('night_usage_minutes', '[Kayıt Yok - Gece kullanımı yok]');
+  const touch = getMetricData('touch_interaction_frequency', '[Kayıt Yok - Etkileşim yok]');
+  const battery = getMetricData('battery_level', '[Veri Alınamıyor / İzin Bekleniyor]');
 
   const handleManualEvaluate = async () => {
     await runAnalysisPipeline();
@@ -128,9 +130,6 @@ export const DashboardPage: React.FC = () => {
             <div>
               <div className="text-xs font-bold text-comus-navy flex items-center gap-1.5">
                 <span>Canlı Sensör Okuma & Fenotip Motoru Aktif</span>
-                <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Otomatik Takip
-                </span>
               </div>
               <p className="text-[11px] text-comus-sand-dark mt-0.5">
                 Cihaz içi hareketlilik, yazım temposu ve oturum döngüleri arka planda izleniyor
@@ -142,7 +141,7 @@ export const DashboardPage: React.FC = () => {
             <button
               onClick={handleManualEvaluate}
               disabled={isAnalyzing}
-              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all disabled:opacity-75"
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all disabled:opacity-75 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
               <span>{isAnalyzing ? 'Değerlendiriliyor...' : 'Şimdi Değerlendir'}</span>
@@ -154,17 +153,17 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-comus-sand-light/20 text-[11px]">
           <div className="flex items-center gap-1.5 text-comus-navy/80">
             <Activity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>Hareket: <strong>{mobility.curr} puan</strong></span>
+            <span>Hareket: <strong>{mobility.hasData ? `${mobility.curr} puan` : 'İzin Bekleniyor'}</strong></span>
           </div>
 
           <div className="flex items-center gap-1.5 text-comus-navy/80">
             <Keyboard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Yazım: <strong>{typing.curr} WPM</strong></span>
+            <span>Yazım: <strong>{typing.hasData ? `${typing.curr} WPM` : 'Yazım Yok'}</strong></span>
           </div>
 
           <div className="flex items-center gap-1.5 text-comus-navy/80">
             <Battery className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span>Pil: <strong>%{battery.curr}</strong></span>
+            <span>Pil: <strong>{battery.hasData ? `%${battery.curr}` : 'API Kısıtlı'}</strong></span>
           </div>
 
           <div className="flex items-center gap-1.5 text-comus-navy/80">
@@ -209,7 +208,25 @@ export const DashboardPage: React.FC = () => {
           zScore={mobility.z}
           deviationPercent={mobility.dev}
           history={mobility.hist}
-          description="İvmeölçer & imleç/kaydırma hareketlilik endeksi"
+          hasData={mobility.hasData}
+          unavailableReason={mobility.unavailableReason}
+          actionLabel="İzin Ver"
+          onActionClick={async () => {
+            const res = await healthService.requestHealthPermissions();
+            if (res.granted) {
+              await healthService.syncHealthBiomarkers();
+            } else if (res.error) {
+              alert(res.error);
+            }
+            
+            const store = useAppStore.getState();
+            const wasModalOpen = store.emergencyModalOpen;
+            await store.runAnalysisPipeline();
+            if (!wasModalOpen && store.emergencyModalOpen) {
+              store.setEmergencyModalOpen(false); // suppress immediate modal on manual grant
+            }
+          }}
+          description="İvmeölçer & fiziksel aktivite endeksi"
         />
 
         {/* 2. Yazım Dinamiği (Typing) */}
@@ -223,7 +240,9 @@ export const DashboardPage: React.FC = () => {
           zScore={typing.z}
           deviationPercent={typing.dev}
           history={typing.hist}
-          description={`Tuş aralığı & hata oranı (%${backspace.curr})`}
+          hasData={typing.hasData}
+          unavailableReason={typing.unavailableReason}
+          description={backspace.hasData ? `Tuş aralığı & hata oranı (%${backspace.curr})` : 'Uygulama içi tuş vuruş akıcılığı'}
         />
 
         {/* 3. Ekran Ritmi & Gece Kullanımı */}
@@ -237,7 +256,9 @@ export const DashboardPage: React.FC = () => {
           zScore={night.z}
           deviationPercent={night.dev}
           history={night.hist}
-          description="01:00–05:00 gece dinlenme penceresi kullanımı"
+          hasData={night.hasData}
+          unavailableReason={night.unavailableReason}
+          description="02:00–04:00 gece dinlenme penceresi kullanımı"
         />
 
         {/* 4. Etkileşim Yoğunluğu (Touch) */}
@@ -251,6 +272,8 @@ export const DashboardPage: React.FC = () => {
           zScore={touch.z}
           deviationPercent={touch.dev}
           history={touch.hist}
+          hasData={touch.hasData}
+          unavailableReason={touch.unavailableReason}
           description="Kaydırma hızı ve ekran etkileşim sıklığı"
         />
       </div>

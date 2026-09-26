@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>DutyDijitalAyna</string>
+	<string>Dijital Mental İkizim</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>DutyDijitalAyna</string>
+	<string>Dijital Mental İkizim</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -52,10 +52,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.dijitalayna.app</string>
+			<string>com.dijitalmentalikizim.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>dijitalayna</string>
+				<string>dijitalmentalikizim</string>
 			</array>
 		</dict>
 		<dict>
@@ -70,15 +70,17 @@
 		</dict>
 	</array>
 	<key>NSMotionUsageDescription</key>
-	<string>Dijital Ayna, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>
+	<string>Dijital Mental İkizim, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Dijital Ayna, konuşma ritmi ve perde varyansı dinamiklerini ölçmek için mikrofon erişimine ihtiyaç duyar. Ses kayıtları ASLA saklanmaz veya sunuculara iletilmez.</string>
+	<string>Dijital Mental İkizim, konuşma ritmi ve perde varyansı dinamiklerini ölçmek için mikrofon erişimine ihtiyaç duyar. Ses kayıtları ASLA saklanmaz veya sunuculara iletilmez.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Dijital Ayna, sirkadiyen hareketlilik yarıçapı ve günlük ev-çalışma yaşam alanı dinamiklerini nesnel olarak analiz etmek için yaklaşık konum bilgisini yerel olarak değerlendirir.</string>
+	<string>Günlük hareketlilik yarıçapınızı ve yaşam alanı ritminizi hesaplamak için konum izni gereklidir.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Arka planda evde kalış süresini (homestay) hesaplayabilmek için konum erişimi gereklidir.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Dijital Ayna, uyku mimarisi evreleri (SOL, WASO, SE) ve günlük fiziksel adım telemetrisini kişiselleştirilmiş 14 günlük baz hattınızla karşılaştırmak için HealthKit verilerini tamamen cihazınızda yerel olarak inceler.</string>
+	<string>Dijital İkizinizin uyku kalitesini ve günlük hareketlilik ritmini analiz edebilmesi için sağlık verilerine erişim gereklidir.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Dijital Ayna, hesaplanan uyku düzeni ve aktivite biyobelirteçlerini sağlık kaydınıza işlemek için HealthKit yazma izni kullanabilir.</string>
+	<string>Sağlık verileri yalnızca analiz için okunur, üzerine yazılmaz.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
@@ -86,7 +88,7 @@
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.dijitalayna.app.analytics</string>
+		<string>com.dijitalmentalikizim.app.analytics</string>
 	</array>
 </dict>
 </plist>

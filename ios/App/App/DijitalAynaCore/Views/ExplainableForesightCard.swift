@@ -25,7 +25,7 @@ public struct ExplainableForesightCard: View {
                     .foregroundColor(Color(red: 0.75, green: 0.40, blue: 0.31))
                     .font(.system(size: 16, weight: .semibold))
 
-                Text("Dijital Ayna: Haftalık Ritim Gözlemi")
+                Text("Dijital Mental İkizim: Haftalık Ritim Gözlemi")
                     .font(.system(size: 15, weight: .bold, design: .serif))
                     .foregroundColor(Color(red: 0.12, green: 0.23, blue: 0.37))
 

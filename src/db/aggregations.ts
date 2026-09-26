@@ -17,6 +17,8 @@ export async function runDailyAggregationAndCleanup(): Promise<void> {
 
   for (const event of events) {
     const eventDate = new Date(event.timestamp).toISOString().split('T')[0];
+    const hour = new Date(event.timestamp).getHours();
+    
     if (!dailyGroups[eventDate]) {
       dailyGroups[eventDate] = {} as Record<MetricKey, number[]>;
     }
@@ -27,6 +29,17 @@ export async function runDailyAggregationAndCleanup(): Promise<void> {
         dailyGroups[eventDate][metricKey] = [];
       }
       dailyGroups[eventDate][metricKey].push(val);
+      
+      // Circadian Disruption Proxy: 23:00 - 06:00, >70% brightness (700 lux)
+      if (metricKey === 'light_ambient_lux') {
+        const isNight = hour >= 23 || hour < 6;
+        if (isNight && val > 700) {
+          if (!dailyGroups[eventDate]['night_light_violations']) {
+            dailyGroups[eventDate]['night_light_violations'] = [];
+          }
+          dailyGroups[eventDate]['night_light_violations'].push(1);
+        }
+      }
     }
   }
 

@@ -157,7 +157,7 @@ public struct InsightAlert: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         insightType: ClinicalInsightType,
         title: String,
-        personalizedDeviationStatement: String = "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+        personalizedDeviationStatement: String = "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
         explainableEvidences: [String],
         ethicalDisclaimer: String = "Bu bir tıbbi teşhis değildir. Bu nesnel verileri hekiminizle veya psikiyatristinizle değerlendirmeniz önerilir.",
         severity: InsightAlertSeverity = .moderate,

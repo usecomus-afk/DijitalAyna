@@ -40,6 +40,8 @@ export type BiomarkerType =
   | 'neurodivergent_pattern'
   | 'impulsive_risk'
   | 'voice_monotone'
+  | 'gaming_avoidance'
+  | 'appearance_sensitivity'
   | 'healthy_balance';
 
 export interface BiomarkerResult {

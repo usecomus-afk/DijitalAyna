@@ -1,10 +1,17 @@
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, doc, getDoc, setDoc, deleteDoc, Firestore } from 'firebase/firestore';
 import { getApps, initializeApp, FirebaseApp } from 'firebase/app';
 import { firebaseConfig } from '../auth/firebaseAuth';
 import { db } from '../db';
 import { UserProfile, UserSettings } from '../types/user';
 import { DailyMetric, BaselineState, MoodReport } from '../types/engine';
 import { Medication, MedicationLog } from '../types/medication';
+
+function withTimeout<T>(promise: Promise<T>, ms = 10000, errorMsg = 'Bulut sunucusuna erişim zaman aşımına uğradı.'): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms)),
+  ]);
+}
 
 export interface CloudBackupData {
   version: string;
@@ -26,7 +33,13 @@ class CloudSyncService {
   private getFirestore(): Firestore {
     if (!this.firestoreInstance) {
       const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-      this.firestoreInstance = getFirestore(app);
+      try {
+        this.firestoreInstance = initializeFirestore(app, {
+          experimentalAutoDetectLongPolling: true,
+        });
+      } catch {
+        this.firestoreInstance = getFirestore(app);
+      }
     }
     return this.firestoreInstance;
   }
@@ -44,7 +57,7 @@ class CloudSyncService {
       const firestore = this.getFirestore();
       const docKey = this.getUserDocKey(emailOrUid);
       const docRef = doc(firestore, 'users', docKey);
-      const snap = await getDoc(docRef);
+      const snap = await withTimeout(getDoc(docRef), 8000, 'Zaman aşımı');
       return snap.exists();
     } catch (err) {
       console.warn('[CloudSync] Check backup error:', err);
@@ -125,15 +138,55 @@ class CloudSyncService {
       };
 
       const backupPayload = sanitizeForFirestore(rawPayload);
+      const payloadJson = JSON.stringify(backupPayload);
+      const restUrl = `https://firestore.googleapis.com/v1/projects/comus-ai-duty/databases/(default)/documents/users/${docKey}`;
 
-      const docRef = doc(firestore, 'users', docKey);
-      await setDoc(docRef, backupPayload, { merge: true });
+      let syncSuccess = false;
+
+      // Primary: Ultra-fast direct HTTPS REST API (immune to WebChannel/WebKit streaming hangs)
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(restUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fields: {
+              email: { stringValue: userProfile.email || '' },
+              uid: { stringValue: userProfile.uid || '' },
+              name: { stringValue: userProfile.name || '' },
+              updatedAt: { integerValue: now.toString() },
+              metricsCount: { integerValue: dailyMetrics.length.toString() },
+              reportsCount: { integerValue: moodReports.length.toString() },
+              payloadJson: { stringValue: payloadJson },
+            },
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          syncSuccess = true;
+          console.log(`[CloudSync] REST Backup successfully uploaded for ${identifier}. Metrics: ${dailyMetrics.length}`);
+        }
+      } catch (restErr) {
+        console.warn('[CloudSync] REST sync error, attempting SDK fallback:', restErr);
+      }
+
+      // Secondary: Standard SDK fallback if REST was unavailable
+      if (!syncSuccess) {
+        const docRef = doc(firestore, 'users', docKey);
+        await withTimeout(
+          setDoc(docRef, backupPayload, { merge: true }),
+          7000,
+          'Bulut sunucusuna veri aktarımı zaman aşımına uğradı.'
+        );
+      }
 
       // Record last sync timestamp in local settings
       const updatedSettings = { ...settings, lastCloudSyncTimestamp: now };
       await db.settings.put({ key: 'app_settings', value: updatedSettings });
 
-      console.log(`[CloudSync] Backup successfully uploaded to Firestore for ${identifier}. Metrics: ${dailyMetrics.length}, Baselines: ${baselines.length}`);
+      console.log(`[CloudSync] Backup successfully saved to Firestore for ${identifier}. Metrics: ${dailyMetrics.length}, Baselines: ${baselines.length}`);
       return { success: true, timestamp: now };
     } catch (err: any) {
       console.error('[CloudSync] Backup failed:', err);
@@ -152,16 +205,36 @@ class CloudSyncService {
     }
 
     try {
-      const firestore = this.getFirestore();
       const docKey = this.getUserDocKey(emailOrUid);
-      const docRef = doc(firestore, 'users', docKey);
-      const snap = await getDoc(docRef);
+      const restUrl = `https://firestore.googleapis.com/v1/projects/comus-ai-duty/databases/(default)/documents/users/${docKey}`;
+      let backup: CloudBackupData | null = null;
 
-      if (!snap.exists()) {
-        return { success: true, restored: false, message: 'Bu hesaba ait daha önce kaydedilmiş bir bulut yedeği bulunamadı.' };
+      // Primary: Try REST fetch first
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(restUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const docData = await res.json();
+          if (docData.fields?.payloadJson?.stringValue) {
+            backup = JSON.parse(docData.fields.payloadJson.stringValue);
+          }
+        }
+      } catch (restErr) {
+        console.warn('[CloudSync] REST restore failed, trying SDK fallback:', restErr);
       }
 
-      const backup = snap.data() as CloudBackupData;
+      // Secondary: SDK fallback
+      if (!backup) {
+        const firestore = this.getFirestore();
+        const docRef = doc(firestore, 'users', docKey);
+        const snap = await withTimeout(getDoc(docRef), 7000, 'Bulut sunucusuna bağlantı zaman aşımına uğradı.');
+        if (!snap.exists()) {
+          return { success: true, restored: false, message: 'Bu hesaba ait daha önce kaydedilmiş bir bulut yedeği bulunamadı.' };
+        }
+        backup = snap.data() as CloudBackupData;
+      }
 
       // 1. Restore Daily Metrics
       if (backup.dailyMetrics && backup.dailyMetrics.length > 0) {
@@ -264,3 +337,91 @@ class CloudSyncService {
 }
 
 export const cloudSyncService = new CloudSyncService();
+
+/**
+ * Exports all local device metrics, mood reports, and baselines as a standalone JSON backup
+ */
+export async function exportLocalDataAsJson(): Promise<string> {
+  const [profileItem, settingsItem, dailyMetrics, baselines, moodReports, medications, medicationLogs] =
+    await Promise.all([
+      db.settings.get('user_profile'),
+      db.settings.get('app_settings'),
+      db.dailyMetrics.toArray(),
+      db.baselines.toArray(),
+      db.moodReports.toArray(),
+      db.medications.toArray(),
+      db.medicationLogs.toArray(),
+    ]);
+
+  const exportObj = {
+    app: 'Dijital Mental İkizim',
+    version: '1.0.0',
+    exportedAt: new Date().toISOString(),
+    userProfile: profileItem?.value,
+    settings: settingsItem?.value,
+    dailyMetrics,
+    baselines,
+    moodReports,
+    medications,
+    medicationLogs,
+  };
+
+  return JSON.stringify(exportObj, null, 2);
+}
+
+/**
+ * Imports and restores records from a local JSON backup file
+ */
+export async function importDataFromJson(
+  jsonString: string
+): Promise<{ success: boolean; restoredMetrics: number; restoredReports: number }> {
+  const data = JSON.parse(jsonString);
+  if (
+    !data ||
+    (data.app !== 'Dijital Mental İkizim' &&
+      data.app !== 'DijitalMentalIkizim' &&
+      data.app !== 'MentalDijitalAyna' &&
+      data.app !== 'DijitalMentalIkizim')
+  ) {
+    throw new Error('Geçersiz Dijital Mental İkizim yedek dosyası.');
+  }
+
+  let restoredMetrics = 0;
+  let restoredReports = 0;
+
+  if (Array.isArray(data.dailyMetrics)) {
+    for (const m of data.dailyMetrics) {
+      const existing = await db.dailyMetrics
+        .where('[metricKey+date]')
+        .equals([m.metricKey, m.date])
+        .first();
+      if (existing && existing.id) {
+        await db.dailyMetrics.update(existing.id, m);
+      } else {
+        await db.dailyMetrics.add(m);
+      }
+      restoredMetrics++;
+    }
+  }
+
+  if (Array.isArray(data.moodReports)) {
+    for (const r of data.moodReports) {
+      const existing = await db.moodReports
+        .where('timestamp')
+        .equals(r.timestamp)
+        .first();
+      if (!existing) {
+        await db.moodReports.add(r);
+        restoredReports++;
+      }
+    }
+  }
+
+  if (Array.isArray(data.baselines)) {
+    for (const b of data.baselines) {
+      await db.baselines.put(b);
+    }
+  }
+
+  return { success: true, restoredMetrics, restoredReports };
+}

@@ -25,10 +25,10 @@ export interface MentalTwinAvatarState {
   mirrorText: string;
   moodPill: { text: string; color: string };
   sensorStatus: {
-    typing: number;
-    night: number;
-    mobility: number;
-    tremor: number;
+    typing: number | null;
+    night: number | null;
+    mobility: number | null;
+    tremor: number | null;
   };
   modalTitle: string;
   modalSubtitle: string;
@@ -92,7 +92,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
 
     const rawPassiveScore = isEstablished
       ? ClinicalPhenotypeClassifier.calculateAffectiveStateIndex(zScores)
-      : 70; // Reference baseline midpoint
+      : null;
 
     // 3. Hybrid Emotional Balance Index
     const balanceIndex = calculateEmotionalBalanceIndex({
@@ -101,20 +101,27 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       isEstablished,
     });
 
-    // Telemetry summary values
-    const typing = todays.find((m) => m.metricKey === 'typing_wpm')?.value || 42;
-    const night = todays.find((m) => m.metricKey === 'night_usage_minutes')?.value || 0;
-    const mobility = todays.find((m) => m.metricKey === 'mobility_index')?.value || 70;
-    const tremor = todays.find((m) => m.metricKey === 'tremor_variance')?.value || 0.15;
+    // Telemetry summary values (zero mock data)
+    const typing = todays.find((m) => m.metricKey === 'typing_wpm')?.value ?? null;
+    const night = todays.find((m) => m.metricKey === 'night_usage_minutes')?.value ?? null;
+    const mobility = todays.find((m) => m.metricKey === 'mobility_index')?.value ?? null;
+    const tremor = todays.find((m) => m.metricKey === 'tremor_variance')?.value ?? null;
 
     // 4. Derive discrete avatar score (1..5)
     let derivedScore: 1 | 2 | 3 | 4 | 5 = 3;
 
     if (!isEstablished) {
-      derivedScore = deriveAvatarScore(balanceIndex, recentMoodScore, false);
+      if (recentMoodScore !== null) {
+        // If user submitted journal but baseline is not established, react to journal strictly!
+        derivedScore = deriveAvatarScore(balanceIndex ?? 70, recentMoodScore, false);
+      } else {
+        derivedScore = 3; // Keep neutral avatar for "Veri Toplanıyor" phase if no journal exists
+      }
     } else {
       // BASELINE ESTABLISHED (>= 14 days)
-      if (todays.length > 0) {
+      if (balanceIndex === null) {
+        derivedScore = 3;
+      } else if (todays.length > 0) {
         if (phenoInference.state === 'depressive_phenotype' || balanceIndex <= 35) {
           derivedScore = 1; // Zorlu
         } else if (
@@ -135,7 +142,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
           derivedScore = 5; // Harika
         }
       } else {
-        derivedScore = deriveAvatarScore(balanceIndex, recentMoodScore, true);
+        derivedScore = deriveAvatarScore(balanceIndex ?? 75, recentMoodScore, true);
       }
     }
 
@@ -161,7 +168,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       avatarSrc,
       avatarAlt: narrative.title,
       stateLabel: narrative.subtitle,
-      affectiveIndex: balanceIndex,
+      affectiveIndex: balanceIndex ?? 75,
       phenoState: phenoInference.state,
       phenoLabel: phenoInference.label,
       clinicalInsight: finalClinicalInsight,

@@ -150,7 +150,7 @@ public final class EarlyAwarenessEngine {
                 alerts.append(InsightAlert(
                     insightType: .burnout,
                     title: ClinicalInsightType.burnout.displayName,
-                    personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                    personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                     explainableEvidences: [
                         "Klavye Hold Time: Tuş basılı kalma süreniz bazalden +\(roundedZ)σ (\(Int(roundedDelta)) ms) daha uzun kaydedildi.",
                         "Silme Oranı: Silme ve düzeltme tuşu kullanımınız bazal ortalamanıza kıyasla %\(Int(roundedBackspace)) arttı.",
@@ -162,7 +162,7 @@ public final class EarlyAwarenessEngine {
                         "holdTimeDeltaMs": currentHoldDelta,
                         "backspacePercentIncrease": backspaceChange
                     ],
-                    notificationBody: "Dijital Ayna: Son 3 gündür klavye yazım hızınızda belirgin yavaşlama ve silme tuşu kullanımınızda %\(Int(roundedBackspace)) artış gözlemlendi. Zihinsel yorgunluk işaretleri olabilir; dinlenme ihtiyacınızı gözden geçirebilirsiniz."
+                    notificationBody: "Dijital Mental İkizim: Son 3 gündür klavye yazım hızınızda belirgin yavaşlama ve silme tuşu kullanımınızda %\(Int(roundedBackspace)) artış gözlemlendi. Zihinsel yorgunluk işaretleri olabilir; dinlenme ihtiyacınızı gözden geçirebilirsiniz."
                 ))
             }
         }
@@ -188,7 +188,7 @@ public final class EarlyAwarenessEngine {
                 alerts.append(InsightAlert(
                     insightType: .depressionIsolation,
                     title: ClinicalInsightType.depressionIsolation.displayName,
-                    personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                    personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                     explainableEvidences: [
                         "Evde Kalma Oranı: Günlük evde geçirilen süre %\(Int(latestDay.homestayPercentage)) seviyesine ulaştı.",
                         "Hareketlilik Yarıçapı: Coğrafi hareket alanınız \(round(currentRadiusZ * 10) / 10)σ (%\(Int(currentShrink)) daralma) seviyesine geriledi.",
@@ -200,7 +200,7 @@ public final class EarlyAwarenessEngine {
                         "radiusZ": currentRadiusZ,
                         "radiusShrinkPercent": currentShrink
                     ],
-                    notificationBody: "Dijital Ayna: Son 4 gündür evde geçirilen sürenizde belirgin artış ve günlük hareket alanınızda %\(Int(currentShrink)) daralma gözlemlendi. Temiz hava molası ve sosyal bir temas iyi gelebilir."
+                    notificationBody: "Dijital Mental İkizim: Son 4 gündür evde geçirilen sürenizde belirgin artış ve günlük hareket alanınızda %\(Int(currentShrink)) daralma gözlemlendi. Temiz hava molası ve sosyal bir temas iyi gelebilir."
                 ))
             }
         }
@@ -220,7 +220,7 @@ public final class EarlyAwarenessEngine {
             alerts.append(InsightAlert(
                 insightType: .anxietySleep,
                 title: ClinicalInsightType.anxietySleep.displayName,
-                personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                 explainableEvidences: [
                     "Gece Ekran Penceresi: 02:00-04:00 saatleri arasında \(latestDay.nocturnalScreen02to04Unlocks) kez kilit açma ve \(Int(latestDay.nocturnalScreen02to04Minutes)) dk aktif ekran kullanımı kaydedildi.",
                     "Uykuya Dalma Süresi (SOL): Bazal ortalamanıza kıyasla \(Int(latestSolDelta)) dakika daha uzun sürdü.",
@@ -232,7 +232,7 @@ public final class EarlyAwarenessEngine {
                     "nocturnalMinutes": latestDay.nocturnalScreen02to04Minutes,
                     "solProlongationMinutes": latestSolDelta
                 ],
-                notificationBody: "Dijital Ayna: Gece 02:00-04:00 saatleri arasında ekran aktivitenizde artış ve uykuya dalma sürenizde uzama fark edildi. Rahatlatıcı bir uyku rutini oluşturmayı deneyebilirsiniz."
+                notificationBody: "Dijital Mental İkizim: Gece 02:00-04:00 saatleri arasında ekran aktivitenizde artış ve uykuya dalma sürenizde uzama fark edildi. Rahatlatıcı bir uyku rutini oluşturmayı deneyebilirsiniz."
             ))
         }
 
@@ -245,7 +245,7 @@ public final class EarlyAwarenessEngine {
             alerts.append(InsightAlert(
                 insightType: .neurodiversity,
                 title: ClinicalInsightType.neurodiversity.displayName,
-                personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                 explainableEvidences: [
                     "Uygulama Geçiş Sıklığı: 15 dakikalık aktif pencerede \(latestDay.appSwitchingIn15MinWindow) farklı uygulamaya geçiş yapıldı.",
                     "Mikro-Oturum Süresi: Ortalama ekran oturumu süresi \(Int(latestDay.averageSessionLengthSeconds)) saniyeye geriledi (aşırı parçalanmış dikkat).",
@@ -257,7 +257,7 @@ public final class EarlyAwarenessEngine {
                     "avgSessionSeconds": latestDay.averageSessionLengthSeconds,
                     "slotsCount": Double(latestDay.fragmentedAttentionSlotsCount)
                 ],
-                notificationBody: "Dijital Ayna: Gün içinde sık uygulama geçişleri ve kısa ekran oturumları ile dikkat bölünmesi örüntüsü saptandı. Bildirimleri sınırlandırmak odağınızı korumanıza yardımcı olabilir."
+                notificationBody: "Dijital Mental İkizim: Gün içinde sık uygulama geçişleri ve kısa ekran oturumları ile dikkat bölünmesi örüntüsü saptandı. Bildirimleri sınırlandırmak odağınızı korumanıza yardımcı olabilir."
             ))
         }
 
@@ -282,7 +282,7 @@ public final class EarlyAwarenessEngine {
                 alerts.append(InsightAlert(
                     insightType: .cognitiveDecline,
                     title: ClinicalInsightType.cognitiveDecline.displayName, // "Bilişsel İcra Hızı ve Ritim Değişimi"
-                    personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                    personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                     explainableEvidences: [
                         "Klavye İki Tuş Arası Geçiş (IKI): Ardışık 7 gün boyunca sürekli uzama (\(round(currentFlightZ * 10) / 10)σ) gösterdi.",
                         "Sirkadiyen Düzenlilik Endeksi (SRI): %\(Int(latestDay.sleepRegularityIndex)) seviyesine gerileyerek sirkadiyen parçalanma sinyali verdi.",
@@ -294,7 +294,7 @@ public final class EarlyAwarenessEngine {
                         "sriPercent": latestDay.sleepRegularityIndex,
                         "longPauses": Double(latestDay.longPauseCount)
                     ],
-                    notificationBody: "Dijital Ayna: Son haftalarda uyku düzenliliğinizde parçalanma ve klavye etkileşim aralıklarınızda uzama tespit edildi. Bu biyobelirteç değişimlerini bir sonraki doktor randevunuzda paylaşabilirsiniz."
+                    notificationBody: "Dijital Mental İkizim: Son haftalarda uyku düzenliliğinizde parçalanma ve klavye etkileşim aralıklarınızda uzama tespit edildi. Bu biyobelirteç değişimlerini bir sonraki doktor randevunuzda paylaşabilirsiniz."
                 ))
             }
         }
@@ -309,7 +309,7 @@ public final class EarlyAwarenessEngine {
             alerts.append(InsightAlert(
                 insightType: .ptsdHypervigilance,
                 title: ClinicalInsightType.ptsdHypervigilance.displayName,
-                personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                 explainableEvidences: [
                     "Günlük Kilit Açma: Günlük \(latestDay.dailyUnlockCount) kilit açma ile bazal ortalamanızın +\(round(currentUnlockZ * 10) / 10)σ üzerinde seyretti.",
                     "Mikro-Kontrol (Hipervijilans): Ekranı açıp 5 saniye içinde hiçbir eylem yapmadan kilitleme oranı %\(Int(latestDay.quickCheckRatioPercent)) oldu.",
@@ -321,7 +321,7 @@ public final class EarlyAwarenessEngine {
                     "unlockZ": currentUnlockZ,
                     "quickCheckRatio": latestDay.quickCheckRatioPercent
                 ],
-                notificationBody: "Dijital Ayna: Cihaz kontrol sıklığınızda ve hızlı kilit açıp-kapama oranınızda belirgin artış kaydedildi. Bedeninizi dinlendirmek ve nefes egzersizi yapmak rahatlatıcı olabilir."
+                notificationBody: "Dijital Mental İkizim: Cihaz kontrol sıklığınızda ve hızlı kilit açıp-kapama oranınızda belirgin artış kaydedildi. Bedeninizi dinlendirmek ve nefes egzersizi yapmak rahatlatıcı olabilir."
             ))
         }
 
@@ -336,7 +336,7 @@ public final class EarlyAwarenessEngine {
             alerts.append(InsightAlert(
                 insightType: .lowSelfEsteemPassiveSocial,
                 title: ClinicalInsightType.lowSelfEsteemPassiveSocial.displayName,
-                personalizedDeviationStatement: "Dijital aynanızda, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
+                personalizedDeviationStatement: "Dijital Mental İkizinizde, kişisel olağan ritminizden farklılaşan bazı eğilimler gözlemlendi.",
                 explainableEvidences: [
                     "Pasif Sosyal Medya: \(Int(latestDay.dailySocialMediaMinutes)) dk sosyal medya kullanımında dışa dönük aktif etkileşim (beğeni, yorum, mesaj) oranı yalnızca %\(round(latestDay.outwardInteractionRatioPercent * 10) / 10) olarak kaydedildi.",
                     "Gece Dikey Kaydırma: Gece geç saatlerde \(Int(latestDay.lateNightContinuousScrollMinutes)) dakika kesintisiz dikey kaydırma (doomscrolling) tespit edildi.",
@@ -349,7 +349,7 @@ public final class EarlyAwarenessEngine {
                     "lateNightScrollMinutes": latestDay.lateNightContinuousScrollMinutes,
                     "affectDrop": latestDay.postSessionEmaAffectDrop
                 ],
-                notificationBody: "Dijital Ayna: Bugün sosyal medyada pasif izleyici modunda uzun bir süre (\(Int(latestDay.dailySocialMediaMinutes)) dk) geçirdiğiniz ve bu süreçte duygu durumunuzda düşüş eğilimi oluştuğu fark edildi. Ekran dışı bir mola vermek iyi gelebilir."
+                notificationBody: "Dijital Mental İkizim: Bugün sosyal medyada pasif izleyici modunda uzun bir süre (\(Int(latestDay.dailySocialMediaMinutes)) dk) geçirdiğiniz ve bu süreçte duygu durumunuzda düşüş eğilimi oluştuğu fark edildi. Ekran dışı bir mola vermek iyi gelebilir."
             ))
         }
 

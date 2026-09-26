@@ -12,6 +12,9 @@ import {
 } from 'recharts';
 import { DailyMetric, MoodReport } from '../../types/engine';
 import { MetricKey, METRIC_DEFINITIONS } from '../../types/sensor';
+import { motionSensor } from '../../sensors/motionSensor';
+import { sensorManager } from '../../sensors/SensorManager';
+import { Activity, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface MoodTimelineChartProps {
   metrics: DailyMetric[];
@@ -20,6 +23,8 @@ interface MoodTimelineChartProps {
 
 export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, moods }) => {
   const [selectedOverlay, setSelectedOverlay] = useState<MetricKey>('typing_wpm');
+  const [isRequestingPerm, setIsRequestingPerm] = useState(false);
+  const [permFeedback, setPermFeedback] = useState<string | null>(null);
 
   // Align dates into a unified series (last 14 days)
   const dateMap = new Map<string, { date: string; moodScore?: number; metricValue?: number }>();
@@ -54,13 +59,44 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
   const timelineData = Array.from(dateMap.values());
   const activeDef = METRIC_DEFINITIONS[selectedOverlay];
 
+  // Check if selected overlay has collected data
+  const hasMetricData = timelineData.some(d => d.metricValue !== undefined && d.metricValue !== null && d.metricValue > 0);
+
+  const handleRequestMotionPerm = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsRequestingPerm(true);
+    setPermFeedback(null);
+    try {
+      const granted = await motionSensor.requestPermission();
+      if (granted) {
+        await sensorManager.evaluateNow();
+        setPermFeedback('Hareket sensörü aktif edildi. Anlık telemetri okunuyor.');
+      } else {
+        setPermFeedback('Hareket sensörü izni reddedildi veya tarayıcı tarafından kısıtlandı.');
+      }
+    } catch (e: any) {
+      setPermFeedback('İzin istenirken hata oluştu: ' + (e?.message || 'Bilinmeyen hata'));
+    } finally {
+      setIsRequestingPerm(false);
+      setTimeout(() => setPermFeedback(null), 4000);
+    }
+  };
+
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-soft border border-comus-sand-light/20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h3 className="font-serif font-bold text-lg text-comus-navy leading-tight">
-            Ruh Hali & Pasif Davranış Zaman Çizelgesi
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-serif font-bold text-lg text-comus-navy leading-tight">
+              Ruh Hali & Pasif Davranış Zaman Çizelgesi
+            </h3>
+            {!hasMetricData && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                Sensör İzni Bekleniyor / Veri Yok
+              </span>
+            )}
+          </div>
           <p className="text-xs text-comus-sand-dark mt-0.5">
             Öznel hissiyatın ile nesnel dijital fenotip göstergelerini birlikte incele
           </p>
@@ -110,6 +146,34 @@ export const MoodTimelineChart: React.FC<MoodTimelineChartProps> = ({ metrics, m
           </button>
         </div>
       </div>
+
+      {/* Missing Metric / Motion Permission Notice */}
+      {!hasMetricData && selectedOverlay === 'mobility_index' && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-fadeIn">
+          <div className="flex items-center gap-2 text-amber-950">
+            <Activity className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>
+              <strong>Hareketlilik Verisi Bekleniyor:</strong> iOS ivmeölçer / adım telemetrisi için sensör erişimi gereklidir.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleRequestMotionPerm}
+            disabled={isRequestingPerm}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors shrink-0 shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isRequestingPerm ? 'İzin İsteniyor...' : 'Sensör İznini Etkinleştir'}</span>
+          </button>
+        </div>
+      )}
+
+      {permFeedback && (
+        <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{permFeedback}</span>
+        </div>
+      )}
 
       {/* Chart */}
       <div className="h-64 sm:h-72 w-full">

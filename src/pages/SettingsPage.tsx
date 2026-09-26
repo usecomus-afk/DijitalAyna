@@ -286,43 +286,43 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* 2. BULUT YEDEKLEME & YENİDEN YÜKLEME */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+      <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${
               settings.cloudBackupEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-600'
             }`}>
               {settings.cloudBackupEnabled ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-serif font-bold text-lg text-comus-navy">
-                  Bulut Yedekleme & Senkronizasyon
-                </h3>
-                <span className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full ${
-                  settings.cloudBackupEnabled
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-stone-100 text-stone-600 border border-stone-200'
-                }`}>
-                  {settings.cloudBackupEnabled ? 'Aktif' : 'Kapalı'}
-                </span>
-              </div>
-              <p className="text-xs text-comus-sand-dark">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-serif font-bold text-base sm:text-lg text-comus-navy tracking-tight leading-snug">
+                Bulut Yedekleme & Senkronizasyon
+              </h3>
+              <p className="text-xs text-comus-sand-dark mt-1 leading-relaxed">
                 Uygulama silinse bile Google hesabınızla verilerinizi 1/7 günden sıfırlamadan geri yükleyin
               </p>
             </div>
           </div>
 
-          <label className="relative inline-flex items-center cursor-pointer shrink-0">
-            <input
-              type="checkbox"
-              checked={settings.cloudBackupEnabled}
-              onChange={handleToggleCloudBackup}
-              disabled={cloudActionLoading}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-          </label>
+          <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5">
+            <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+              settings.cloudBackupEnabled
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-stone-100 text-stone-600 border border-stone-200'
+            }`}>
+              {settings.cloudBackupEnabled ? 'Aktif' : 'Kapalı'}
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.cloudBackupEnabled}
+                onChange={handleToggleCloudBackup}
+                disabled={cloudActionLoading}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
         </div>
 
         <p className="text-xs text-comus-sand-dark leading-relaxed">
@@ -628,7 +628,7 @@ export const SettingsPage: React.FC = () => {
 
         <div className="space-y-2.5 text-xs text-amber-950 leading-relaxed">
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>Temel Feragatname:</strong> DutyDijitalAyna, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
+            <strong>Temel Feragatname:</strong> Dijital Mental İkizim, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
@@ -651,7 +651,7 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, DutyDijitalAyna ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
+            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, Dijital Mental İkizim ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
           </div>
         </div>
       </div>

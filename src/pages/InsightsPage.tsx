@@ -4,6 +4,7 @@ import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { InsightCard } from '../components/insights/InsightCard';
 import { Disclaimer } from '../components/common/Disclaimer';
+import { InsightsTab } from '../components/InsightsTab';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const InsightsPage: React.FC = () => {
@@ -126,7 +127,7 @@ export const InsightsPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-serif font-bold text-base text-comus-navy">
-                Erken Farkındalık Sağlanan 7 Klinik Durum & Biyobelirteçler
+                Erken Farkındalık Sağlanan 9 Klinik Durum & Biyobelirteçler
               </h3>
             </div>
             <p className="text-xs text-comus-sand-dark mt-0.5">
@@ -186,6 +187,20 @@ export const InsightsPage: React.FC = () => {
               duration: 'Oturum sonrası EMA afektinde ≥ 2 puan düşüş (Ekstrom, 2026)',
               color: 'border-stone-200 bg-stone-50 text-stone-800',
             },
+            {
+              state: '8. Kaçınma ve Sanal Dünyaya Sığınma',
+              source: 'Oyun Oturumu Süresi & Dış Dünya Hareketliliği',
+              threshold: 'Günlük oyun süresi ≥ +2.0σ (>120 dk) ve Hareket Yarıçapı Rg ≤ -1.5σ (veya evde kalış >%85)',
+              duration: 'Yoğun duygusal baskı karşısında gerçeklikten kaçış ve izolasyon örüntüsü saptandığında (Dumas et al., 2025; Guth et al., 2025)',
+              color: 'border-blue-200 bg-blue-50/40 text-blue-900',
+            },
+            {
+              state: '9. Öz-Değer ve Görünüm Hassasiyeti',
+              source: 'Kamera Kullanım Sıklığı, Galeri Çekim-Silme Döngüsü & EMA',
+              threshold: '30 dk içinde kamera açılışı ≥ 5 kez veya çekim-silme oranı >%60 (hızlı silme patlaması)',
+              duration: 'Beden dismorfisi/onay arama döngüsü ve oturum sonrası EMA afektinde ≥ 2 puan düşüş (McLean et al.; PMC5810159)',
+              color: 'border-rose-200 bg-rose-50/40 text-rose-900',
+            },
           ].map((item, idx) => (
             <div key={idx} className={`p-3.5 rounded-2xl border ${item.color} space-y-1.5`}>
               <div className="font-bold flex items-center justify-between text-xs sm:text-[13px]">
@@ -207,8 +222,12 @@ export const InsightsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Erken Bilişsel Değişim Kriterleri İçgörü Kartı */}
+      <InsightsTab />
+
       {/* Disclaimer */}
       <Disclaimer />
     </div>
   );
 };
+

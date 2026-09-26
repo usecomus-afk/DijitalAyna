@@ -5,6 +5,10 @@ import { sessionSensor } from './sessionSensor';
 import { lightSensor } from './lightSensor';
 import { batterySensor } from './batterySensor';
 import { networkSensor } from './networkSensor';
+import { healthService } from '../services/native/healthService';
+import { deviceBatteryService } from '../services/native/deviceBatteryService';
+import { mobilityService } from '../services/native/mobilityService';
+import { keystrokeTracker } from '../services/keystrokeTracker';
 import { UserSettings } from '../types/user';
 import { runDailyAggregationAndCleanup } from '../db/aggregations';
 import { calculateEWMAForMetrics } from '../engine/BaselineEngine';
@@ -16,18 +20,22 @@ import { DailyPhenotypeFeatures } from '../types/phenotyping';
 
 class SensorManager {
   syncWithSettings(settings: UserSettings): void {
-    // Motion
+    // Motion & Health
     if (settings.sensorsEnabled.motion) {
       motionSensor.start();
+      mobilityService.startTracking().catch(() => {});
     } else {
       motionSensor.stop();
+      mobilityService.stopTracking().catch(() => {});
     }
 
-    // Typing
+    // Typing & Keystrokes
     if (settings.sensorsEnabled.typing) {
       typingSensor.start();
+      keystrokeTracker.start();
     } else {
       typingSensor.stop();
+      keystrokeTracker.stop();
     }
 
     // Touch
@@ -51,11 +59,13 @@ class SensorManager {
       lightSensor.stop();
     }
 
-    // Battery
+    // Battery & Night Charging
     if (settings.sensorsEnabled.battery) {
       batterySensor.start();
+      deviceBatteryService.startMonitoring();
     } else {
       batterySensor.stop();
+      deviceBatteryService.stopMonitoring();
     }
 
     // Network
@@ -67,7 +77,7 @@ class SensorManager {
   }
 
   /**
-   * Immediately samples and flushes all active hardware and interaction sensors
+   * Immediately samples and flushes all active hardware, native health, and interaction sensors
    * and runs the TelemetryPipeline aggregation.
    */
   async flushAndCollectAll(): Promise<void> {
@@ -75,6 +85,10 @@ class SensorManager {
       motionSensor.flush(),
       touchSensor.flush(),
       typingSensor.flush(),
+      keystrokeTracker.flush(),
+      healthService.syncHealthBiomarkers(),
+      mobilityService.syncMobilityBiomarkers(),
+      deviceBatteryService.recordTelemetrySample(),
     ]);
 
     // Aggregate in-memory telemetry buffers into phenotype features
@@ -89,9 +103,9 @@ class SensorManager {
   private async persistTelemetryFeatures(features: DailyPhenotypeFeatures): Promise<void> {
     const metricMapping: Partial<Record<MetricKey, number>> = {};
 
-    if (features.typingSpeedWpm > 0) metricMapping.typing_wpm = features.typingSpeedWpm;
-    if (features.meanFlightTimeMs > 0) metricMapping.typing_iki = Math.round(features.meanFlightTimeMs);
-    if (features.backspaceRate > 0) metricMapping.typing_backspace_rate = Math.round(features.backspaceRate * 10) / 10;
+    if (features.typingSpeedWpm != null && features.typingSpeedWpm > 0) metricMapping.typing_wpm = features.typingSpeedWpm;
+    if (features.meanFlightTimeMs != null && features.meanFlightTimeMs > 0) metricMapping.typing_iki = Math.round(features.meanFlightTimeMs);
+    if (features.backspaceRate != null && features.backspaceRate > 0) metricMapping.typing_backspace_rate = Math.round(features.backspaceRate * 10) / 10;
     if (features.nocturnalScreenMinutes > 0) metricMapping.night_usage_minutes = features.nocturnalScreenMinutes;
     if (features.totalScreenOnMinutes > 0) metricMapping.screen_on_time = features.totalScreenOnMinutes;
     if (features.tremorVariance > 0) metricMapping.tremor_variance = features.tremorVariance;
@@ -134,10 +148,13 @@ class SensorManager {
   stopAll(): void {
     motionSensor.stop();
     typingSensor.stop();
+    keystrokeTracker.stop();
     touchSensor.stop();
     sessionSensor.stop();
     lightSensor.stop();
     batterySensor.stop();
+    deviceBatteryService.stopMonitoring();
+    mobilityService.stopTracking().catch(() => {});
     networkSensor.stop();
   }
 }

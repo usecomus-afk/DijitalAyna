@@ -30,9 +30,9 @@ export const App: React.FC = () => {
 
     const sub = CapApp.addListener('appUrlOpen', async (event) => {
       if (
-        event.url.startsWith('dijitalayna://auth-callback') ||
-        event.url.startsWith('dijitalayna://google-auth') ||
-        event.url.startsWith('dijitalayna://apple-auth') ||
+        event.url.startsWith('dijitalmentalikizim://auth-callback') ||
+        event.url.startsWith('dijitalmentalikizim://google-auth') ||
+        event.url.startsWith('dijitalmentalikizim://apple-auth') ||
         event.url.includes('googleusercontent.apps')
       ) {
         try {
@@ -58,7 +58,18 @@ export const App: React.FC = () => {
     };
   }, [initialize]);
 
-  if (!settings.onboardingCompleted) {
+  const { userProfile } = useAppStore();
+  const isAuthenticated = Boolean(
+    userProfile?.isGoogleConnected ||
+    userProfile?.isAppleConnected ||
+    userProfile?.isPasswordAccount ||
+    (userProfile?.email && userProfile.email.trim().length > 0) ||
+    (userProfile?.username && userProfile.username.trim().length > 0)
+  );
+
+  // If user is not authenticated or has not completed setup, show Auth / Onboarding
+  // NEVER show the dashboard or an example profile to unauthenticated visitors
+  if (!isAuthenticated || !settings.onboardingCompleted) {
     return <OnboardingPage />;
   }
 

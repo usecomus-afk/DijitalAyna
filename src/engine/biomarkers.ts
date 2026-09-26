@@ -82,14 +82,21 @@ export function synthesizeBiomarkers(anomalies: AnomalyResult[]): BiomarkerResul
 
   // 3. Circadian Rhythm Disruption (Sleep-Wake Proxy)
   // Night usage in 01:00-05:00 window or high night usage minutes
+  const nightLight = anomalyMap.get('night_light_violations');
+  
   const hasNightUsageAnomaly = nightUsage && (nightUsage.zScore >= 1.8 || nightUsage.currentValue >= 25);
-  if (hasNightUsageAnomaly) {
+  const hasNightLightAnomaly = nightLight && (nightLight.currentValue >= 1);
+  
+  if (hasNightUsageAnomaly || hasNightLightAnomaly) {
+    const triggers = [];
+    if (nightUsage) triggers.push(nightUsage);
+    if (nightLight) triggers.push(nightLight);
     results.push({
       type: 'circadian_disruption',
       label: 'Sirkadiyen Ritim & Gece Bölünmesi Sinyali',
-      confidence: 'high',
+      confidence: hasNightLightAnomaly ? 'high' : 'high',
       score: 0.86,
-      triggerAnomalies: [nightUsage!],
+      triggerAnomalies: triggers,
       detectedAt: today,
     });
   }
@@ -152,6 +159,37 @@ export function synthesizeBiomarkers(anomalies: AnomalyResult[]): BiomarkerResul
       confidence: 'medium',
       score: 0.86,
       triggerAnomalies: triggers,
+      detectedAt: today,
+    });
+  }
+
+  // 8. Gaming Avoidance & Virtual Escapism Rule (Dumas et al., 2025; Guth et al., 2025)
+  const gamingDuration = anomalyMap.get('gaming_duration');
+  if (gamingDuration && (gamingDuration.zScore >= 2.0 || gamingDuration.currentValue >= 120)) {
+    const hasReducedMobility = mobility && (mobility.zScore <= -1.5 || mobility.currentValue <= 30);
+    const triggers: AnomalyResult[] = [gamingDuration];
+    if (mobility) triggers.push(mobility);
+    if (hasReducedMobility || (gamingDuration.zScore >= 2.0)) {
+      results.push({
+        type: 'gaming_avoidance',
+        label: 'Kaçınma ve Sanal Dünyaya Sığınma Sinyali',
+        confidence: hasReducedMobility ? 'high' : 'medium',
+        score: 0.89,
+        triggerAnomalies: triggers,
+        detectedAt: today,
+      });
+    }
+  }
+
+  // 9. Appearance & Self-Worth Sensitivity Rule (McLean et al.; PMC5810159)
+  const cameraCount = anomalyMap.get('camera_interaction_count');
+  if (cameraCount && (cameraCount.zScore >= 2.0 || cameraCount.currentValue >= 5)) {
+    results.push({
+      type: 'appearance_sensitivity',
+      label: 'Öz-Değer ve Görünüm Hassasiyeti Sinyali',
+      confidence: 'medium',
+      score: 0.85,
+      triggerAnomalies: [cameraCount],
       detectedAt: today,
     });
   }

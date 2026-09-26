@@ -1,6 +1,8 @@
 import { Capacitor } from '@capacitor/core';
+import { healthService } from '../services/native/healthService';
+import { mobilityService } from '../services/native/mobilityService';
 
-export type SensorCapabilityKey = 'motion' | 'microphone' | 'geolocation' | 'battery' | 'light';
+export type SensorCapabilityKey = 'motion' | 'microphone' | 'geolocation' | 'battery' | 'light' | 'health' | 'camera';
 export type SensorCapabilityStatus = 'granted' | 'denied' | 'prompt' | 'unsupported';
 
 type CapabilityChangeListener = (capabilities: Record<SensorCapabilityKey, SensorCapabilityStatus>) => void;
@@ -18,6 +20,8 @@ export class SensorCapabilityManager {
     geolocation: 'prompt',
     battery: 'prompt',
     light: 'prompt',
+    health: 'prompt',
+    camera: 'prompt',
   };
   private listeners: Set<CapabilityChangeListener> = new Set();
 
@@ -43,6 +47,8 @@ export class SensorCapabilityManager {
         geolocation: 'unsupported',
         battery: 'unsupported',
         light: 'unsupported',
+        health: 'unsupported',
+        camera: 'unsupported',
       };
       return;
     }
@@ -51,13 +57,12 @@ export class SensorCapabilityManager {
 
     // 1. Motion
     if (isNative) {
-      // Native iOS / Android has CoreMotion / accelerometer hardware
       this.statuses.motion = 'granted';
     } else if (typeof (window as any).DeviceMotionEvent !== 'undefined') {
       if (typeof (window as any).DeviceMotionEvent?.requestPermission === 'function') {
-        this.statuses.motion = 'prompt'; // iOS Safari requires user gesture permission
+        this.statuses.motion = 'prompt';
       } else {
-        this.statuses.motion = 'granted'; // Modern browsers with motion sensor
+        this.statuses.motion = 'granted';
       }
     } else {
       this.statuses.motion = 'unsupported';
@@ -66,7 +71,6 @@ export class SensorCapabilityManager {
     // 2. Microphone (Voice Dynamics)
     if (typeof navigator !== 'undefined' && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
       this.statuses.microphone = 'prompt';
-      // Query permissions API if available
       if (navigator.permissions && typeof navigator.permissions.query === 'function') {
         navigator.permissions.query({ name: 'microphone' as any }).then((perm) => {
           this.statuses.microphone = perm.state as SensorCapabilityStatus;
@@ -81,9 +85,9 @@ export class SensorCapabilityManager {
     }
 
     // 3. Geolocation (Mobility & Homestay)
-    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+    if (isNative || (typeof navigator !== 'undefined' && 'geolocation' in navigator)) {
       this.statuses.geolocation = 'prompt';
-      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+      if (!isNative && navigator.permissions && typeof navigator.permissions.query === 'function') {
         navigator.permissions.query({ name: 'geolocation' }).then((perm) => {
           this.statuses.geolocation = perm.state as SensorCapabilityStatus;
           perm.onchange = () => {
@@ -98,18 +102,25 @@ export class SensorCapabilityManager {
 
     // 4. Battery
     if (isNative) {
-      this.statuses.battery = 'granted'; // Handled via @capacitor/device
+      this.statuses.battery = 'granted';
     } else if (typeof navigator !== 'undefined' && 'getBattery' in navigator) {
       this.statuses.battery = 'granted';
     } else {
-      this.statuses.battery = 'unsupported'; // E.g. iOS Safari WebKit does not expose Battery API
+      this.statuses.battery = 'unsupported';
     }
 
     // 5. Ambient Light Sensor
     if (typeof window !== 'undefined' && 'AmbientLightSensor' in window) {
       this.statuses.light = 'prompt';
     } else {
-      this.statuses.light = 'unsupported'; // WebKit/Safari strictly does not support Generic Sensor Light API
+      this.statuses.light = 'unsupported';
+    }
+
+    // 6. HealthKit
+    if (isNative) {
+      this.statuses.health = 'prompt';
+    } else {
+      this.statuses.health = 'unsupported';
     }
   }
 
@@ -126,14 +137,11 @@ export class SensorCapabilityManager {
   }
 
   /**
-   * Requests Device Motion permission. Must be triggered by a direct user gesture on iOS Safari.
+   * Requests Device Motion permission.
    */
   async requestMotionPermission(): Promise<boolean> {
-    if (Capacitor.isNativePlatform()) {
-      this.statuses.motion = 'granted';
-      this.notifyListeners();
-      return true;
-    }
+    // On iOS WKWebView, DeviceMotionEvent.requestPermission is still required.
+    // We remove the early native return so it falls through to the Web API check.
 
     if (
       typeof window !== 'undefined' &&
@@ -154,7 +162,6 @@ export class SensorCapabilityManager {
       }
     }
 
-    // Standard Android / Desktop with devicemotion
     const supported = typeof window !== 'undefined' && typeof (window as any).DeviceMotionEvent !== 'undefined';
     this.statuses.motion = supported ? 'granted' : 'unsupported';
     this.notifyListeners();
@@ -189,28 +196,50 @@ export class SensorCapabilityManager {
    * Requests Geolocation permission for circadian mobility and homestay analysis.
    */
   async requestGeolocationPermission(): Promise<boolean> {
-    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
-      this.statuses.geolocation = 'unsupported';
+    try {
+      const res = await mobilityService.requestLocationPermissions();
+      this.statuses.geolocation = res.granted ? 'granted' : 'denied';
+      this.notifyListeners();
+      return res.granted;
+    } catch (err) {
+      console.warn('[SensorCapabilityManager] Geolocation permission error:', err);
+      this.statuses.geolocation = 'denied';
       this.notifyListeners();
       return false;
     }
+  }
 
-    return new Promise<boolean>((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        () => {
-          this.statuses.geolocation = 'granted';
-          this.notifyListeners();
-          resolve(true);
-        },
-        (err) => {
-          console.warn('[SensorCapabilityManager] Geolocation permission error:', err);
-          this.statuses.geolocation = err.code === 1 ? 'denied' : 'unsupported';
-          this.notifyListeners();
-          resolve(false);
-        },
-        { timeout: 8000, maximumAge: 60000 }
-      );
-    });
+  /**
+   * Requests Apple HealthKit permissions for steps and sleep tracking.
+   */
+  async requestHealthPermission(): Promise<boolean> {
+    try {
+      const res = await healthService.requestHealthPermissions();
+      this.statuses.health = res.granted ? 'granted' : 'denied';
+      this.notifyListeners();
+      return res.granted;
+    } catch (err) {
+      console.warn('[SensorCapabilityManager] Health permission error:', err);
+      this.statuses.health = 'denied';
+      this.notifyListeners();
+      return false;
+    }
+  }
+
+  async requestCameraPermission(): Promise<boolean> {
+    try {
+      const { Camera } = await import('@capacitor/camera');
+      const permissions = await Camera.requestPermissions();
+      const granted = permissions.camera === 'granted' || permissions.camera === 'prompt-with-rationale';
+      this.statuses.camera = granted ? 'granted' : 'denied';
+      this.notifyListeners();
+      return granted;
+    } catch (err) {
+      console.warn('[SensorCapabilityManager] Camera permission error:', err);
+      this.statuses.camera = 'denied';
+      this.notifyListeners();
+      return false;
+    }
   }
 
   addListener(callback: CapabilityChangeListener): () => void {
@@ -234,3 +263,4 @@ export class SensorCapabilityManager {
 }
 
 export const sensorCapabilities = SensorCapabilityManager.getInstance();
+

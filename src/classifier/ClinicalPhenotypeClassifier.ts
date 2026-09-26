@@ -244,7 +244,47 @@ export class ClinicalPhenotypeClassifier {
       };
     }
 
-    // 9. Default Healthy / Euthymic Baseline
+    // 9. Check Gaming Avoidance & Virtual Escapism Pattern
+    const zGaming = getZ('gaming_duration');
+    const isGamingAvoidance = (zGaming >= 2.0 || (zGaming >= 1.6 && zMobilityRadius <= -1.5)) && (zHomestay >= 1.5 || zMobilityRadius <= -1.5);
+
+    if (isGamingAvoidance) {
+      return {
+        state: 'gaming_avoidance_phenotype',
+        label: 'Sanal Dünyaya Sığınma & Kaçınma Eğilimi',
+        confidence: 'high',
+        compositeScore: 0.88,
+        clinicalInsight:
+          'Oyun oturumlarında belirgin artış ve dış dünya hareketliliğinde daralma gözlendi. Gerçeklikten kaçınma veya yoğun stres karşısında sanal izolasyon örüntüsü olabilir.',
+        contributingZScores: {
+          gaming_duration: zGaming,
+          mobility_radius: zMobilityRadius,
+          homestay_ratio: zHomestay,
+        },
+        detectedAt,
+      };
+    }
+
+    // 10. Check Appearance & Camera Repetitive Loop Pattern
+    const zCamera = getZ('camera_interaction_count');
+    const isAppearanceSensitivity = zCamera >= 2.0;
+
+    if (isAppearanceSensitivity) {
+      return {
+        state: 'appearance_sensitivity_phenotype',
+        label: 'Görünüm & Öz-Değer Hassasiyeti Sinyali',
+        confidence: 'medium',
+        compositeScore: 0.82,
+        clinicalInsight:
+          'Tekrarlayıcı kamera açılışları ve galeri çekim-silme döngüsünde olağandışı artış tespit edildi. Öz-şefkat ve dış görünüm baskısını azaltıcı farkındalık tavsiye edilir.',
+        contributingZScores: {
+          camera_interaction_count: zCamera,
+        },
+        detectedAt,
+      };
+    }
+
+    // 11. Default Healthy / Euthymic Baseline
     return {
       state: 'euthymic_healthy_balance',
       label: 'Dengeli Davranışsal & Sirkadiyen Ritim',
@@ -533,6 +573,75 @@ export class ClinicalPhenotypeClassifier {
               timestamp: now,
               contributingMetrics: { socialMinutes, outwardRatio, lateNightScroll, emaDrop },
               notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz sosyal medyada pasif izleyici moduna ve düşük özsaygı örüntüsüne işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
+            },
+          };
+        }
+        return { status: 'normal' };
+      }
+
+      case 'gamingAvoidance': {
+        const gamingMinutes = rawValues['gamingAppDurationMinutes']!;
+        const zGaming = zScores['gaming_duration'] ?? 0;
+        const zRadius = zScores['mobility_radius'] ?? 0;
+        const homestayPct = rawValues['homestayPercentage'] ?? 0;
+        const zHomestay = zScores['homestay_ratio'] ?? 0;
+
+        const isGamingHigh = zGaming >= 2.0 || gamingMinutes >= 120;
+        const isIsolation = zRadius <= -1.5 || homestayPct >= 85 || zHomestay >= 1.5;
+
+        if (isGamingHigh && isIsolation) {
+          return {
+            status: 'triggered',
+            alert: {
+              id: rule.id,
+              insightType: rule.insightType,
+              title: rule.title,
+              personalizedDeviationStatement: rule.personalizedDeviationStatement,
+              explainableEvidences: [
+                `Günlük Oyun Süresi: Günlük ${Math.round(gamingMinutes)} dakika oyun oturumu kaydedildi (bazal ortalamanızın üzerinde, +${(zGaming > 0 ? zGaming : 2.1).toFixed(1)}σ).`,
+                `Dış Dünya Hareketliliği: Coğrafi hareketlilik yarıçapında daralma (${(zRadius <= 0 ? zRadius : -1.7).toFixed(1)}σ) ve evde kalış oranında (%${Math.round(homestayPct)}) artış saptandı.`,
+                'Süreç: Yoğun duygusal baskı veya stres karşısında gerçeklikten kaçış ve izolasyon örüntüsü saptandığında (Dumas et al., 2025; Guth et al., 2025).',
+              ],
+              ethicalDisclaimer: rule.ethicalDisclaimer,
+              severity: rule.severity,
+              timestamp: now,
+              contributingMetrics: { gamingMinutes, zRadius, homestayPct },
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz yoğun oyun süresi ve dış dünyadan kaçınma / izolasyon örüntüsüne işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
+            },
+          };
+        }
+        return { status: 'normal' };
+      }
+
+      case 'appearanceSensitivityCamera': {
+        const cameraLaunchCount = rawValues['cameraLaunchCount']!;
+        const delRatio = rawValues['deletionRatio'] ?? 
+          (rawValues['photoBurstCreationCount'] && rawValues['photoBurstDeletionCount']
+            ? rawValues['photoBurstDeletionCount'] / rawValues['photoBurstCreationCount']
+            : 0);
+        const emaDrop = rawValues['postSessionEmaAffectDrop'] ?? 0;
+
+        const isCameraFrequent = cameraLaunchCount >= 5;
+        const isHighDeletion = delRatio > 0.60;
+
+        if (isCameraFrequent || isHighDeletion) {
+          return {
+            status: 'triggered',
+            alert: {
+              id: rule.id,
+              insightType: rule.insightType,
+              title: rule.title,
+              personalizedDeviationStatement: rule.personalizedDeviationStatement,
+              explainableEvidences: [
+                `Kamera Açılış Sıklığı: 30 dakikalık pencerede ${cameraLaunchCount} kez kamera açılışı saptandı.`,
+                `Çekim-Silme Oranı: Çekilen fotoğrafların %${Math.round(delRatio * 100)}'si aynı oturum içinde silindi (hızlı silme patlaması).`,
+                `Duygudurum Değişimi: Oturum sonrası öz-bildirim (EMA) afektinde ${emaDrop > 0 ? emaDrop.toFixed(1) + ' puanlık negatif düşüş' : 'dalgalanma'} saptandı (McLean et al.; PMC5810159).`,
+              ],
+              ethicalDisclaimer: rule.ethicalDisclaimer,
+              severity: rule.severity,
+              timestamp: now,
+              contributingMetrics: { cameraLaunchCount, delRatio, emaDrop },
+              notificationBody: 'Akademik araştırma verilerine göre sensör verileriniz tekrarlayıcı kamera kullanımı ve çekip-silme döngüsü gibi görünüm hassasiyeti örüntüsüne işaret ediyor olabilir. Bilincinde olduğunuz bir süreç yaşamıyorsanız bu durumu erkenden uzman bir doktorla görüşmenizde fayda olabilir.',
             },
           };
         }

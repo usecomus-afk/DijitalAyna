@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { initVersionWatcher } from './utils/versionCheck';
+
+// Initialize autonomous OTA version watcher
+initVersionWatcher();
 
 // Register PWA service worker with active update checking
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
