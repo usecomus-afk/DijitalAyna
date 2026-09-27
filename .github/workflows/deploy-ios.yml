@@ -1,0 +1,32 @@
+name: Deploy iOS to App Store Connect
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci || npm install --legacy-peer-deps
+      - name: Build Web Assets
+        run: npm run build
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+      - name: Install Apple Certificate and Provisioning Profile via Fastlane
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          gem install bundler
+          cd ios/App
+          bundle install || true
+          bundle exec fastlane release || npx cap build ios
