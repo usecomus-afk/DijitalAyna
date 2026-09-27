@@ -18,7 +18,8 @@ platform :ios do
       workspace: "App.xcworkspace", 
       scheme: "App", 
       export_method: "app-store",
-      allow_provisioning_updates: true
+      allow_provisioning_updates: true,
+      xcargs: "DEVELOPMENT_TEAM=R8LQC6KZG8"
     )
 
     upload_to_app_store(skip_screenshots: true, skip_metadata: true)
