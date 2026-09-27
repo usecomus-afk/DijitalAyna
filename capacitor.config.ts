@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.dijitalayna.app.R8LQC6KZG8',
+  appId: 'com.dijitalmentalikizim.app',
   appName: 'Dijital Mental Ikizim',
   webDir: 'dist',
   server: {
