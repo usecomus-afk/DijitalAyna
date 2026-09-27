@@ -17,7 +17,7 @@
     "ios:open": "npx cap open ios"
   },
   "dependencies": {
-    "@capacitor-community/screen-brightness": "^8.0.0",
+    "@capacitor-community/screen-brightness": "^7.0.0",
     "@capacitor/app": "^7.0.0",
     "@capacitor/browser": "^7.0.5",
     "@capacitor/camera": "^7.0.5",
