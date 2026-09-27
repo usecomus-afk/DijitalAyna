@@ -12,9 +12,14 @@ platform :ios do
       in_house: false
     )
 
-    match(type: "appstore", readonly: true)
-
-    build_app(workspace: "App.xcworkspace", scheme: "App", export_method: "app-store")
+    # Otomatik Kod İmzalama (Automatic Code Signing)
+    # Match yerine Xcode'un otomatik imzalama özelliğini API Key ile kullanıyoruz.
+    build_app(
+      workspace: "App.xcworkspace", 
+      scheme: "App", 
+      export_method: "app-store",
+      allow_provisioning_updates: true
+    )
 
     upload_to_app_store(skip_screenshots: true, skip_metadata: true)
   end
