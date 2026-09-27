@@ -263,14 +263,8 @@
     if (btnAppleEl) btnAppleEl.addEventListener("click", handleApple);
     if (btnGoogleEl) btnGoogleEl.addEventListener("click", handleGoogle);
 
-    // Auto-trigger redirect if requested via query param
-    const params = new URLSearchParams(window.location.search);
-    const providerParam = params.get("provider");
-    if (providerParam === "apple") {
-      setTimeout(handleApple, 300);
-    } else if (providerParam === "google") {
-      setTimeout(handleGoogle, 300);
-    }
+    // Removed auto-trigger to ensure user interaction (fixes iOS Safari ITP missing initial state error)
+    // The user must explicitly tap the login button in this view to preserve sessionStorage.
   </script>
 </body>
 </html>
