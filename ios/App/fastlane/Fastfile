@@ -18,7 +18,6 @@ platform :ios do
       project: "App.xcodeproj", 
       scheme: "App", 
       export_method: "app-store",
-      allow_provisioning_updates: true,
       xcargs: "DEVELOPMENT_TEAM=R8LQC6KZG8"
     )
 
