@@ -15,7 +15,7 @@ platform :ios do
     # Otomatik Kod İmzalama (Automatic Code Signing)
     # Match yerine Xcode'un otomatik imzalama özelliğini API Key ile kullanıyoruz.
     build_app(
-      workspace: "App.xcworkspace",
+      project: "App.xcodeproj",
       scheme: "App",
       export_method: "app-store",
       xcargs: "-allowProvisioningUpdates"
