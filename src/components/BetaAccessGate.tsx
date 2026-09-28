@@ -153,3 +153,5 @@ export const BetaAccessGate: React.FC<BetaAccessGateProps> = ({ children }) => {
     </div>
   );
 };
+
+export default BetaAccessGate;
