@@ -4,7 +4,7 @@ import { useAppStore } from './store/useAppStore';
 import { Header } from './components/layout/Header';
 import { Navbar } from './components/layout/Navbar';
 import { MentalTwinModal } from './components/avatar/MentalTwinModal';
-import { BetaAccessGate } from './components/BetaAccessGate';
+import { BetaAccessGate } from './components/BetaAccessGateView';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InsightsPage } from './pages/InsightsPage';
