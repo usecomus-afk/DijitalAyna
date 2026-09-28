@@ -12,8 +12,7 @@ import {
   User,
 } from 'firebase/auth';
 import { UserProfile } from '../types/user';
-import { Browser } from '@capacitor/browser';
-import { App as CapApp } from '@capacitor/app';
+
 
 export const firebaseConfig = {
   projectId: "comus-ai-duty",
@@ -84,59 +83,36 @@ export function handleAuthDeepLink(urlStr: string): UserProfile | null {
   }
 }
 
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+
 /**
- * Native iOS Google Sign In via Safari & custom URL scheme (dijitalmentalikizim://auth-callback)
+ * Native iOS Google Sign In using official Capacitor plugin
  */
 export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
-  const listener = await CapApp.addListener('appUrlOpen', async (event) => {
-    if (
-      event.url.startsWith('dijitalmentalikizim://auth-callback') ||
-      event.url.startsWith('dijitalmentalikizim://google-auth') ||
-      event.url.includes('googleusercontent.apps')
-    ) {
-      try {
-        await Browser.close();
-      } catch (_) {}
-
-      const profile = handleAuthDeepLink(event.url);
-      if (profile) {
-        listener.remove();
-        onSuccess(profile);
-      }
+  try {
+    const result = await FirebaseAuthentication.signInWithGoogle();
+    if (result.user) {
+      onSuccess(formatUserProfile(result.user as any));
     }
-  });
-
-  await Browser.open({
-    url: 'https://comus-ai-duty.firebaseapp.com/auth-bridge.html?provider=google',
-    windowName: '_blank',
-  });
+  } catch (err) {
+    console.error('[FirebaseAuth] Google native error:', err);
+    throw err;
+  }
 }
 
 /**
- * Native iOS Apple Sign In via Safari & custom URL scheme (dijitalmentalikizim://auth-callback)
+ * Native iOS Apple Sign In using official Capacitor plugin
  */
 export async function signInWithAppleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
-  const listener = await CapApp.addListener('appUrlOpen', async (event) => {
-    if (
-      event.url.startsWith('dijitalmentalikizim://auth-callback') ||
-      event.url.startsWith('dijitalmentalikizim://apple-auth')
-    ) {
-      try {
-        await Browser.close();
-      } catch (_) {}
-
-      const profile = handleAuthDeepLink(event.url);
-      if (profile) {
-        listener.remove();
-        onSuccess(profile);
-      }
+  try {
+    const result = await FirebaseAuthentication.signInWithApple();
+    if (result.user) {
+      onSuccess(formatUserProfile(result.user as any));
     }
-  });
-
-  await Browser.open({
-    url: 'https://comus-ai-duty.firebaseapp.com/auth-bridge.html?provider=apple',
-    windowName: '_blank',
-  });
+  } catch (err) {
+    console.error('[FirebaseAuth] Apple native error:', err);
+    throw err;
+  }
 }
 
 /**
