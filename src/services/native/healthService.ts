@@ -43,11 +43,11 @@ class HealthService {
       }
 
       const status = await Health.requestAuthorization({
-        read: ['steps', 'sleep', 'exerciseTime'],
+        read: ['steps', 'sleep' as any, 'exerciseTime' as any],
         write: [],
       });
 
-      const granted = status.readAuthorized && (status.readAuthorized.includes('steps') || status.readAuthorized.includes('sleep'));
+      const granted = status.readAuthorized && (status.readAuthorized.includes('steps') || status.readAuthorized.includes('sleep' as any));
       return {
         granted: Boolean(granted),
         error: granted ? undefined : 'Apple Sağlık izni kullanıcı tarafından reddedildi.',
@@ -133,7 +133,7 @@ class HealthService {
       todayAfternoon.setHours(14, 0, 0, 0);
 
       const result = await Health.readSamples({
-        dataType: 'sleep',
+        dataType: 'sleep' as any,
         startDate: yesterdayEvening.toISOString(),
         endDate: todayAfternoon.toISOString(),
         limit: 500,
@@ -164,21 +164,21 @@ class HealthService {
         const end = new Date(sample.endDate).getTime();
         const durationMin = Math.max(0, (end - start) / (1000 * 60));
 
-        if (sample.sleepState === 'inBed') {
+        if ((sample as any).sleepState === 'inBed') {
           if (firstInBedTime === null || start < firstInBedTime) {
             firstInBedTime = start;
           }
         } else if (
-          sample.sleepState === 'asleep' ||
-          sample.sleepState === 'deep' ||
-          sample.sleepState === 'rem' ||
-          sample.sleepState === 'light'
+          (sample as any).sleepState === 'asleep' ||
+          (sample as any).sleepState === 'deep' ||
+          (sample as any).sleepState === 'rem' ||
+          (sample as any).sleepState === 'light'
         ) {
           totalAsleepMinutes += durationMin;
           if (firstAsleepTime === null || start < firstAsleepTime) {
             firstAsleepTime = start;
           }
-        } else if (sample.sleepState === 'awake') {
+        } else if ((sample as any).sleepState === 'awake') {
           // If awake occurs after first sleep onset, count as WASO
           if (firstAsleepTime !== null) {
             totalAwakeMinutes += durationMin;
