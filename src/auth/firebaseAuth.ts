@@ -128,15 +128,10 @@ export async function signInWithApple(): Promise<UserProfile | null> {
   appleProvider.addScope('name');
 
   try {
-    const result = await signInWithPopup(authInstance, appleProvider);
-    return formatUserProfile(result.user);
-  } catch (err: any) {
-    if (err?.code === 'auth/popup-closed-by-user') {
-      console.log('[FirebaseAuth] Apple popup closed by user.');
-      return null;
-    }
-    console.warn('[FirebaseAuth] Apple popup error, trying redirect:', err);
     await signInWithRedirect(authInstance, appleProvider);
+    return null;
+  } catch (err: any) {
+    console.error('[FirebaseAuth] Apple redirect error:', err);
     return null;
   }
 }
@@ -155,15 +150,10 @@ export async function signInWithGoogle(): Promise<UserProfile | null> {
   });
 
   try {
-    const result = await signInWithPopup(authInstance, googleProvider);
-    return formatUserProfile(result.user);
-  } catch (err: any) {
-    if (err?.code === 'auth/popup-closed-by-user') {
-      console.log('[FirebaseAuth] Google popup closed by user.');
-      return null;
-    }
-    console.warn('[FirebaseAuth] Google popup error, trying redirect:', err);
     await signInWithRedirect(authInstance, googleProvider);
+    return null;
+  } catch (err: any) {
+    console.error('[FirebaseAuth] Google redirect error:', err);
     return null;
   }
 }
