@@ -204,14 +204,19 @@
         btnReturnEl.style.fontSize = "16px";
         btnReturnEl.style.fontWeight = "bold";
         btnReturnEl.innerHTML = "✨ Uygulamaya Dön ✨";
+        btnReturnEl.onclick = function(e) {
+          window.location.href = returnUrl;
+        };
       }
 
-      // Automatically trigger deep-link navigation
-      try {
-        window.location.replace(returnUrl);
-      } catch (_) {
-        window.location.href = returnUrl;
-      }
+      // Automatically trigger deep-link navigation using location.href (never location.replace on iOS Safari)
+      setTimeout(function() {
+        try {
+          window.location.href = returnUrl;
+        } catch (err) {
+          console.log("[AuthBridge] Redirect error:", err);
+        }
+      }, 300);
     }
 
     // 1. Process redirect result from Firebase Auth

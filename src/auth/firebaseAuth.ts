@@ -56,7 +56,10 @@ export function formatUserProfile(user: User): UserProfile {
 export function handleAuthDeepLink(urlStr: string): UserProfile | null {
   try {
     const isGoogleReversed = urlStr.includes('googleusercontent.apps');
-    const parsed = new URL(urlStr.replace(/^com\.googleusercontent\.apps\.[^:]+:/, 'https://localhost/'));
+    const normalizedUrl = urlStr
+      .replace(/^[a-zA-Z0-9.+-]+:\/\//, 'https://localhost/')
+      .replace(/^com\.googleusercontent\.apps\.[^:]+:/, 'https://localhost/');
+    const parsed = new URL(normalizedUrl);
     const provider = parsed.searchParams.get('provider') || (urlStr.includes('apple') ? 'apple' : 'google');
     const isApple = !isGoogleReversed && provider === 'apple';
 
