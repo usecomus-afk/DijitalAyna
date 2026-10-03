@@ -13,6 +13,16 @@ platform :ios do
 
     setup_ci
 
+    produce(
+      app_identifier: "com.dijitalmentalikizim.app",
+      app_name: "Dijital Mental Ikiz",
+      language: "turkish",
+      app_version: "1.0",
+      sku: "dijitalmentalikizim",
+      team_id: "R8LQC6KZG8",
+      skip_itc: true
+    )
+
     match(
       type: "appstore",
       readonly: false,
