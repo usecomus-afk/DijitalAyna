@@ -43,7 +43,7 @@ platform :ios do
       export_method: "app-store",
       output_directory: "./build",
       output_name: "mentaldijitalikiz.ipa",
-      xcargs: "DEVELOPMENT_TEAM=R8LQC6KZG8"
+      xcargs: "DEVELOPMENT_TEAM=R8LQC6KZG8 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=\"Apple Distribution\""
     )
 
     upload_to_testflight(
