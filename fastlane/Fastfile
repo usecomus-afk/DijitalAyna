@@ -17,7 +17,7 @@ platform :ios do
       type: "appstore",
       readonly: false,
       git_url: "git@github.com:usecomus-afk/purelyistanbul-certs.git",
-      app_identifier: "com.dijitalayna.app.R8LQC6KZG8",
+      app_identifier: "com.dijitalmentalikizim.app",
       username: "fastlane"
     )
 
@@ -28,7 +28,7 @@ platform :ios do
 
     update_project_provisioning(
       xcodeproj: "ios/App/App.xcodeproj",
-      profile: ENV["sigh_com.dijitalayna.app.R8LQC6KZG8_appstore_profile-path"],
+      profile: ENV["sigh_com.dijitalmentalikizim.app_appstore_profile-path"],
       build_configuration: "Release"
     )
 

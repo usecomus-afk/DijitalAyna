@@ -1,4 +1,4 @@
 git_url("git@github.com:usecomus-afk/purelyistanbul-certs.git")
 storage_mode("git")
 type("appstore")
-app_identifier(["com.dijitalayna.app.R8LQC6KZG8"])
+app_identifier(["com.dijitalmentalikizim.app"])
