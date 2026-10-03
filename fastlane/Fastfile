@@ -21,6 +21,11 @@ platform :ios do
       username: "fastlane"
     )
 
+    update_project_team(
+      path: "ios/App/App.xcodeproj",
+      teamid: "R8LQC6KZG8"
+    )
+
     update_project_provisioning(
       xcodeproj: "ios/App/App.xcodeproj",
       profile: ENV["sigh_com.dijitalayna.app.R8LQC6KZG8_appstore_profile-path"],
@@ -37,7 +42,8 @@ platform :ios do
       scheme: "App",
       export_method: "app-store",
       output_directory: "./build",
-      output_name: "mentaldijitalikiz.ipa"
+      output_name: "mentaldijitalikiz.ipa",
+      xcargs: "DEVELOPMENT_TEAM=R8LQC6KZG8"
     )
 
     upload_to_testflight(
