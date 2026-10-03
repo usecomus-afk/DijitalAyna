@@ -3,7 +3,6 @@ import {
   getAuth,
   GoogleAuthProvider,
   OAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   onAuthStateChanged,
