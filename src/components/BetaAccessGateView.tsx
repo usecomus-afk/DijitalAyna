@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight, ShieldCheck, Sparkles, PlayCircle } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
 
 const VALID_BETA_CODES = [
   'BETA26',
@@ -129,6 +130,29 @@ export const BetaAccessGate: React.FC<BetaAccessGateProps> = ({ children }) => {
             >
               <span>{isSuccess ? 'Yönlendiriliyor...' : 'Doğrula ve Devam Et'}</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            
+            {/* Apple İnceleme / Demo Modu Butonu */}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  localStorage.setItem('beta_access_granted', 'true');
+                } catch (err) {}
+                
+                await useAppStore.getState().setUserProfile({
+                  name: 'Demo Kullanıcısı',
+                  email: 'demo@apple.com',
+                  isPasswordAccount: true,
+                  createdAt: Date.now()
+                });
+                
+                setAccessGranted(true);
+              }}
+              className="w-full py-3.5 px-5 bg-white border-2 border-comus-navy/10 hover:bg-comus-surface text-comus-navy font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+            >
+              <PlayCircle className="w-5 h-5 opacity-70" />
+              <span>Demo Modu ile İncele</span>
             </button>
           </form>
 

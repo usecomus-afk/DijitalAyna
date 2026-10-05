@@ -129,6 +129,24 @@ export const OnboardingPage: React.FC = () => {
 
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-comus-sand-light/20 shadow-soft">
             <AuthPanel onSuccess={handleAuthSuccess} />
+            
+            <div className="mt-4 pt-4 border-t border-comus-sand-light/40">
+              <button
+                type="button"
+                onClick={async () => {
+                  await setUserProfile({
+                    name: 'Demo Kullanıcısı',
+                    email: 'demo@apple.com',
+                    isPasswordAccount: true,
+                    createdAt: Date.now()
+                  });
+                  setStep(2);
+                }}
+                className="w-full py-3 px-4 bg-comus-surface text-comus-navy border-2 border-comus-navy/10 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-comus-sand-light/20 transition-colors"
+              >
+                <span>Giriş Yapmadan İncele (Demo Modu)</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
