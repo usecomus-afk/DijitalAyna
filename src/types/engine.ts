@@ -78,6 +78,8 @@ export interface Insight {
   feedback?: 'helpful' | 'not_helpful';
   provisional?: boolean;
   finalized?: boolean;
+  /** Optional override for the severity badge text (e.g. 'Hassas Ritim'). */
+  badgeLabel?: string;
 }
 
 export interface PredictiveAlert {

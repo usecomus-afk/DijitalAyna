@@ -11,6 +11,7 @@ import {
   deriveAvatarScore,
   generateAvatarNarrative,
 } from '../engine/avatarNarrative';
+import { resolveDailyState, DailyState } from '../engine/dailyState';
 
 export interface MentalTwinAvatarState {
   score: 1 | 2 | 3 | 4 | 5;
@@ -18,6 +19,9 @@ export interface MentalTwinAvatarState {
   avatarAlt: string;
   stateLabel: string;
   affectiveIndex: number;
+  /** False when no index could be computed (index above is a neutral placeholder). */
+  hasIndex: boolean;
+  dailyState: DailyState;
   phenoState: string;
   phenoLabel: string;
   clinicalInsight: string;
@@ -169,6 +173,8 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       avatarAlt: narrative.title,
       stateLabel: narrative.subtitle,
       affectiveIndex: balanceIndex ?? 75,
+      hasIndex: balanceIndex !== null,
+      dailyState: resolveDailyState({ balanceIndex, recentMoodScore }),
       phenoState: phenoInference.state,
       phenoLabel: phenoInference.label,
       clinicalInsight: finalClinicalInsight,

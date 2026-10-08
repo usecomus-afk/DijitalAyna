@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
+import { getSynthesisCopy } from '../../engine/dailyState';
 import {
   X,
   Sparkles,
@@ -16,6 +17,7 @@ export const MentalTwinModal: React.FC = () => {
   const {
     avatarSrc,
     affectiveIndex,
+    hasIndex,
     phenoLabel,
     clinicalInsight,
     sensorStatus,
@@ -117,7 +119,7 @@ export const MentalTwinModal: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-comus-sand-dark leading-relaxed">
-            {clinicalInsight}
+            {hasIndex ? getSynthesisCopy(affectiveIndex).text : clinicalInsight}
           </p>
 
           <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
@@ -126,7 +128,7 @@ export const MentalTwinModal: React.FC = () => {
               <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
             </span>
             <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
-              {phenoLabel}
+              {hasIndex ? getSynthesisCopy(affectiveIndex).badge : phenoLabel}
             </span>
           </div>
         </div>

@@ -63,7 +63,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${currentStyle.badge}`}>
-            {currentStyle.label}
+            {insight.badgeLabel || currentStyle.label}
           </span>
           <span className="text-xs text-comus-sand-dark">
             {insight.date}

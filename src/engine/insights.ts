@@ -6,6 +6,9 @@ import { synthesizeBiomarkers } from './biomarkers';
 import { evaluatePredictivePatterns } from './prediction';
 import { checkAndTriggerCrisisIfNeeded } from '../safety/crisisDetector';
 import { notificationService } from '../services/notificationService';
+import { calculateRecentMoodScore, calculateEmotionalBalanceIndex } from './avatarNarrative';
+import { ClinicalPhenotypeClassifier } from '../classifier/ClinicalPhenotypeClassifier';
+import { resolveDailyState, applyDailyStateToInsight } from './dailyState';
 
 /**
  * Upserts a daily insight record by primary date (YYYY-MM-DD), preserving historical records.
@@ -236,6 +239,23 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       provisional: !isFinalized,
       finalized: isFinalized,
     });
+  }
+
+  // Unified Daily State: a "balanced" card must never be stored on a strained day
+  // (active mood / hybrid index low) — keeps the feed consistent with the mirror.
+  try {
+    const moodReports = await db.moodReports.orderBy('timestamp').reverse().toArray();
+    const { score: recentMoodScore } = calculateRecentMoodScore(moodReports);
+    const zScores: Record<string, number> = {};
+    for (const a of anomalies) zScores[a.metricKey] = a.zScore;
+    const passiveScore = !isLearning ? ClinicalPhenotypeClassifier.calculateAffectiveStateIndex(zScores) : null;
+    const balanceIndex = calculateEmotionalBalanceIndex({ recentMoodScore, passiveScore, isEstablished: !isLearning });
+    const dailyState = resolveDailyState({ balanceIndex, recentMoodScore });
+    for (let i = 0; i < generatedInsights.length; i++) {
+      generatedInsights[i] = applyDailyStateToInsight(generatedInsights[i], dailyState);
+    }
+  } catch {
+    // Mood data unavailable: keep generated insights as-is.
   }
 
   // STRICT: Do NOT clear past insights! Replace only today's (latestDate) insights.

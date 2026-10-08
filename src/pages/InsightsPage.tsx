@@ -6,6 +6,8 @@ import { InsightCard } from '../components/insights/InsightCard';
 import { Disclaimer } from '../components/common/Disclaimer';
 import { InsightsTab } from '../components/InsightsTab';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
+import { applyDailyStateToInsight } from '../engine/dailyState';
 
 export const InsightsPage: React.FC = () => {
   const { baselineDayCount } = useAppStore();
@@ -17,8 +19,11 @@ export const InsightsPage: React.FC = () => {
   const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
   const isLearning = effectiveDayCount < 14;
 
-  const filteredInsights = insights.filter((ins) => {
-    if (isLearning && ins.biomarkerType === 'healthy_balance') return false;
+  const { dailyState } = useMentalTwinAvatar();
+  const syncedInsights = insights.map((ins) => applyDailyStateToInsight(ins, dailyState));
+
+  const filteredInsights = syncedInsights.filter((ins) => {
+    if (isLearning && ins.biomarkerType === 'healthy_balance' && !ins.badgeLabel) return false;
     if (filter === 'all') return true;
     return ins.severity === filter;
   });
@@ -113,10 +118,12 @@ export const InsightsPage: React.FC = () => {
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <h3 className="font-serif font-bold text-lg text-comus-navy mb-1">
-            Her Şey Dengede Görünüyor
+            {dailyState.isStrained ? 'Hassas Bir Gün' : 'Her Şey Dengede Görünüyor'}
           </h3>
           <p className="text-xs sm:text-sm text-comus-sand-dark max-w-sm mx-auto">
-            Şu anda baz hattından belirgin bir sapma veya öncelikli anomali bulunmuyor.
+            {dailyState.isStrained
+              ? 'Pasif sensörlerde öncelikli bir anomali yok; ancak aktif bildirimin zihinsel yük gösteriyor. Bugün kendine nazik davranabilirsin.'
+              : 'Şu anda baz hattından belirgin bir sapma veya öncelikli anomali bulunmuyor.'}
           </p>
         </div>
       )}
