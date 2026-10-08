@@ -22,9 +22,21 @@ platform :ios do
       UI.message("Bundle id #{bundle_id} already registered")
     end
 
+    # Enable capabilities required by App.entitlements (HealthKit, Sign in with Apple)
+    bundle = Spaceship::ConnectAPI::BundleId.find(bundle_id)
+    ["HEALTHKIT", "APPLE_ID_AUTH"].each do |capability|
+      begin
+        bundle.create_capability(capability)
+        UI.message("Enabled capability #{capability}")
+      rescue => e
+        UI.message("Capability #{capability} not changed: #{e.message}")
+      end
+    end
+
     match(
       type: "appstore",
       readonly: false,
+      force: true, # regenerate the profile so it includes the capabilities above
       git_url: "git@github.com:usecomus-afk/purelyistanbul-certs.git",
       app_identifier: "com.dijitalmentalikizim.app",
       username: "fastlane"
