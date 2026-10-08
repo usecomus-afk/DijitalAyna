@@ -1,17 +1,10 @@
-import { getFirestore, initializeFirestore, doc, getDoc, setDoc, deleteDoc, Firestore } from 'firebase/firestore';
-import { getApps, initializeApp, FirebaseApp } from 'firebase/app';
-import { firebaseConfig } from '../auth/firebaseAuth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { getFirebaseAuth } from '../auth/firebaseAuth';
 import { db } from '../db';
 import { UserProfile, UserSettings } from '../types/user';
 import { DailyMetric, BaselineState, MoodReport } from '../types/engine';
 import { Medication, MedicationLog } from '../types/medication';
-
-function withTimeout<T>(promise: Promise<T>, ms = 10000, errorMsg = 'Bulut sunucusuna erişim zaman aşımına uğradı.'): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms)),
-  ]);
-}
 
 export interface CloudBackupData {
   version: string;
@@ -27,24 +20,55 @@ export interface CloudBackupData {
   medicationLogs?: MedicationLog[];
 }
 
-class CloudSyncService {
-  private firestoreInstance: Firestore | null = null;
+const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/comus-ai-duty/databases/(default)/documents/users';
 
-  private getFirestore(): Firestore {
-    if (!this.firestoreInstance) {
-      const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-      try {
-        this.firestoreInstance = initializeFirestore(app, {
-          experimentalAutoDetectLongPolling: true,
-        });
-      } catch {
-        this.firestoreInstance = getFirestore(app);
+interface AuthContext {
+  uid: string;
+  token: string;
+}
+
+class CloudSyncService {
+  /**
+   * Returns the signed-in Firebase user's uid and ID token. Backups are bound to the Firebase
+   * Auth uid (enforced by firestore.rules). Local-only accounts (username/password, demo) have
+   * no Firebase identity and therefore cannot use cloud backup.
+   */
+  private async getAuthContext(): Promise<AuthContext | null> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { user } = await FirebaseAuthentication.getCurrentUser();
+        if (!user?.uid) return null;
+        const { token } = await FirebaseAuthentication.getIdToken();
+        return token ? { uid: user.uid, token } : null;
       }
+      const current = getFirebaseAuth().currentUser;
+      if (!current) return null;
+      return { uid: current.uid, token: await current.getIdToken() };
+    } catch (err) {
+      console.warn('[CloudSync] Auth context unavailable:', err);
+      return null;
     }
-    return this.firestoreInstance;
   }
 
-  private getUserDocKey(identifier: string): string {
+  private async request(ctx: AuthContext, method: 'GET' | 'PATCH' | 'DELETE', body?: unknown): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    try {
+      return await fetch(`${FIRESTORE_BASE}/${encodeURIComponent(ctx.uid)}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${ctx.token}`,
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  getUserDocKey(identifier: string): string {
     return identifier.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
   }
 
@@ -54,11 +78,10 @@ class CloudSyncService {
   async checkCloudBackupExists(emailOrUid: string): Promise<boolean> {
     if (!emailOrUid) return false;
     try {
-      const firestore = this.getFirestore();
-      const docKey = this.getUserDocKey(emailOrUid);
-      const docRef = doc(firestore, 'users', docKey);
-      const snap = await withTimeout(getDoc(docRef), 8000, 'Zaman aşımı');
-      return snap.exists();
+      const ctx = await this.getAuthContext();
+      if (!ctx) return false;
+      const res = await this.request(ctx, 'GET');
+      return res.ok;
     } catch (err) {
       console.warn('[CloudSync] Check backup error:', err);
       return false;
@@ -83,8 +106,13 @@ class CloudSyncService {
     }
 
     try {
-      const firestore = this.getFirestore();
-      const docKey = this.getUserDocKey(identifier);
+      const ctx = await this.getAuthContext();
+      if (!ctx) {
+        return {
+          success: false,
+          message: 'Bulut yedekleme için Google veya Apple hesabıyla giriş yapmanız gerekir.',
+        };
+      }
 
       const [dailyMetrics, baselines, moodReports, medications, medicationLogs] = await Promise.all([
         db.dailyMetrics.toArray(),
@@ -139,47 +167,19 @@ class CloudSyncService {
 
       const backupPayload = sanitizeForFirestore(rawPayload);
       const payloadJson = JSON.stringify(backupPayload);
-      const restUrl = `https://firestore.googleapis.com/v1/projects/comus-ai-duty/databases/(default)/documents/users/${docKey}`;
-
-      let syncSuccess = false;
-
-      // Primary: Ultra-fast direct HTTPS REST API (immune to WebChannel/WebKit streaming hangs)
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(restUrl, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fields: {
-              email: { stringValue: userProfile.email || '' },
-              uid: { stringValue: userProfile.uid || '' },
-              name: { stringValue: userProfile.name || '' },
-              updatedAt: { integerValue: now.toString() },
-              metricsCount: { integerValue: dailyMetrics.length.toString() },
-              reportsCount: { integerValue: moodReports.length.toString() },
-              payloadJson: { stringValue: payloadJson },
-            },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          syncSuccess = true;
-          console.log(`[CloudSync] REST Backup successfully uploaded for ${identifier}. Metrics: ${dailyMetrics.length}`);
-        }
-      } catch (restErr) {
-        console.warn('[CloudSync] REST sync error, attempting SDK fallback:', restErr);
-      }
-
-      // Secondary: Standard SDK fallback if REST was unavailable
-      if (!syncSuccess) {
-        const docRef = doc(firestore, 'users', docKey);
-        await withTimeout(
-          setDoc(docRef, backupPayload, { merge: true }),
-          7000,
-          'Bulut sunucusuna veri aktarımı zaman aşımına uğradı.'
-        );
+      const res = await this.request(ctx, 'PATCH', {
+        fields: {
+          email: { stringValue: userProfile.email || '' },
+          uid: { stringValue: ctx.uid },
+          name: { stringValue: userProfile.name || '' },
+          updatedAt: { integerValue: now.toString() },
+          metricsCount: { integerValue: dailyMetrics.length.toString() },
+          reportsCount: { integerValue: moodReports.length.toString() },
+          payloadJson: { stringValue: payloadJson },
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`Bulut yedekleme başarısız (HTTP ${res.status}).`);
       }
 
       // Record last sync timestamp in local settings
@@ -205,36 +205,28 @@ class CloudSyncService {
     }
 
     try {
-      const docKey = this.getUserDocKey(emailOrUid);
-      const restUrl = `https://firestore.googleapis.com/v1/projects/comus-ai-duty/databases/(default)/documents/users/${docKey}`;
-      let backup: CloudBackupData | null = null;
-
-      // Primary: Try REST fetch first
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(restUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          const docData = await res.json();
-          if (docData.fields?.payloadJson?.stringValue) {
-            backup = JSON.parse(docData.fields.payloadJson.stringValue);
-          }
-        }
-      } catch (restErr) {
-        console.warn('[CloudSync] REST restore failed, trying SDK fallback:', restErr);
+      const ctx = await this.getAuthContext();
+      if (!ctx) {
+        return {
+          success: false,
+          restored: false,
+          message: 'Geri yükleme için Google veya Apple hesabıyla giriş yapmanız gerekir.',
+        };
       }
 
-      // Secondary: SDK fallback
-      if (!backup) {
-        const firestore = this.getFirestore();
-        const docRef = doc(firestore, 'users', docKey);
-        const snap = await withTimeout(getDoc(docRef), 7000, 'Bulut sunucusuna bağlantı zaman aşımına uğradı.');
-        if (!snap.exists()) {
-          return { success: true, restored: false, message: 'Bu hesaba ait daha önce kaydedilmiş bir bulut yedeği bulunamadı.' };
-        }
-        backup = snap.data() as CloudBackupData;
+      const res = await this.request(ctx, 'GET');
+      if (res.status === 404) {
+        return { success: true, restored: false, message: 'Bu hesaba ait daha önce kaydedilmiş bir bulut yedeği bulunamadı.' };
       }
+      if (!res.ok) {
+        throw new Error(`Bulut yedeği okunamadı (HTTP ${res.status}).`);
+      }
+      const docData = await res.json();
+      const payload = docData.fields?.payloadJson?.stringValue;
+      if (!payload) {
+        return { success: true, restored: false, message: 'Bu hesaba ait daha önce kaydedilmiş bir bulut yedeği bulunamadı.' };
+      }
+      const backup: CloudBackupData = JSON.parse(payload);
 
       // 1. Restore Daily Metrics
       if (backup.dailyMetrics && backup.dailyMetrics.length > 0) {
@@ -323,10 +315,10 @@ class CloudSyncService {
   async deleteCloudBackup(emailOrUid: string): Promise<boolean> {
     if (!emailOrUid) return false;
     try {
-      const firestore = this.getFirestore();
-      const docKey = this.getUserDocKey(emailOrUid);
-      const docRef = doc(firestore, 'users', docKey);
-      await deleteDoc(docRef);
+      const ctx = await this.getAuthContext();
+      if (!ctx) return false;
+      const res = await this.request(ctx, 'DELETE');
+      if (!res.ok && res.status !== 404) return false;
       console.log(`[CloudSync] Cloud backup deleted for ${emailOrUid}`);
       return true;
     } catch (err) {
