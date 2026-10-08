@@ -8,6 +8,9 @@ import { InsightsTab } from '../components/InsightsTab';
 import { Sparkles, CheckCircle2 } from 'lucide-react';
 import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
 import { applyDailyStateToInsight } from '../engine/dailyState';
+import { TriggerAnalysisWidget } from '../components/analytics/TriggerAnalysisWidget';
+import { BiomarkerBridgeTable } from '../components/biomarkers/BiomarkerBridgeTable';
+import { LongitudinalTrendChart } from '../components/analytics/LongitudinalTrendChart';
 
 export const InsightsPage: React.FC = () => {
   const { baselineDayCount } = useAppStore();
@@ -128,7 +131,13 @@ export const InsightsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Dijital Fenotipleme ile Erken Farkındalık Sağlanabilen 7 Durum */}
+      {/* Tetikleyici Analizi (Yeni) */}
+      <TriggerAnalysisWidget />
+
+      {/* 5 Temel Biyobelirteç Tablosu (Yeni) */}
+      <BiomarkerBridgeTable />
+
+      {/* Dijital Fenotipleme ile Erken Farkındalık Sağlanabilen 9 Durum */}
       <div className="bg-white rounded-3xl p-6 border border-comus-sand-light/30 shadow-soft space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -231,6 +240,9 @@ export const InsightsPage: React.FC = () => {
 
       {/* Erken Bilişsel Değişim Kriterleri İçgörü Kartı */}
       <InsightsTab />
+
+      {/* Longitudinal Trend Chart (Apple Health Style GAD-7 & PHQ-9) */}
+      <LongitudinalTrendChart />
 
       {/* Disclaimer */}
       <Disclaimer />

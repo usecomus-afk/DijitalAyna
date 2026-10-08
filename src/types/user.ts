@@ -42,6 +42,8 @@ export interface UserSettings {
     location: boolean;
   };
   notificationsEnabled: boolean;
+  inspirationNotificationsEnabled?: boolean;
+  inspirationFrequency?: number;
   lastAnalysisTimestamp: number;
 }
 

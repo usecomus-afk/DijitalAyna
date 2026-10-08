@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -7,6 +7,8 @@ import { DigitalTwinMirror } from '../components/dashboard/DigitalTwinMirror';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 import { PredictiveAlertModal } from '../components/alerts/PredictiveAlertModal';
+import { ProactivePredictionModal } from '../components/alerts/ProactivePredictionModal';
+import { checkProactivePrediction } from '../engine/proactiveAdvisor';
 import { Disclaimer } from '../components/common/Disclaimer';
 import {
   Activity,
@@ -28,6 +30,15 @@ import { healthService } from '../services/native/healthService';
 export const DashboardPage: React.FC = () => {
   const { isAnalyzing, activePredictiveAlertDismissed, dismissPredictiveAlert, baselineDayCount, runAnalysisPipeline } = useAppStore();
   const [evalToast, setEvalToast] = useState<string | null>(null);
+  const [isProactiveModalOpen, setIsProactiveModalOpen] = useState(false);
+
+  useEffect(() => {
+    checkProactivePrediction().then(res => {
+      if (res) {
+        setIsProactiveModalOpen(true);
+      }
+    });
+  }, []);
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
@@ -188,6 +199,12 @@ export const DashboardPage: React.FC = () => {
           onClose={dismissPredictiveAlert}
         />
       )}
+
+      {/* Proactive Prediction Modal */}
+      <ProactivePredictionModal 
+        isOpen={isProactiveModalOpen}
+        onClose={() => setIsProactiveModalOpen(false)}
+      />
 
       {/* Digital Twin Status Mirror */}
       <DigitalTwinMirror

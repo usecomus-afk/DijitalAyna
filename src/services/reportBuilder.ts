@@ -33,6 +33,14 @@ export interface DoctorReportInput {
   pinnedInsights?: PinnedInsight[];
   /** System-generated clinical notes (may be empty). */
   clinicalNotes?: string;
+  /** Clinical survey scores (GAD-7 & PHQ-9). */
+  clinicalSurveyScores?: {
+    gad7Score: number;
+    gad7Risk: string;
+    phq9Score: number;
+    phq9Risk: string;
+    date: string;
+  };
 }
 
 const CATEGORY_TITLES: Record<string, string> = {
@@ -162,6 +170,13 @@ export function buildDoctorReportText(input: DoctorReportInput): string {
       if (p.sources && p.sources.length > 0) L.push(`  Kaynak: ${p.sources.join('; ')}`);
     }
     if (input.clinicalNotes && input.clinicalNotes.trim()) L.push(input.clinicalNotes.trim());
+    L.push('');
+  }
+
+  if (input.clinicalSurveyScores) {
+    const scores = input.clinicalSurveyScores;
+    L.push(line, '7) KLİNİK TARAMA SKORLARI', line);
+    L.push(`Klinik Tarama Skorları: GAD-7 Anksiyete: ${scores.gad7Score}/21 (${scores.gad7Risk}) | PHQ-9 Depresyon: ${scores.phq9Score}/27 (${scores.phq9Risk}). Değerlendirme Tarihi: ${scores.date}.`);
     L.push('');
   }
 

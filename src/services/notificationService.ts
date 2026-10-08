@@ -1,5 +1,6 @@
 import { LocalNotifications, PermissionStatus } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { mindfulnessQuotes } from '../data/mindfulnessQuotes';
 
 export type NotificationPermissionState = 'granted' | 'denied' | 'prompt' | 'unsupported';
 
@@ -244,6 +245,93 @@ class NotificationService {
       }
     } catch (err) {
       console.warn('[NotificationService] cancelAll error:', err);
+    }
+  }
+  async requestNotificationPermission(): Promise<boolean> {
+    return this.requestPermissions();
+  }
+
+  /**
+   * Schedules recurring daily mindfulness inspirations
+   * @param frequency Number of notifications per day (1, 2, or 3)
+   */
+  async scheduleDailyInspirations(frequency: number): Promise<void> {
+    const perm = await this.checkPermissions();
+    if (perm !== 'granted') return;
+
+    try {
+      await this.init();
+
+      if (Capacitor.isNativePlatform()) {
+        // Cancel existing inspiration notifications
+        await LocalNotifications.cancel({ 
+          notifications: [{ id: 2001 }, { id: 2002 }, { id: 2003 }] 
+        }).catch(() => {});
+
+        if (frequency === 0) return;
+
+        const now = new Date();
+        const notifications: any[] = [];
+
+        const getRandomQuote = (quotes: string[]) => quotes[Math.floor(Math.random() * quotes.length)];
+
+        // 1. Morning check-in (09:00)
+        if (frequency >= 1) {
+          const morning = new Date(now);
+          morning.setHours(9, 0, 0, 0);
+          if (morning.getTime() <= now.getTime()) morning.setDate(morning.getDate() + 1);
+
+          notifications.push({
+            id: 2001,
+            title: 'Huzur ve İlham 🌅',
+            body: getRandomQuote(mindfulnessQuotes.morning),
+            schedule: { at: morning, repeats: true, every: 'day' },
+            sound: 'beep.wav',
+            channelId: 'dijital_mental_ikizim_reminders',
+            extra: { type: 'inspiration_morning' },
+          });
+        }
+
+        // 2. Noon check-in (14:00)
+        if (frequency >= 3) {
+          const noon = new Date(now);
+          noon.setHours(14, 0, 0, 0);
+          if (noon.getTime() <= now.getTime()) noon.setDate(noon.getDate() + 1);
+
+          notifications.push({
+            id: 2002,
+            title: 'Kısa Bir Mola 🌿',
+            body: getRandomQuote(mindfulnessQuotes.noon),
+            schedule: { at: noon, repeats: true, every: 'day' },
+            sound: 'beep.wav',
+            channelId: 'dijital_mental_ikizim_reminders',
+            extra: { type: 'inspiration_noon' },
+          });
+        }
+
+        // 3. Evening check-in (21:30)
+        if (frequency >= 2) {
+          const evening = new Date(now);
+          evening.setHours(21, 30, 0, 0);
+          if (evening.getTime() <= now.getTime()) evening.setDate(evening.getDate() + 1);
+
+          notifications.push({
+            id: 2003,
+            title: 'Günü Geride Bırakırken 🌙',
+            body: getRandomQuote(mindfulnessQuotes.evening),
+            schedule: { at: evening, repeats: true, every: 'day' },
+            sound: 'beep.wav',
+            channelId: 'dijital_mental_ikizim_reminders',
+            extra: { type: 'inspiration_evening' },
+          });
+        }
+
+        if (notifications.length > 0) {
+          await LocalNotifications.schedule({ notifications });
+        }
+      }
+    } catch (err) {
+      console.warn('[NotificationService] scheduleDailyInspirations error:', err);
     }
   }
 }

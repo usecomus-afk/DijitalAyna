@@ -20,12 +20,12 @@ import {
 import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
 import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
-import { shareContent } from '../services/shareService';
-import { buildDoctorReportText, PinnedInsight } from '../services/reportBuilder';
+import { PinnedInsight } from '../services/reportBuilder';
 import { NORMATIVE_DEFAULTS } from '../engine/seedCalibration';
 import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
 import { healthService } from '../services/native/healthService';
+import { DoctorShareWizard } from '../components/doctor/DoctorShareWizard';
 
 export type MetricDisplayStatus = 'active' | 'permission_required' | 'unsupported' | 'waiting_data' | 'self_report_required';
 
@@ -86,7 +86,7 @@ function getUnavailableReason(key: MetricKey): string {
 export const DoctorReportPage: React.FC = () => {
   const { userProfile, baselineDayCount } = useAppStore();
   const [selectedRange, setSelectedRange] = useState<7 | 14 | 30>(14);
-  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [shareFeedback] = useState<string | null>(null);
 
   // Medication modal state
   const [isAddMedModalOpen, setIsAddMedModalOpen] = useState(false);
@@ -297,44 +297,10 @@ export const DoctorReportPage: React.FC = () => {
     setIsAddMedModalOpen(false);
   };
 
+  const [isShareWizardOpen, setIsShareWizardOpen] = useState(false);
+
   const handleShareReport = async () => {
-    const medicationSection = medImpactReports.length > 0
-      ? medImpactReports.map(ir => {
-          const deltaLines = ir.deltas.map(d =>
-            `  • ${d.label}: İlaç öncesi ${d.preAvg} ${d.unit} → sonrası ${d.postAvg} ${d.unit} (${d.changePercent > 0 ? '+' : ''}${d.changePercent}%)\n    Klinik yansıma: ${d.interpretation}`
-          ).join('\n');
-          return `▶ ${ir.medication.name} (${ir.medication.dosageMg} mg, günde ${ir.medication.frequencyPerDay}x)\n  Başlangıç: ${ir.medication.startDate} (${ir.daysActive}. gün)\n  Özet: ${ir.overallSummary}\n${deltaLines}`;
-        }).join('\n\n')
-      : (medications.length > 0
-          ? medications.map(m => `• ${m.name} ${m.dosageMg} mg (günde ${m.frequencyPerDay}x, başlangıç: ${m.startDate})`).join('\n')
-          : '');
-
-    const clinicalNotes = isLearning
-      ? `Henüz baz hattı öğrenme aşamasında (${effectiveDayCount}/14 gün). 14 günlük stabil baz hattı tamamlandıktan sonra kişisel farkındalık notları oluşturulacaktır.`
-      : (insights.length > 0
-          ? insights.slice(0, 4).map(ins => `• ${ins.title}: ${ins.body}`).join('\n')
-          : 'Tüm biyobelirteçler kişisel bazal referans sınırları içerisinde stabildir.');
-
-    const shareBody = buildDoctorReportText({
-      patientName: userProfile.name,
-      rangeDays: selectedRange,
-      generatedAt: new Date(),
-      baselineStatus: isLearning
-        ? `Öğrenme döneminde (${effectiveDayCount}/14 gün)`
-        : `Stabil baz hattı aktif (${effectiveDayCount} gün)`,
-      stats: reportStats,
-      medicationSection,
-      pinnedInsights,
-      clinicalNotes,
-    });
-
-    const result = await shareContent({
-      title: `Dijital Mental İkizim Hekim Raporu — ${userProfile.name}`,
-      text: shareBody,
-    });
-
-    setShareFeedback(result.message);
-    setTimeout(() => setShareFeedback(null), 3500);
+    setIsShareWizardOpen(true);
   };
 
   return (
@@ -354,7 +320,7 @@ export const DoctorReportPage: React.FC = () => {
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer"
             >
               <Share2 className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Raporu Paylaş</span>
+              <span className="whitespace-nowrap">Doktorumla Paylaş</span>
             </button>
           </div>
         </div>
@@ -1216,6 +1182,12 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Doctor Share Wizard Modal */}
+      <DoctorShareWizard 
+        isOpen={isShareWizardOpen} 
+        onClose={() => setIsShareWizardOpen(false)} 
+      />
     </div>
   );
 };

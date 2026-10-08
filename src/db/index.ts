@@ -4,6 +4,7 @@ import { DailyMetric, BaselineState, Insight, PredictiveAlert, MoodReport } from
 import { Medication, MedicationLog } from '../types/medication';
 import { UserAccountRecord } from '../types/user';
 import { sanitizeSensorEvent } from '../safety/sanitizer';
+import { ClinicalSurveyResult } from '../data/clinicalSurveys';
 
 export interface SettingItem {
   key: string;
@@ -21,6 +22,7 @@ export class ComusDatabase extends Dexie {
   medications!: Table<Medication, number>;
   medicationLogs!: Table<MedicationLog, number>;
   users!: Table<UserAccountRecord, number>;
+  clinicalSurveyResults!: Table<ClinicalSurveyResult, number>;
 
   constructor() {
     super('ComusAIDatabase');
@@ -41,6 +43,10 @@ export class ComusDatabase extends Dexie {
 
     this.version(3).stores({
       users: '++id, username, email, createdAt',
+    });
+
+    this.version(4).stores({
+      clinicalSurveyResults: '++id, timestamp, date',
     });
   }
 

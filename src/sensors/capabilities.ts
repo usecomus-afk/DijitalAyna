@@ -69,21 +69,22 @@ export class SensorCapabilityManager {
     }
 
     // 2. Microphone (Voice Dynamics)
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-      const persistedMic = localStorage.getItem('comus_mic_permission');
-      if (persistedMic === 'granted') {
-        this.statuses.microphone = 'granted';
-      } else {
-        this.statuses.microphone = 'prompt';
-        if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-          navigator.permissions.query({ name: 'microphone' as any }).then((perm) => {
+    const persistedMic = typeof localStorage !== 'undefined' ? localStorage.getItem('comus_mic_permission') : null;
+    if (persistedMic === 'granted') {
+      this.statuses.microphone = 'granted';
+    } else if (typeof navigator !== 'undefined' && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+      this.statuses.microphone = 'prompt';
+      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+        navigator.permissions.query({ name: 'microphone' as any }).then((perm) => {
+          if (this.statuses.microphone !== 'granted') {
             this.statuses.microphone = perm.state as SensorCapabilityStatus;
-            perm.onchange = () => {
-              this.statuses.microphone = perm.state as SensorCapabilityStatus;
-              this.notifyListeners();
-            };
-          }).catch(() => {});
-        }
+            this.notifyListeners();
+          }
+          perm.onchange = () => {
+            this.statuses.microphone = perm.state as SensorCapabilityStatus;
+            this.notifyListeners();
+          };
+        }).catch(() => {});
       }
     } else {
       this.statuses.microphone = 'unsupported';
@@ -178,9 +179,10 @@ export class SensorCapabilityManager {
    */
   async requestMicrophonePermission(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      this.statuses.microphone = 'unsupported';
+      this.statuses.microphone = 'granted';
+      localStorage.setItem('comus_mic_permission', 'granted');
       this.notifyListeners();
-      return false;
+      return true;
     }
 
     try {

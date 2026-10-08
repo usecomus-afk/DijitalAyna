@@ -23,6 +23,7 @@ interface AppState {
   toggleSensor: (sensor: keyof UserSettings['sensorsEnabled']) => void;
   setOnboardingCompleted: (completed: boolean) => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
+  setInspirationSettings: (enabled: boolean, frequency: number) => Promise<void>;
   setCloudBackupEnabled: (enabled: boolean) => Promise<boolean>;
   syncCloudDataNow: () => Promise<{ success: boolean; message?: string }>;
   restoreFromCloudNow: (email?: string) => Promise<{ success: boolean; restored: boolean; message?: string }>;
@@ -57,6 +58,8 @@ const DEFAULT_SETTINGS: UserSettings = {
     location: true,
   },
   notificationsEnabled: true,
+  inspirationNotificationsEnabled: false,
+  inspirationFrequency: 1,
   lastAnalysisTimestamp: Date.now(),
 };
 
@@ -252,6 +255,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       await db.settings.put({ key: 'app_settings', value: updated });
       return true;
     }
+  },
+
+  setInspirationSettings: async (enabled: boolean, frequency: number) => {
+    const current = get().settings;
+    const updated = { 
+      ...current, 
+      inspirationNotificationsEnabled: enabled,
+      inspirationFrequency: frequency 
+    };
+    
+    if (enabled) {
+      const granted = await notificationService.requestNotificationPermission();
+      if (granted) {
+        await notificationService.scheduleDailyInspirations(frequency);
+      } else {
+        updated.inspirationNotificationsEnabled = false; // Reset if denied
+      }
+    } else {
+      await notificationService.scheduleDailyInspirations(0); // Cancel
+    }
+    
+    set({ settings: updated });
+    await db.settings.put({ key: 'app_settings', value: updated });
   },
 
   setCloudBackupEnabled: async (enabled: boolean): Promise<boolean> => {
