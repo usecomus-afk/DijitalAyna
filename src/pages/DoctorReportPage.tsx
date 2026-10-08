@@ -21,6 +21,7 @@ import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
 import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
 import { shareContent } from '../services/shareService';
+import { buildDoctorReportText, PinnedInsight } from '../services/reportBuilder';
 import { NORMATIVE_DEFAULTS } from '../engine/seedCalibration';
 import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
@@ -104,6 +105,15 @@ export const DoctorReportPage: React.FC = () => {
   const medications = useLiveQuery(() => db.medications.toArray()) || [];
   const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) || [];
   const moods = useLiveQuery(() => db.moodReports.toArray()) || [];
+  const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
+  const pinnedInsights: PinnedInsight[] = Array.isArray(pinnedItem?.value) ? pinnedItem.value : [];
+
+  const removePinnedInsight = async (addedAt: number) => {
+    await db.settings.put({
+      key: 'doctor_report_pinned',
+      value: pinnedInsights.filter((p) => p.addedAt !== addedAt),
+    });
+  };
 
   const sampleDays = useMemo(() => new Set(dailyMetrics.map((m) => m.date)).size, [dailyMetrics]);
   const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
@@ -267,61 +277,38 @@ export const DoctorReportPage: React.FC = () => {
   };
 
   const handleShareReport = async () => {
-    const tableText = reportStats
-      .map((s) => {
-        if (s.hasData) {
-          return `• ${s.label}: Baz ${s.baselineMean} ${s.unit} -> Ortalama ${s.periodAvg} ${s.unit} (Değişim: ${(s.deviationPercent || 0) > 0 ? '+' : ''}${s.deviationPercent}%) [Aktif]`;
-        }
-        return `• ${s.label}: Veri Alınamıyor (${s.unavailableReason})`;
-      })
-      .join('\n');
-
-    const medSectionText = medImpactReports.length > 0
-      ? `\n\n═════════════════════════════════════════════\nKLİNİK İLAÇ VE TEDAVİ YANITI (ÖNCESİ / SONRASI DELTA ANALİZİ)\n═════════════════════════════════════════════\n` +
-        medImpactReports.map(ir => {
+    const medicationSection = medImpactReports.length > 0
+      ? medImpactReports.map(ir => {
           const deltaLines = ir.deltas.map(d =>
-            `  • ${d.label}: İlaç Öncesi ${d.preAvg} ${d.unit} ➔ İlaç Sonrası ${d.postAvg} ${d.unit} (Değişim: ${d.changePercent > 0 ? '+' : ''}${d.changePercent}%)\n    Klinik Yansıma: ${d.interpretation}`
+            `  • ${d.label}: İlaç öncesi ${d.preAvg} ${d.unit} → sonrası ${d.postAvg} ${d.unit} (${d.changePercent > 0 ? '+' : ''}${d.changePercent}%)\n    Klinik yansıma: ${d.interpretation}`
           ).join('\n');
-          return `▶ İlaç: ${ir.medication.name} (${ir.medication.dosageMg}mg - Günde ${ir.medication.frequencyPerDay}x)\n  Başlangıç: ${ir.medication.startDate} (${ir.daysActive}. Günlük Tedavi Seyri)\n  Özet: ${ir.overallSummary}\n  Biyobelirteç Değişimleri (T-14 vs T+14):\n${deltaLines}`;
+          return `▶ ${ir.medication.name} (${ir.medication.dosageMg} mg, günde ${ir.medication.frequencyPerDay}x)\n  Başlangıç: ${ir.medication.startDate} (${ir.daysActive}. gün)\n  Özet: ${ir.overallSummary}\n${deltaLines}`;
         }).join('\n\n')
       : (medications.length > 0
-          ? `\n\nReçeteli İlaçlar:\n` + medications.map(m => `• ${m.name} ${m.dosageMg}mg (Günde ${m.frequencyPerDay}x, Başlangıç: ${m.startDate})`).join('\n')
+          ? medications.map(m => `• ${m.name} ${m.dosageMg} mg (günde ${m.frequencyPerDay}x, başlangıç: ${m.startDate})`).join('\n')
           : '');
 
-    const clinicalNotesText = isLearning
-      ? `Henüz baz hattı öğrenme aşamasında (${effectiveDayCount}/14 Gün). 14 günlük stabil baz hattı tamamlandıktan sonra kişisel farkındalık notları oluşturulacaktır.`
+    const clinicalNotes = isLearning
+      ? `Henüz baz hattı öğrenme aşamasında (${effectiveDayCount}/14 gün). 14 günlük stabil baz hattı tamamlandıktan sonra kişisel farkındalık notları oluşturulacaktır.`
       : (insights.length > 0
           ? insights.slice(0, 4).map(ins => `• ${ins.title}: ${ins.body}`).join('\n')
           : 'Tüm biyobelirteçler kişisel bazal referans sınırları içerisinde stabildir.');
 
-    const shareBody = [
-      `MENTALDİJİTALAYNA — KLİNİK DAVRANIŞSAL DİJİTAL FENOTİP RAPORU`,
-      `═════════════════════════════════════════════`,
-      `DANIŞAN / KULLANICI BİLGİLERİ`,
-      `• Ad Soyad: ${userProfile.name}`,
-      `• Cinsiyet: ${userProfile.gender === 'female' ? 'Kadın' : 'Erkek'}`,
-      `• Yaş: ${userProfile.age || 'Belirtilmedi'}`,
-      `• Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
-      `• İncelenen Dönem: Son ${selectedRange} Gün (${activeCount}/21 Gösterge Aktif)`,
-      `• Baz Hattı Durumu: ${isLearning ? `Öğrenme Döneminde (${effectiveDayCount}/14 Gün)` : `Stabil Baz Hattı Aktif (${effectiveDayCount} Gün)`}`,
-      ``,
-      `═════════════════════════════════════════════`,
-      `SAYISAL GÖSTERGELER & EWMA BAZ HATTI DEĞİŞİMİ (21 GÖSTERGE)`,
-      `═════════════════════════════════════════════`,
-      tableText,
-      medSectionText,
-      ``,
-      `═════════════════════════════════════════════`,
-      `FARKINDALIK VE SİSTEM NOTLARI`,
-      `═════════════════════════════════════════════`,
-      clinicalNotesText,
-      ``,
-      `═════════════════════════════════════════════`,
-      `* Yasal Uyarı: Bu rapor tıbbi teşhis veya tanı belgesi niteliğinde değildir. Kullanıcının cihaz kullanım alışkanlıkları ve biyobelirteçlerine ilişkin istatistiksel karar-destek verisidir.`,
-    ].filter(Boolean).join('\n');
+    const shareBody = buildDoctorReportText({
+      patientName: userProfile.name,
+      rangeDays: selectedRange,
+      generatedAt: new Date(),
+      baselineStatus: isLearning
+        ? `Öğrenme döneminde (${effectiveDayCount}/14 gün)`
+        : `Stabil baz hattı aktif (${effectiveDayCount} gün)`,
+      stats: reportStats,
+      medicationSection,
+      pinnedInsights,
+      clinicalNotes,
+    });
 
     const result = await shareContent({
-      title: `Dijital Mental İkizim Davranışsal Fenotip & İlaç Raporu — ${userProfile.name}`,
+      title: `Dijital Mental İkizim Hekim Raporu — ${userProfile.name}`,
       text: shareBody,
     });
 
@@ -350,6 +337,34 @@ export const DoctorReportPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {pinnedInsights.length > 0 && (
+          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-comus-copper/20 shadow-soft space-y-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-comus-copper">
+              Rapora Eklenen İçgörüler ({pinnedInsights.length})
+            </div>
+            {pinnedInsights.map((p) => (
+              <div key={p.addedAt} className="flex items-start justify-between gap-3 bg-comus-surface rounded-2xl p-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-comus-navy">{p.title}</div>
+                  <p className="text-[11px] text-comus-sand-dark leading-relaxed mt-0.5">{p.body}</p>
+                  {p.sources && p.sources.length > 0 && (
+                    <p className="text-[10.5px] italic text-comus-sand-dark mt-1">Kaynak: {p.sources.join('; ')}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removePinnedInsight(p.addedAt)}
+                  className="shrink-0 p-1.5 rounded-lg hover:bg-white text-comus-sand-dark cursor-pointer"
+                  aria-label="Rapordan kaldır"
+                  title="Rapordan kaldır"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {shareFeedback && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-2xl flex items-center gap-2 animate-fadeIn">

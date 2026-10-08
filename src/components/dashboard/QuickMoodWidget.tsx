@@ -23,6 +23,7 @@ export const QuickMoodWidget: React.FC = () => {
   const [lastSavedId, setLastSavedId] = useState<number | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const toggleTag = async (tag: string) => {
     setSavedSuccess(false);
@@ -49,6 +50,7 @@ export const QuickMoodWidget: React.FC = () => {
   const handleExplicitSave = async () => {
     if (!selectedScore || isSaving) return;
     setIsSaving(true);
+    setSaveError(null);
     const todayStr = new Date().toISOString().split('T')[0];
 
     try {
@@ -70,17 +72,32 @@ export const QuickMoodWidget: React.FC = () => {
         setLastSavedId(id as number);
       }
 
-      const store = (await import('../../store/useAppStore')).useAppStore.getState();
-      await store.runAnalysisPipeline();
-
-      // If cloud backup is enabled, sync to cloud
-      if (store.settings.cloudBackupEnabled) {
-        await store.syncCloudDataNow();
-      }
-
+      // The record is safely stored locally: confirm to the user immediately.
       setSavedSuccess(true);
+      setTimeout(() => {
+        // Start a fresh entry next time instead of overwriting this record.
+        setSelectedScore(null);
+        setSelectedTags([]);
+        setLastSavedId(null);
+        setSavedSuccess(false);
+      }, 2500);
+
+      // Re-analysis and optional cloud backup run in the background so they can never block
+      // or silently break the save confirmation.
+      void (async () => {
+        try {
+          const store = (await import('../../store/useAppStore')).useAppStore.getState();
+          await store.runAnalysisPipeline();
+          if (store.settings.cloudBackupEnabled) {
+            await store.syncCloudDataNow();
+          }
+        } catch (bgErr) {
+          console.warn('[QuickMoodWidget] Background analysis/sync failed:', bgErr);
+        }
+      })();
     } catch (err) {
       console.error('[QuickMoodWidget] Explicit save error:', err);
+      setSaveError('Kayıt kaydedilemedi. Lütfen tekrar deneyin.');
     } finally {
       setIsSaving(false);
     }
@@ -177,6 +194,11 @@ export const QuickMoodWidget: React.FC = () => {
           <span>{savedSuccess ? 'Kayıtlara İşlendi' : isSaving ? 'Kaydediliyor...' : 'Kayıtlara İşle'}</span>
         </button>
       </div>
+      {saveError && (
+        <p role="alert" className="mt-2 text-[11px] font-medium text-rose-600">
+          {saveError}
+        </p>
+      )}
     </div>
   );
 };

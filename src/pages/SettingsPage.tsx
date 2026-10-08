@@ -23,6 +23,7 @@ import {
   CloudOff,
   RefreshCw,
   RotateCcw,
+  Sun,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -384,7 +385,7 @@ export const SettingsPage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-serif font-bold text-lg text-comus-navy">
-              Granüler Sensör Tercihleri (Chrome & Web APIs)
+              Granüler Sensör Tercihleri
             </h3>
             <p className="text-xs text-comus-sand-dark">
               Hangi sensörlerin arka planda veri toplayabileceğini ayrı ayrı belirleyin
@@ -461,7 +462,7 @@ export const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <BatteryCharging className="w-4 h-4 text-emerald-600" />
               <div>
-                <div className="text-xs font-semibold text-comus-navy">Pil & Şarj Durumu (Battery Status API)</div>
+                <div className="text-xs font-semibold text-comus-navy">Pil & Şarj Durumu</div>
                 <div className="text-[11px] text-comus-sand-dark">Düşük pil stresi ve gece şarj düzeni</div>
               </div>
             </div>
@@ -477,7 +478,7 @@ export const SettingsPage: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <Wifi className="w-4 h-4 text-sky-600" />
               <div>
-                <div className="text-xs font-semibold text-comus-navy">Ağ & Çevrimdışı (Network Info API)</div>
+                <div className="text-xs font-semibold text-comus-navy">Ağ & Çevrimdışı</div>
                 <div className="text-[11px] text-comus-sand-dark">Bağlantı ve çevrimdışı çalışma durumu</div>
               </div>
             </div>
@@ -485,6 +486,22 @@ export const SettingsPage: React.FC = () => {
               type="checkbox"
               checked={settings.sensorsEnabled.network}
               onChange={() => toggleSensor('network')}
+              className="w-5 h-5 accent-comus-copper cursor-pointer"
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-3">
+            <div className="flex items-center gap-2.5">
+              <Sun className="w-4 h-4 text-amber-600" />
+              <div>
+                <div className="text-xs font-semibold text-comus-navy">Ortam Işığı (Ekran Parlaklığı)</div>
+                <div className="text-[11px] text-comus-sand-dark">Gece ışık maruziyeti; ekran parlaklığı üzerinden tahmin edilir</div>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.sensorsEnabled.light}
+              onChange={() => toggleSensor('light')}
               className="w-5 h-5 accent-comus-copper cursor-pointer"
             />
           </div>

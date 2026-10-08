@@ -19,13 +19,28 @@ import { MetricKey } from '../types/sensor';
 import { DailyPhenotypeFeatures } from '../types/phenotyping';
 
 class SensorManager {
+  /** Last applied user settings; null until syncWithSettings is called (treated as defaults = enabled). */
+  private currentSettings: UserSettings | null = null;
+
+  /** Whether a given sensor category is currently permitted by the user's settings. */
+  isEnabled(sensor: keyof UserSettings['sensorsEnabled']): boolean {
+    return this.currentSettings ? Boolean(this.currentSettings.sensorsEnabled[sensor]) : true;
+  }
+
   syncWithSettings(settings: UserSettings): void {
-    // Motion & Health
+    this.currentSettings = settings;
+
+    // Motion (accelerometer / tremor)
     if (settings.sensorsEnabled.motion) {
       motionSensor.start();
-      mobilityService.startTracking().catch(() => {});
     } else {
       motionSensor.stop();
+    }
+
+    // Location (mobility radius / home-stay) - controlled by its own toggle
+    if (settings.sensorsEnabled.location) {
+      mobilityService.startTracking().catch(() => {});
+    } else {
       mobilityService.stopTracking().catch(() => {});
     }
 
@@ -86,9 +101,9 @@ class SensorManager {
       touchSensor.flush(),
       typingSensor.flush(),
       keystrokeTracker.flush(),
-      healthService.syncHealthBiomarkers(),
-      mobilityService.syncMobilityBiomarkers(),
-      deviceBatteryService.recordTelemetrySample(),
+      this.isEnabled('motion') ? healthService.syncHealthBiomarkers() : Promise.resolve(),
+      this.isEnabled('location') ? mobilityService.syncMobilityBiomarkers() : Promise.resolve(),
+      this.isEnabled('battery') ? deviceBatteryService.recordTelemetrySample() : Promise.resolve(),
     ]);
 
     // Aggregate in-memory telemetry buffers into phenotype features
