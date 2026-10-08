@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { Sparkles, Calendar, Zap, ShieldCheck, ArrowUpRight } from 'lucide-react';
 import { AnomalyResult } from '../../types/engine';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
-import mirrorIcon from '../../assets/mirror_icon.png';
+import mirrorIcon from '../../assets/digital_twin_mirror.png';
 
 interface DigitalTwinMirrorProps {
   anomalies: AnomalyResult[];
@@ -66,11 +66,11 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
         {/* Main Content: Image & Mirror Statement */}
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 my-3">
           {/* Static Image Replacement */}
-          <div className="shrink-0 w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center p-2">
+          <div className="shrink-0 w-full max-w-[180px] flex items-center justify-center p-2">
             <img
               src={mirrorIcon}
               alt="Mental İkiz Aynası"
-              className="w-full h-full object-contain drop-shadow-sm"
+              className="w-full h-auto object-contain"
             />
           </div>
 
