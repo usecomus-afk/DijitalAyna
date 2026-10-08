@@ -228,9 +228,21 @@ export class SensorCapabilityManager {
 
   async requestCameraPermission(): Promise<boolean> {
     try {
-      const { Camera } = await import('@capacitor/camera');
-      const permissions = await Camera.requestPermissions();
-      const granted = permissions.camera === 'granted' || permissions.camera === 'prompt-with-rationale';
+      let granted = false;
+      if (Capacitor.isNativePlatform()) {
+        const { Camera } = await import('@capacitor/camera');
+        // Only the camera is requested; photo-library access is not needed here.
+        const permissions = await Camera.requestPermissions({ permissions: ['camera'] });
+        granted = permissions.camera === 'granted' || permissions.camera === 'limited';
+      } else if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        stream.getTracks().forEach((track) => track.stop());
+        granted = true;
+      } else {
+        this.statuses.camera = 'unsupported';
+        this.notifyListeners();
+        return false;
+      }
       this.statuses.camera = granted ? 'granted' : 'denied';
       this.notifyListeners();
       return granted;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -118,6 +118,27 @@ export const DoctorReportPage: React.FC = () => {
   const sampleDays = useMemo(() => new Set(dailyMetrics.map((m) => m.date)).size, [dailyMetrics]);
   const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
   const isLearning = effectiveDayCount < 14;
+
+  const [capStatuses, setCapStatuses] = useState(() => sensorCapabilities.getAllCapabilities());
+  useEffect(() => sensorCapabilities.addListener((c) => setCapStatuses({ ...c })), []);
+
+  const isPermissionGranted = (key: MetricKey): boolean => {
+    if (key === 'mobility_index') return capStatuses.health === 'granted';
+    if (key === 'tremor_variance') return capStatuses.motion === 'granted';
+    if (key === 'voice_pitch_variance' || key === 'voice_speech_rate') return capStatuses.microphone === 'granted';
+    if (key === 'camera_interaction_count') return capStatuses.camera === 'granted';
+    return false;
+  };
+
+  const unavailableText = (st: { key: MetricKey; status: MetricDisplayStatus; unavailableReason: string }): string => {
+    if (st.status === 'waiting_data') {
+      return 'Sensör Aktif, İzin Gerekmez. Bu sensör aktiftir. Kişisel bazal çizginizin hesaplanabilmesi için günlük kullanım verileri toplanmaktadır.';
+    }
+    if (st.status === 'permission_required' && isPermissionGranted(st.key)) {
+      return 'İzin verildi. Veri, kullanımınıza göre birikmeye başlayacak.';
+    }
+    return st.unavailableReason;
+  };
 
   const handleRequestPermission = async (key: MetricKey) => {
     try {
@@ -844,7 +865,7 @@ export const DoctorReportPage: React.FC = () => {
                       <div className="font-semibold text-xs text-comus-navy">{st.label}</div>
                       <div className="text-[10px] text-comus-sand-dark capitalize">{st.category} sensörü</div>
                       {!st.hasData && (
-                        <p className="text-[10px] text-stone-500 italic mt-0.5">{st.unavailableReason}</p>
+                        <p className="text-[10px] text-stone-500 italic mt-0.5">{unavailableText(st)}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -864,14 +885,14 @@ export const DoctorReportPage: React.FC = () => {
                         {st.hasData
                           ? isAnomaly ? 'Sapma Var' : (st.key === 'light_ambient_lux' ? 'Aktif / Vekil Donanım' : 'Aktif / Native')
                           : st.status === 'permission_required'
-                          ? 'İzin Bekleniyor'
+                          ? (isPermissionGranted(st.key) ? '🟢 Aktif / İzin Verildi' : 'İzin Bekleniyor')
                           : st.status === 'self_report_required'
                           ? 'Öz-Bildirim Gerekli'
                           : st.status === 'unsupported'
                           ? 'Desteklenmiyor'
-                          : 'Veri Bekleniyor'}
+                          : `Öğrenme Sürecinde (${Math.min(effectiveDayCount, 14)}/14 Gün)`}
                       </span>
-                      {!st.hasData && st.status === 'permission_required' && (
+                      {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
                         <button
                           onClick={() => handleRequestPermission(st.key)}
                           className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
@@ -964,7 +985,7 @@ export const DoctorReportPage: React.FC = () => {
                         <div className="font-semibold">{st.label}</div>
                         <div className="text-[10px] text-comus-sand-dark capitalize">{st.category} sensörü</div>
                         {!st.hasData && (
-                          <div className="text-[10px] text-stone-500 italic mt-0.5">{st.unavailableReason}</div>
+                          <div className="text-[10px] text-stone-500 italic mt-0.5">{unavailableText(st)}</div>
                         )}
                       </td>
                       <td className="p-3 text-right font-mono tabular-nums text-comus-sand-dark whitespace-nowrap">
@@ -1009,14 +1030,14 @@ export const DoctorReportPage: React.FC = () => {
                             {st.hasData
                               ? isAnomaly ? 'Sapma Var' : (st.key === 'light_ambient_lux' ? 'Aktif / Vekil Donanım' : 'Aktif / Native')
                               : st.status === 'permission_required'
-                              ? 'İzin Bekleniyor'
+                              ? (isPermissionGranted(st.key) ? '🟢 Aktif / İzin Verildi' : 'İzin Bekleniyor')
                               : st.status === 'self_report_required'
                               ? 'Öz-Bildirim Gerekli'
                               : st.status === 'unsupported'
                               ? 'Desteklenmiyor'
-                              : 'Veri Bekleniyor'}
+                              : `Öğrenme Sürecinde (${Math.min(effectiveDayCount, 14)}/14 Gün)`}
                           </span>
-                          {!st.hasData && st.status === 'permission_required' && (
+                          {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
                             <button
                               onClick={() => handleRequestPermission(st.key)}
                               className="px-2 py-0.5 rounded text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
