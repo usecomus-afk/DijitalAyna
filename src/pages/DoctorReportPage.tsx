@@ -890,7 +890,7 @@ export const DoctorReportPage: React.FC = () => {
                           ? 'Öz-Bildirim Gerekli'
                           : st.status === 'unsupported'
                           ? 'Desteklenmiyor'
-                          : `Öğrenme Sürecinde (${Math.min(effectiveDayCount, 14)}/14 Gün)`}
+                          : isLearning ? `Öğrenme Sürecinde (${effectiveDayCount}/14 Gün)` : 'Veri Bekleniyor'}
                       </span>
                       {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
                         <button
@@ -1035,7 +1035,7 @@ export const DoctorReportPage: React.FC = () => {
                               ? 'Öz-Bildirim Gerekli'
                               : st.status === 'unsupported'
                               ? 'Desteklenmiyor'
-                              : `Öğrenme Sürecinde (${Math.min(effectiveDayCount, 14)}/14 Gün)`}
+                              : isLearning ? `Öğrenme Sürecinde (${effectiveDayCount}/14 Gün)` : 'Veri Bekleniyor'}
                           </span>
                           {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
                             <button

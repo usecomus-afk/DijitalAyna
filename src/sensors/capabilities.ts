@@ -70,15 +70,20 @@ export class SensorCapabilityManager {
 
     // 2. Microphone (Voice Dynamics)
     if (typeof navigator !== 'undefined' && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-      this.statuses.microphone = 'prompt';
-      if (navigator.permissions && typeof navigator.permissions.query === 'function') {
-        navigator.permissions.query({ name: 'microphone' as any }).then((perm) => {
-          this.statuses.microphone = perm.state as SensorCapabilityStatus;
-          perm.onchange = () => {
+      const persistedMic = localStorage.getItem('comus_mic_permission');
+      if (persistedMic === 'granted') {
+        this.statuses.microphone = 'granted';
+      } else {
+        this.statuses.microphone = 'prompt';
+        if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+          navigator.permissions.query({ name: 'microphone' as any }).then((perm) => {
             this.statuses.microphone = perm.state as SensorCapabilityStatus;
-            this.notifyListeners();
-          };
-        }).catch(() => {});
+            perm.onchange = () => {
+              this.statuses.microphone = perm.state as SensorCapabilityStatus;
+              this.notifyListeners();
+            };
+          }).catch(() => {});
+        }
       }
     } else {
       this.statuses.microphone = 'unsupported';
@@ -182,11 +187,13 @@ export class SensorCapabilityManager {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       stream.getTracks().forEach((track) => track.stop());
       this.statuses.microphone = 'granted';
+      localStorage.setItem('comus_mic_permission', 'granted');
       this.notifyListeners();
       return true;
     } catch (err) {
       console.warn('[SensorCapabilityManager] Microphone permission denied:', err);
       this.statuses.microphone = 'denied';
+      localStorage.setItem('comus_mic_permission', 'denied');
       this.notifyListeners();
       return false;
     }
