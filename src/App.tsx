@@ -6,6 +6,7 @@ import { Navbar } from './components/layout/Navbar';
 import { MentalTwinModal } from './components/avatar/MentalTwinModal';
 import { BetaAccessGate } from './components/BetaAccessGateView';
 import { OnboardingPage } from './pages/OnboardingPage';
+import { OnboardingCards, ONBOARDING_COMPLETED_KEY } from './components/onboarding/OnboardingCards';
 import { DashboardPage } from './pages/DashboardPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { TriggersPage } from './pages/TriggersPage';
@@ -79,9 +80,20 @@ export const App: React.FC = () => {
     (userProfile?.username && userProfile.username.trim().length > 0)
   );
 
+  const [cardsCompleted, setCardsCompleted] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_COMPLETED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const alreadyOnboarded = isAuthenticated && settings.onboardingCompleted;
+
   return (
     <BetaAccessGate>
-      {!isAuthenticated || !settings.onboardingCompleted ? (
+      {!cardsCompleted && !alreadyOnboarded ? (
+        <OnboardingCards onComplete={() => setCardsCompleted(true)} />
+      ) : !isAuthenticated || !settings.onboardingCompleted ? (
         <OnboardingPage />
       ) : (
         <HashRouter>
