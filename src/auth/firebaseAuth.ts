@@ -92,8 +92,19 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
  */
 export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) => void): Promise<void> {
   try {
-    const result = await FirebaseAuthentication.signInWithGoogle();
-    if (result.user) {
+    // NOTE: The SPM build of @capacitor-firebase/authentication does not compile GoogleSignIn
+    // (RGCFA_INCLUDE_GOOGLE), so signInWithGoogle() never resolves on iOS. Use Firebase's generic
+    // OAuth flow with the google.com provider instead.
+    const signIn = FirebaseAuthentication.signInWithOpenIdConnect({
+      providerId: 'google.com',
+      scopes: ['profile', 'email'],
+      customParameters: [{ key: 'prompt', value: 'select_account' }],
+    } as any);
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Google girişi zaman aşımına uğradı. Lütfen tekrar deneyin.')), 120000)
+    );
+    const result: any = await Promise.race([signIn, timeout]);
+    if (result?.user) {
       onSuccess(formatUserProfile(result.user as any));
     }
   } catch (err) {
@@ -101,6 +112,7 @@ export async function signInWithGoogleNative(onSuccess: (profile: UserProfile) =
     throw err;
   }
 }
+
 
 /**
  * Native iOS Apple Sign In using official Capacitor plugin
