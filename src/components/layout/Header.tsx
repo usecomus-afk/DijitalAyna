@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../../store/useAppStore';
 import { ShieldCheck, RotateCw } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import { forceAppUpdate } from '../../utils/updateManager';
 import logoImg from '../../assets/logo.png';
 
 export const Header: React.FC = () => {
-  const { setEmergencyModalOpen } = useAppStore();
-  const { avatarSrc, colorClass, avatarAlt } = useMentalTwinAvatar();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleRefreshApp = async () => {
@@ -46,23 +42,6 @@ export const Header: React.FC = () => {
             aria-label="Uygulamayı Yenile"
           >
             <RotateCw className={`w-3.5 h-3.5 ${isUpdating ? 'animate-spin text-comus-copper' : ''}`} />
-          </button>
-
-          {/* Digital Mental Twin 3D Avatar Button */}
-          <button
-            onClick={() => setEmergencyModalOpen(true)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-comus-surface border border-comus-sand-light/40 text-xs font-semibold text-comus-navy shadow-soft hover:shadow-soft-lg transition-all group relative cursor-pointer"
-            title="Dijital Mental İkiz Avatarı"
-          >
-            <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-comus-sand-light/40 group-hover:scale-110 transition-transform">
-              <img
-                src={avatarSrc}
-                alt={avatarAlt}
-                className="w-full h-full object-cover"
-              />
-              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white animate-pulse ${colorClass}`} />
-            </div>
-            <span className="hidden xs:inline text-comus-navy font-medium">Mental İkiz</span>
           </button>
         </div>
       </div>
