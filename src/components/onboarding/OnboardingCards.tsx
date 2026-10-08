@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
+import whatIsMentalTwinImg from '../../assets/what_is_mental_twin.jpg';
 
 export const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
 
@@ -61,9 +62,31 @@ interface OnboardingCardsProps {
 }
 
 export const OnboardingCards: React.FC<OnboardingCardsProps> = ({ onComplete }) => {
+  const [showSplash, setShowSplash] = useState(true);
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (showSplash) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  if (showSplash) {
+    return (
+      <div className="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center animate-fadeIn overflow-hidden">
+        <img 
+          src={whatIsMentalTwinImg} 
+          alt="Dijital Mental İkiz Nedir" 
+          className="w-full h-full object-contain bg-white" 
+        />
+      </div>
+    );
+  }
 
   const isLast = index === CARDS.length - 1;
 
