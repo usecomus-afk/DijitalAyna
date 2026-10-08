@@ -35,12 +35,15 @@ export const OnboardingPage: React.FC = () => {
     setOnboardingCompleted,
   } = useAppStore();
 
+  const [userWentBack, setUserWentBack] = useState(false);
+
   useEffect(() => {
     const storeSettings = useAppStore.getState().settings;
     if (storeSettings.onboardingCompleted) {
       return;
     }
     if (
+      !userWentBack &&
       (userProfile?.isGoogleConnected ||
         userProfile?.isAppleConnected ||
         userProfile?.isPasswordAccount ||
@@ -49,7 +52,7 @@ export const OnboardingPage: React.FC = () => {
     ) {
       setStep(2);
     }
-  }, [userProfile?.isGoogleConnected, userProfile?.isAppleConnected, userProfile?.isPasswordAccount, userProfile?.email, step]);
+  }, [userProfile?.isGoogleConnected, userProfile?.isAppleConnected, userProfile?.isPasswordAccount, userProfile?.email, step, userWentBack]);
 
   const [selectedAge, setSelectedAge] = useState<number>(userProfile?.age || 28);
   const [selectedGender, setSelectedGender] = useState<UserGender>(userProfile?.gender || 'prefer_not_to_say');
@@ -450,7 +453,10 @@ export const OnboardingPage: React.FC = () => {
       <div className="pb-4 pt-2 flex items-center justify-between gap-3">
         {step > 1 ? (
           <button
-            onClick={() => setStep((s) => (s - 1) as any)}
+            onClick={() => {
+              setUserWentBack(true);
+              setStep((s) => (s - 1) as any);
+            }}
             className="px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold text-comus-sand-dark hover:text-comus-navy bg-white border border-comus-sand-light/30 transition-colors cursor-pointer"
           >
             Geri
