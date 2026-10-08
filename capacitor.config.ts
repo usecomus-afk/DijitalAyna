@@ -21,6 +21,11 @@ const config: CapacitorConfig = {
       backgroundColor: '#F2F0EB',
       overlaysWebView: false
     },
+    FirebaseAuthentication: {
+      authDomain: 'comus-ai-duty.firebaseapp.com',
+      skipNativeAuth: false,
+      providers: ['google.com', 'apple.com']
+    },
     LocalNotifications: {
       smallIcon: 'ic_stat_icon_config_sample',
       iconColor: '#C0674F',
