@@ -64,24 +64,24 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
         )}
 
         {/* Main Content: Image & Mirror Statement */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 my-3">
+        <div className="flex flex-col items-center gap-6 my-4">
           {/* Static Image Replacement */}
-          <div className="shrink-0 w-full max-w-[180px] flex items-center justify-center p-2">
+          <div className="w-full flex items-center justify-center">
             <img
               src={mirrorIcon}
               alt="Mental İkiz Aynası"
-              className="w-full h-auto object-contain"
+              className="w-full h-auto max-h-[200px] object-contain drop-shadow-sm"
             />
           </div>
 
           {/* Mirror Statement Quote */}
-          <div className="flex-1 text-center sm:text-left">
+          <div className="w-full text-center px-2">
             <blockquote className="font-serif text-base sm:text-lg font-normal leading-relaxed text-comus-navy italic">
               "{mirrorText}"
             </blockquote>
             <button
               onClick={() => setEmergencyModalOpen(true)}
-              className="mt-2 text-xs text-comus-copper hover:text-comus-navy font-medium inline-flex items-center gap-1 transition-colors"
+              className="mt-4 text-xs text-comus-copper hover:text-comus-navy font-medium inline-flex items-center justify-center gap-1 transition-colors"
             >
               <span>Dijital Mental İkiz Analizini Gör</span>
               <ArrowUpRight className="w-3 h-3" />
