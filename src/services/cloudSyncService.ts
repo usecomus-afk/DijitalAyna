@@ -5,6 +5,8 @@ import { db } from '../db';
 import { UserProfile, UserSettings } from '../types/user';
 import { DailyMetric, BaselineState, MoodReport } from '../types/engine';
 import { Medication, MedicationLog } from '../types/medication';
+import { ClinicalSurveyResult } from '../data/clinicalSurveys';
+import { JournalEntry } from '../types/journal';
 
 export interface CloudBackupData {
   version: string;
@@ -18,6 +20,8 @@ export interface CloudBackupData {
   moodReports: MoodReport[];
   medications?: Medication[];
   medicationLogs?: MedicationLog[];
+  clinicalSurveyResults?: ClinicalSurveyResult[];
+  journalEntries?: JournalEntry[];
 }
 
 const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/comus-ai-duty/databases/(default)/documents/users';
@@ -114,12 +118,14 @@ class CloudSyncService {
         };
       }
 
-      const [dailyMetrics, baselines, moodReports, medications, medicationLogs] = await Promise.all([
+      const [dailyMetrics, baselines, moodReports, medications, medicationLogs, clinicalSurveyResults, journalEntries] = await Promise.all([
         db.dailyMetrics.toArray(),
         db.baselines.toArray(),
         db.moodReports.toArray(),
         db.medications.toArray(),
         db.medicationLogs.toArray(),
+        db.clinicalSurveyResults?.toArray() || Promise.resolve([]),
+        db.journalEntries?.toArray() || Promise.resolve([]),
       ]);
 
       const now = Date.now();
@@ -148,6 +154,8 @@ class CloudSyncService {
         moodReports: moodReports.map(({ id, ...rest }) => rest as MoodReport),
         medications: medications.map(({ id, ...rest }) => rest as Medication),
         medicationLogs: medicationLogs.map(({ id, ...rest }) => rest as MedicationLog),
+        clinicalSurveyResults: clinicalSurveyResults.map(({ id, ...rest }) => rest as ClinicalSurveyResult),
+        journalEntries: journalEntries.map(({ id, ...rest }) => rest as JournalEntry),
       };
 
       const sanitizeForFirestore = (data: any): any => {
@@ -290,6 +298,32 @@ class CloudSyncService {
         }
       }
 
+      // 6. Restore Clinical Survey Results
+      if (backup.clinicalSurveyResults && backup.clinicalSurveyResults.length > 0 && db.clinicalSurveyResults) {
+        for (const survey of backup.clinicalSurveyResults) {
+          const exists = await db.clinicalSurveyResults
+            .where('timestamp')
+            .equals(survey.timestamp)
+            .first();
+          if (!exists) {
+            await db.clinicalSurveyResults.add(survey);
+          }
+        }
+      }
+
+      // 7. Restore Journal Entries
+      if (backup.journalEntries && backup.journalEntries.length > 0 && db.journalEntries) {
+        for (const entry of backup.journalEntries) {
+          const exists = await db.journalEntries
+            .where('createdAt')
+            .equals(entry.createdAt)
+            .first();
+          if (!exists) {
+            await db.journalEntries.add(entry);
+          }
+        }
+      }
+
       // 6. Calculate real baseline day count from restored dates
       const allMetrics = await db.dailyMetrics.toArray();
       const distinctDates = new Set(allMetrics.map((m) => m.date));
@@ -334,7 +368,7 @@ export const cloudSyncService = new CloudSyncService();
  * Exports all local device metrics, mood reports, and baselines as a standalone JSON backup
  */
 export async function exportLocalDataAsJson(): Promise<string> {
-  const [profileItem, settingsItem, dailyMetrics, baselines, moodReports, medications, medicationLogs] =
+  const [profileItem, settingsItem, dailyMetrics, baselines, moodReports, medications, medicationLogs, clinicalSurveyResults, journalEntries] =
     await Promise.all([
       db.settings.get('user_profile'),
       db.settings.get('app_settings'),
@@ -343,10 +377,12 @@ export async function exportLocalDataAsJson(): Promise<string> {
       db.moodReports.toArray(),
       db.medications.toArray(),
       db.medicationLogs.toArray(),
+      db.clinicalSurveyResults?.toArray() || Promise.resolve([]),
+      db.journalEntries?.toArray() || Promise.resolve([]),
     ]);
 
   const exportObj = {
-    app: 'Dijital Mental İİkizim',
+    app: 'Dijital Mental İkizim',
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
     userProfile: profileItem?.value,
@@ -356,6 +392,8 @@ export async function exportLocalDataAsJson(): Promise<string> {
     moodReports,
     medications,
     medicationLogs,
+    clinicalSurveyResults,
+    journalEntries,
   };
 
   return JSON.stringify(exportObj, null, 2);
@@ -370,12 +408,12 @@ export async function importDataFromJson(
   const data = JSON.parse(jsonString);
   if (
     !data ||
-    (data.app !== 'Dijital Mental İİkizim' &&
-      data.app !== 'DijitalMentalIİkizim' &&
+    (data.app !== 'Dijital Mental İkizim' &&
+      data.app !== 'DijitalMentalIkizim' &&
       data.app !== 'MentalDijitalAyna' &&
-      data.app !== 'DijitalMentalIİkizim')
+      data.app !== 'Dijital Mental İİkizim')
   ) {
-    throw new Error('Geçersiz Dijital Mental İİkizim yedek dosyası.');
+    throw new Error('Geçersiz Dijital Mental İkizim yedek dosyası.');
   }
 
   let restoredMetrics = 0;
@@ -412,6 +450,30 @@ export async function importDataFromJson(
   if (Array.isArray(data.baselines)) {
     for (const b of data.baselines) {
       await db.baselines.put(b);
+    }
+  }
+
+  if (Array.isArray(data.clinicalSurveyResults) && db.clinicalSurveyResults) {
+    for (const survey of data.clinicalSurveyResults) {
+      const exists = await db.clinicalSurveyResults
+        .where('timestamp')
+        .equals(survey.timestamp)
+        .first();
+      if (!exists) {
+        await db.clinicalSurveyResults.add(survey);
+      }
+    }
+  }
+
+  if (Array.isArray(data.journalEntries) && db.journalEntries) {
+    for (const entry of data.journalEntries) {
+      const exists = await db.journalEntries
+        .where('createdAt')
+        .equals(entry.createdAt)
+        .first();
+      if (!exists) {
+        await db.journalEntries.add(entry);
+      }
     }
   }
 

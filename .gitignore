@@ -36,3 +36,5 @@ DijitalAyna-iOS-Unsigned/
 *.ipa
 .firebase/
 
+
+!src/plugins/**/dist

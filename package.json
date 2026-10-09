@@ -1,7 +1,7 @@
 {
   "name": "mental-dijital-ikiz",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,8 @@
     "serve:firebase": "npx -y firebase-tools emulators:start --only hosting",
     "ios:sync": "npm run build && npx cap sync ios && node scripts/ensure-native-sync.cjs",
     "ios:build": "npm run build && npx cap copy ios",
-    "ios:open": "npx cap open ios"
+    "ios:open": "npx cap open ios",
+    "prebuild": "cd src/plugins/FamilyControls && npm i --legacy-peer-deps && npm run build && cd ../ComusSleep && npm i --legacy-peer-deps && npm run build && cd ../../../"
   },
   "dependencies": {
     "@capacitor-community/screen-brightness": "^7.0.0",

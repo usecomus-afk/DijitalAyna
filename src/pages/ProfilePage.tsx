@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -190,7 +190,7 @@ export const ProfilePage: React.FC = () => {
             <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#F5F2EB] to-[#EAE5DC] shadow-sm overflow-hidden flex items-center justify-center">
               <img
                 src={mentalTwin.avatarSrc}
-                alt={mentalTwin.avatarAlt || 'Dijital Mental İİkizim Profil Fotoğrafı'}
+                alt={mentalTwin.avatarAlt || 'Dijital Mental İkizim Profil Fotoğrafı'}
                 className="w-full h-full object-contain select-none"
               />
             </div>
@@ -396,7 +396,7 @@ export const ProfilePage: React.FC = () => {
             <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} Gün</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
-            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklamasıı</span>
+            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklaması</span>
             <strong className="text-lg font-bold font-serif text-comus-navy">{reportsCount} Kayıt</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 col-span-2 sm:col-span-1">
@@ -419,7 +419,7 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-semibold text-xs sm:text-sm text-comus-navy">
-              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalıı'}
+              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalı'}
             </h3>
             <p className="text-[11px] text-comus-sand-dark">
               {settings.cloudBackupEnabled
@@ -511,7 +511,7 @@ export const ProfilePage: React.FC = () => {
                 Cihaz Sensör & Bildirim Ayarları
               </div>
               <div className="text-[11px] text-comus-sand-dark">
-                İİvmeölçer, yazım ritmi, bildirimler ve veri sıfırlama
+                İvmeölçer, yazım ritmi, bildirimler ve veri sıfırlama
               </div>
             </div>
           </div>
