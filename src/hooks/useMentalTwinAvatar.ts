@@ -165,7 +165,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       ? narrative.learningCardText
       : phenoInference.clinicalInsight;
 
-    const avatarSrc = getAvatarByScore(derivedScore, userProfile.gender);
+    const avatarSrc = getAvatarByScore(derivedScore);
 
     return {
       score: derivedScore,

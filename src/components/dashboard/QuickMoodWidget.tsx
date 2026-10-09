@@ -2,13 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Smile, CheckCircle, Plus } from 'lucide-react';
 import { db } from '../../db';
 import { getAvatarMap } from '../../constants/avatars';
-import { useAppStore } from '../../store/useAppStore';
 
 const AVAILABLE_TAGS = ['İş', 'Uyku', 'Zihinsel Yük', 'Sosyal', 'Açık Hava', 'Yorgunluk'];
 
 export const QuickMoodWidget: React.FC = () => {
-  const { userProfile } = useAppStore();
-  const avatarMap = getAvatarMap(userProfile?.gender);
+  const avatarMap = getAvatarMap();
 
   const moodOptions = [
     { id: 'harika', score: 5, avatarSrc: avatarMap.harika, label: 'Harika', bgColor: 'bg-purple-50', hoverBg: 'hover:bg-purple-100' },

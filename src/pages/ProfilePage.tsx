@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useNavigate } from 'react-router-dom';
-import { UserGender } from '../types/user';
 import {
   User,
   Calendar,
@@ -22,7 +21,6 @@ import {
   Upload,
   Camera,
 } from 'lucide-react';
-import { getAvatarByScore } from '../constants/avatars';
 import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
 import { exportLocalDataAsJson, importDataFromJson } from '../services/cloudSyncService';
 
@@ -34,8 +32,7 @@ export const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(userProfile.name);
   const [age, setAge] = useState<number>(userProfile.age || 28);
-  const [gender, setGender] = useState<UserGender>(userProfile.gender || 'prefer_not_to_say');
-  const [customPicture, setCustomPicture] = useState<string | undefined>(userProfile.picture);
+    const [customPicture, setCustomPicture] = useState<string | undefined>(userProfile.picture);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
@@ -68,20 +65,20 @@ export const ProfilePage: React.FC = () => {
 
     const safetyTimer = setTimeout(() => {
       setIsSyncing(false);
-      setSyncFeedback('İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.');
+      setSyncFeedback('Ä°ÅŸlem zaman aÅŸÄ±mÄ±na uÄŸradÄ±. LÃ¼tfen tekrar deneyin.');
     }, 12000);
 
     try {
       const res = await syncCloudDataNow();
       clearTimeout(safetyTimer);
       if (res.success) {
-        setSyncFeedback('Buluta başarıyla yedeklendi.');
+        setSyncFeedback('Buluta baÅŸarÄ±yla yedeklendi.');
       } else {
-        setSyncFeedback(res.message || 'Yedekleme başarısız.');
+        setSyncFeedback(res.message || 'Yedekleme baÅŸarÄ±sÄ±z.');
       }
     } catch (err: any) {
       clearTimeout(safetyTimer);
-      setSyncFeedback(err?.message || 'Bağlantı hatası oluştu.');
+      setSyncFeedback(err?.message || 'BaÄŸlantÄ± hatasÄ± oluÅŸtu.');
     } finally {
       clearTimeout(safetyTimer);
       setIsSyncing(false);
@@ -105,9 +102,9 @@ export const ProfilePage: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setExportFeedback('9 günlük tüm verileriniz telefonunuza dosya olarak indirildi.');
+      setExportFeedback('9 gÃ¼nlÃ¼k tÃ¼m verileriniz telefonunuza dosya olarak indirildi.');
     } catch {
-      setExportFeedback('Dosya dışa aktarılamadı.');
+      setExportFeedback('Dosya dÄ±ÅŸa aktarÄ±lamadÄ±.');
     } finally {
       setTimeout(() => setExportFeedback(null), 4000);
     }
@@ -119,9 +116,9 @@ export const ProfilePage: React.FC = () => {
     try {
       const text = await file.text();
       const res = await importDataFromJson(text);
-      setExportFeedback(`${res.restoredMetrics} metrik ve ${res.restoredReports} ruh hali kaydı başarıyla yüklendi.`);
+      setExportFeedback(`${res.restoredMetrics} metrik ve ${res.restoredReports} ruh hali kaydÄ± baÅŸarÄ±yla yÃ¼klendi.`);
     } catch (err: any) {
-      setExportFeedback(err?.message || 'Yedek yüklenirken hata oluştu.');
+      setExportFeedback(err?.message || 'Yedek yÃ¼klenirken hata oluÅŸtu.');
     } finally {
       e.target.value = '';
       setTimeout(() => setExportFeedback(null), 4500);
@@ -143,10 +140,9 @@ export const ProfilePage: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     await setUserProfile({
-      name: name.trim() || 'Kullanıcı',
+      name: name.trim() || 'KullanÄ±cÄ±',
       age,
-      gender,
-      picture: customPicture,
+            picture: customPicture,
     });
     setIsEditing(false);
     setSaveSuccess(true);
@@ -158,19 +154,13 @@ export const ProfilePage: React.FC = () => {
     navigate('/');
   };
 
-  const genderLabels: Record<UserGender, string> = {
-    female: 'Kadın',
-    male: 'Erkek',
-    other: 'Diğer',
-    prefer_not_to_say: 'Belirtilmedi',
-  };
-
+  
   return (
     <div className="space-y-6 pb-24 animate-fadeIn max-w-2xl mx-auto">
       {/* Profile Header Card */}
       <div className="bg-white rounded-3xl p-6 shadow-soft border border-comus-sand-light/20 relative overflow-hidden space-y-6">
         
-        {/* Bölüm A: Üst Rozet ve Düzenleme Butonu */}
+        {/* BÃ¶lÃ¼m A: Ãœst Rozet ve DÃ¼zenleme Butonu */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
           {settings.cloudBackupEnabled && (
             <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5 flex items-center gap-1">
@@ -182,24 +172,23 @@ export const ProfilePage: React.FC = () => {
             onClick={() => {
               setName(userProfile.name);
               setAge(userProfile.age || 28);
-              setGender(userProfile.gender || 'prefer_not_to_say');
-              setCustomPicture(userProfile.picture || profilePhotoUrl);
+                            setCustomPicture(userProfile.picture || profilePhotoUrl);
               setIsEditing(!isEditing);
             }}
             className="hover:bg-slate-100 rounded-full p-1.5 transition text-slate-400 hover:text-slate-700 cursor-pointer"
-            title="Profili Düzenle"
+            title="Profili DÃ¼zenle"
           >
             <Edit2 className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Bölüm B: Avatar ve Kullanıcı Kimlik Alanı */}
+        {/* BÃ¶lÃ¼m B: Avatar ve KullanÄ±cÄ± Kimlik AlanÄ± */}
         <div className="flex flex-col items-center text-center mt-2">
           <div className="relative mb-3">
             <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#F5F2EB] to-[#EAE5DC] shadow-sm overflow-hidden flex items-center justify-center">
               <img
                 src={mentalTwin.avatarSrc}
-                alt={mentalTwin.avatarAlt || 'Dijital Mental İkizim Profil Fotoğrafı'}
+                alt={mentalTwin.avatarAlt || 'Dijital Mental Ä°kizim Profil FotoÄŸrafÄ±'}
                 className="w-full h-full object-contain select-none"
               />
             </div>
@@ -212,52 +201,48 @@ export const ProfilePage: React.FC = () => {
             {userProfile.name || 'Profilim'}
           </h1>
           <div className="text-xs text-slate-500 flex items-center justify-center gap-1.5 mt-1">
-            {userProfile.isGoogleConnected ? 'Google Hesabı' : userProfile.isAppleConnected ? 'Apple Hesabı' : 'Yerel Hesap'}
-            <span className="text-slate-300">•</span>
-            {userProfile.email || 'Cihaz içi şifreli profil'}
+            {userProfile.isGoogleConnected ? 'Google HesabÄ±' : userProfile.isAppleConnected ? 'Apple HesabÄ±' : 'Yerel Hesap'}
+            <span className="text-slate-300">â€¢</span>
+            {userProfile.email || 'Cihaz iÃ§i ÅŸifreli profil'}
           </div>
         </div>
 
-        {/* Bölüm C: Yapılandırılmış Bilgi Izgarası (Bento Grid) */}
+        {/* BÃ¶lÃ¼m C: YapÄ±landÄ±rÄ±lmÄ±ÅŸ Bilgi IzgarasÄ± (Bento Grid) */}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Yaş</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">YaÅŸ</span>
             <span className="text-xs font-bold text-slate-700">{userProfile.age || 'Belirtilmedi'}</span>
           </div>
-          <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cinsiyet</span>
-            <span className="text-xs font-bold text-slate-700">{(userProfile.gender && userProfile.gender !== 'prefer_not_to_say') ? genderLabels[userProfile.gender] : 'Belirtilmedi'}</span>
-          </div>
+          
           <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Mevcut Ritim</span>
             <span className="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-0.5 border border-amber-100/50">{mentalTwin.stateLabel}</span>
           </div>
           <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baz Hattı</span>
-            <span className="text-xs font-bold text-slate-700">{distinctDays} Gün Aktif</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baz HattÄ±</span>
+            <span className="text-xs font-bold text-slate-700">{distinctDays} GÃ¼n Aktif</span>
           </div>
         </div>
 
-        {/* Bölüm D: Alt Buton */}
+        {/* BÃ¶lÃ¼m D: Alt Buton */}
         {!isEditing && (
           <button
             onClick={() => {
               setName(userProfile.name);
               setAge(userProfile.age || 28);
-              setGender(userProfile.gender || 'prefer_not_to_say');
-              setCustomPicture(userProfile.picture || profilePhotoUrl);
+                            setCustomPicture(userProfile.picture || profilePhotoUrl);
               setIsEditing(true);
             }}
             className="w-full mt-2 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
           >
-            Profili ve Hedefleri Güncelle
+            Profili ve Hedefleri GÃ¼ncelle
           </button>
         )}
 
         {saveSuccess && (
           <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
             <Check className="w-4 h-4 text-emerald-600" />
-            <span>Profil bilgileriniz başarıyla güncellendi.</span>
+            <span>Profil bilgileriniz baÅŸarÄ±yla gÃ¼ncellendi.</span>
           </div>
         )}
 
@@ -266,13 +251,13 @@ export const ProfilePage: React.FC = () => {
           <form onSubmit={handleSave} className="mt-5 pt-5 border-t border-comus-sand-light/20 space-y-4 animate-fadeIn">
             {/* Profile Photo Customization */}
             <div className="space-y-1.5 p-3 rounded-2xl bg-comus-surface/60 border border-comus-sand-light/30">
-              <label className="text-xs font-semibold text-comus-navy block">Google / Profil Fotoğrafı:</label>
+              <label className="text-xs font-semibold text-comus-navy block">Google / Profil FotoÄŸrafÄ±:</label>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-white shadow-soft bg-white shrink-0 flex items-center justify-center">
                   {customPicture ? (
                     <img
                       src={customPicture}
-                      alt="Profil Önizleme"
+                      alt="Profil Ã–nizleme"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
@@ -283,7 +268,7 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-comus-copper/10 border border-comus-sand-light/40 text-xs font-semibold text-comus-navy transition-colors shadow-soft">
                     <Camera className="w-3.5 h-3.5 text-comus-copper" />
-                    <span>Fotoğraf Seç</span>
+                    <span>FotoÄŸraf SeÃ§</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -306,7 +291,7 @@ export const ProfilePage: React.FC = () => {
                       onClick={() => setCustomPicture(undefined)}
                       className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                     >
-                      Kaldır
+                      KaldÄ±r
                     </button>
                   )}
                 </div>
@@ -328,7 +313,7 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-comus-navy block">Yaş:</label>
+                <label className="text-xs font-semibold text-comus-navy block">YaÅŸ:</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -343,53 +328,13 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-comus-navy block">Cinsiyet:</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: 'female', label: 'Kadın' },
-                  { id: 'male', label: 'Erkek' },
-                  { id: 'other', label: 'Diğer' },
-                  { id: 'prefer_not_to_say', label: 'Belirtmek İstemiyorum' },
-                ].map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => setGender(g.id as UserGender)}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-medium border transition-all text-center cursor-pointer ${
-                      gender === g.id
-                        ? 'bg-comus-navy text-white border-comus-navy'
-                        : 'bg-comus-surface text-comus-sand-dark border-comus-sand-light/40'
-                    }`}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Dynamic Mental Twin Avatar Preview */}
-              <div className="mt-2.5 p-2.5 rounded-xl bg-comus-surface border border-comus-sand-light/40 flex items-center gap-2.5">
-                <img
-                  src={getAvatarByScore(3, gender)}
-                  alt="Dijital İkiz Önizleme"
-                  className="w-10 h-10 rounded-lg object-contain bg-white p-0.5 border border-comus-sand-light/30 shrink-0"
-                />
-                <span className="text-[11px] text-comus-navy font-medium">
-                  Seçilen profil için dijital ikiz avatarı:{' '}
-                  <strong className="text-comus-copper">
-                    {gender === 'female' ? 'Kadın Avatar Seti' : gender === 'male' ? 'Erkek Avatar Seti' : 'Dengeli Avatar Seti'}
-                  </strong>
-                </span>
-              </div>
-            </div>
-
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-comus-sand-dark hover:bg-comus-surface transition-colors cursor-pointer"
               >
-                İptal
+                Ä°ptal
               </button>
               <button
                 type="submit"
@@ -411,10 +356,10 @@ export const ProfilePage: React.FC = () => {
             </div>
             <div>
               <h2 className="font-serif font-bold text-base text-comus-navy">
-                Cihaz İçi Baz Hattı Durumu
+                Cihaz Ä°Ã§i Baz HattÄ± Durumu
               </h2>
               <p className="text-xs text-comus-sand-dark">
-                Yalnızca bu cihazdan toplanan gerçek biyobelirteç telemetrisi
+                YalnÄ±zca bu cihazdan toplanan gerÃ§ek biyobelirteÃ§ telemetrisi
               </p>
             </div>
           </div>
@@ -422,18 +367,18 @@ export const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
-            <span className="text-[11px] text-comus-sand-dark block">Kayıtlı Gün</span>
-            <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} Gün</strong>
+            <span className="text-[11px] text-comus-sand-dark block">KayÄ±tlÄ± GÃ¼n</span>
+            <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} GÃ¼n</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
-            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklaması</span>
-            <strong className="text-lg font-bold font-serif text-comus-navy">{reportsCount} Kayıt</strong>
+            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali YoklamasÄ±</span>
+            <strong className="text-lg font-bold font-serif text-comus-navy">{reportsCount} KayÄ±t</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 col-span-2 sm:col-span-1">
             <span className="text-[11px] text-comus-sand-dark block">Yerel Depolama</span>
             <strong className="text-xs font-semibold text-emerald-700 flex items-center gap-1 mt-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>%100 Cihazda Şifreli</span>
+              <span>%100 Cihazda Åifreli</span>
             </strong>
           </div>
         </div>
@@ -449,14 +394,14 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-semibold text-xs sm:text-sm text-comus-navy">
-              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalı'}
+              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme KapalÄ±'}
             </h3>
             <p className="text-[11px] text-comus-sand-dark">
               {settings.cloudBackupEnabled
                 ? settings.lastCloudSyncTimestamp
                   ? `Son yedekleme: ${new Date(settings.lastCloudSyncTimestamp).toLocaleString('tr-TR')}`
-                  : 'Verileriniz hesabınızla güvenle yedekleniyor'
-                : 'Veriler yalnızca bu telefonda saklanır. Ayarlar sayfasından açabilirsiniz.'}
+                  : 'Verileriniz hesabÄ±nÄ±zla gÃ¼venle yedekleniyor'
+                : 'Veriler yalnÄ±zca bu telefonda saklanÄ±r. Ayarlar sayfasÄ±ndan aÃ§abilirsiniz.'}
             </p>
             {syncFeedback && (
               <span className="text-[10.5px] font-semibold text-emerald-600 mt-0.5 block animate-fadeIn">
@@ -477,25 +422,25 @@ export const ProfilePage: React.FC = () => {
               onClick={handleManualSync}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-comus-surface hover:bg-comus-copper-subtle/50 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors cursor-pointer shrink-0 disabled:opacity-50 shadow-soft"
-              title="Doğrudan Google Firestore bulutuna yedekle"
+              title="DoÄŸrudan Google Firestore bulutuna yedekle"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-comus-copper ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
+              <span>{isSyncing ? 'Yedekleniyor...' : 'Åimdi Yedekle'}</span>
             </button>
           )}
 
           <button
             onClick={handleExportJson}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold border border-emerald-200 transition-colors cursor-pointer shrink-0 shadow-soft"
-            title="9 günlük verilerinizi telefonunuza JSON dosyası olarak indirin"
+            title="9 gÃ¼nlÃ¼k verilerinizi telefonunuza JSON dosyasÄ± olarak indirin"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Yedeği İndir (.json)</span>
+            <span>YedeÄŸi Ä°ndir (.json)</span>
           </button>
 
           <label className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold border border-stone-200 transition-colors cursor-pointer shrink-0 shadow-soft">
             <Upload className="w-3.5 h-3.5 text-stone-500" />
-            <span>Geri Yükle</span>
+            <span>Geri YÃ¼kle</span>
             <input
               type="file"
               accept=".json"
@@ -521,7 +466,7 @@ export const ProfilePage: React.FC = () => {
                 Klinik & Uzman Doktor Raporu
               </div>
               <div className="text-[11px] text-comus-sand-dark">
-                Biyobelirteç değişimlerini ve ilaç etkileşimlerini hekiminizle paylaşın
+                BiyobelirteÃ§ deÄŸiÅŸimlerini ve ilaÃ§ etkileÅŸimlerini hekiminizle paylaÅŸÄ±n
               </div>
             </div>
           </div>
@@ -538,10 +483,10 @@ export const ProfilePage: React.FC = () => {
             </div>
             <div>
               <div className="font-semibold text-xs sm:text-sm text-comus-navy">
-                Cihaz Sensör & Bildirim Ayarları
+                Cihaz SensÃ¶r & Bildirim AyarlarÄ±
               </div>
               <div className="text-[11px] text-comus-sand-dark">
-                İvmeölçer, yazım ritmi, bildirimler ve veri sıfırlama
+                Ä°vmeÃ¶lÃ§er, yazÄ±m ritmi, bildirimler ve veri sÄ±fÄ±rlama
               </div>
             </div>
           </div>
@@ -562,3 +507,5 @@ export const ProfilePage: React.FC = () => {
     </div>
   );
 };
+
+

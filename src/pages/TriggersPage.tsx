@@ -7,13 +7,11 @@ import { MedicationImpactChart } from '../components/charts/MedicationImpactChar
 import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 import { Disclaimer } from '../components/common/Disclaimer';
 import { LineChart, Calendar, Tag, Pill, Sparkles } from 'lucide-react';
-import { useAppStore } from '../store/useAppStore';
 import { getAvatarMap } from '../constants/avatars';
 
 export const TriggersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mood' | 'medication'>('mood');
-  const { userProfile } = useAppStore();
-  const avatarMap = getAvatarMap(userProfile?.gender);
+  const avatarMap = getAvatarMap();
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
