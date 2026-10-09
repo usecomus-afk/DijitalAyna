@@ -121,7 +121,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             >
               {medications.map((m, idx) => (
                 <option key={m.id || idx} value={idx}>
-                  {m.name} ({m.dosageMg}mg)
+                  {m.name} ({m.dosage}mg)
                 </option>
               ))}
             </select>
@@ -263,7 +263,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                 strokeDasharray="4 4"
                 strokeWidth={2}
                 label={{
-                  value: `💊 ${activeMed.name} (${activeMed.dosageMg}mg)`,
+                  value: `💊 ${activeMed.name} (${activeMed.dosage}mg)`,
                   position: 'insideTopLeft',
                   fill: '#0F766E',
                   fontSize: 11,
@@ -306,7 +306,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             <div className="flex items-center gap-2">
               <Pill className="w-4 h-4 text-teal-700 shrink-0" />
               <h4 className="font-serif font-bold text-sm text-teal-950">
-                {impactReport.medication.name} ({impactReport.medication.dosageMg}mg) Tedavi Etki Değerlendirmesi
+                {impactReport.medication.name} ({impactReport.medication.dosage}mg) Tedavi Etki Değerlendirmesi
               </h4>
             </div>
             <span className="text-[11px] font-semibold text-teal-800 bg-teal-100/80 px-2.5 py-0.5 rounded-full">

@@ -7,8 +7,8 @@ describe('Medication Analytics Engine', () => {
   const sampleMedication: Medication = {
     id: 1,
     name: 'Escitalopram',
-    dosageMg: 10,
-    frequencyPerDay: 1,
+    dosage: "10 mg",
+    timeSlots: ["morning"],
     startDate: '2026-08-10',
     createdAt: Date.now(),
   };

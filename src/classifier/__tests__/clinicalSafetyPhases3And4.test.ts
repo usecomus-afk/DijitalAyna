@@ -250,8 +250,8 @@ describe('FAZ 3 & FAZ 4 - Clinical Safety & Definition of Done Verification', ()
     const med: Medication = {
       id: 1,
       name: 'Escitalopram',
-      dosageMg: 10,
-      frequencyPerDay: 1,
+      dosage: "10 mg",
+      timeSlots: ["morning"],
       startDate: '2026-09-15',
       createdAt: Date.now(),
     };

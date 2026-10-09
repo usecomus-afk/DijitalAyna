@@ -1,14 +1,18 @@
 import { MetricKey } from './sensor';
 
+export type TimeSlot = 'morning' | 'noon' | 'evening' | 'night' | 'as_needed';
+
 export interface Medication {
   id?: number;
   name: string;             // Örn: "Escitalopram", "Lityum", "Seroquel"
-  dosageMg: number;         // Örn: 10
-  frequencyPerDay: number;  // Örn: 1 (Günde 1 kez)
+  dosage: string;           // Örn: 5 mg veya 1 Tablet
+  timeSlots: TimeSlot[];    // ['morning', 'evening', 'night'] vb.
+  customTimes?: string[];   // ['09:00', '19:00', '23:00']
   startDate: string;        // YYYY-MM-DD
-  endDate?: string;         // Opsiyonel (Devam ediyorsa boş)
+  endDate?: string;         // Opsiyonel
   notes?: string;
   createdAt: number;
+  isActive?: boolean;
 }
 
 export interface MedicationLog {

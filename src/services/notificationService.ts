@@ -334,6 +334,38 @@ class NotificationService {
       console.warn('[NotificationService] scheduleDailyInspirations error:', err);
     }
   }
+  /**
+   * Schedules medication reminders
+   */
+  async scheduleMedicationReminder(medId: number, name: string, time: string): Promise<void> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const parts = time.split(':');
+        if (parts.length !== 2) return;
+        const hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10);
+        const now = new Date();
+        const at = new Date(now);
+        at.setHours(hours, minutes, 0, 0);
+        if (at.getTime() <= now.getTime()) {
+          at.setDate(at.getDate() + 1);
+        }
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 30000 + medId * 10 + hours,
+              title: 'İlaç Vakti 💊',
+              body: `${name} ilacınızı alma saatiniz geldi.`,
+              schedule: { at, repeats: true, every: 'day' },
+              sound: 'beep.wav',
+              channelId: 'dijital_mental_ikizim_reminders',
+            }
+          ]
+        });
+      }
+    } catch(err) {}
+  }
 }
 
 export const notificationService = new NotificationService();

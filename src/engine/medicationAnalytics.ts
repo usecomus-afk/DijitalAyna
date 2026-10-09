@@ -140,7 +140,7 @@ export function analyzeMedicationImpact(
   const improvedCount = deltas.filter((d) => d.direction === 'improved').length;
   const declinedCount = deltas.filter((d) => d.direction === 'declined').length;
 
-  let overallSummary = `${medication.name} ${medication.dosageMg}mg kullanımının ${daysActive}. günündesin. `;
+  let overallSummary = `${medication.name} ${medication.dosage}mg kullanımının ${daysActive}. günündesin. `;
   if (improvedCount > declinedCount) {
     overallSummary += `İlaç öncesi döneme kıyasla davranışsal ritimde ve sirkadiyen göstergelerde olumlu regülasyon sinyalleri izleniyor.`;
   } else if (declinedCount > improvedCount) {

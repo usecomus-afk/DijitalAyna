@@ -7,8 +7,8 @@ export interface MedicationIntervention {
   medicationName: string;
   t0Date: string; // YYYY-MM-DD (T_0)
   interventionType: 'start' | 'dosage_increase' | 'dosage_decrease' | 'discontinuation';
-  dosageMg: number;
-  previousDosageMg?: number;
+  dosage: string;
+  previousdosage?: string;
   assignedAt: number;
   notes?: string;
 }
@@ -53,15 +53,15 @@ export function assignMedicationIntervention(
   medication: Medication,
   interventionType: MedicationIntervention['interventionType'] = 'start',
   t0Date = medication.startDate,
-  previousDosageMg?: number
+  previousdosage?: string
 ): MedicationIntervention {
   return {
     medicationId: medication.id || 0,
     medicationName: medication.name,
     t0Date,
     interventionType,
-    dosageMg: medication.dosageMg,
-    previousDosageMg,
+    dosage: medication.dosage,
+    previousdosage,
     assignedAt: Date.now(),
     notes: medication.notes,
   };
@@ -207,7 +207,7 @@ export function generateClinicianMedicationReport(
     ? 'Mobilite alanında daralma gözlemlendi; sosyal çekilme riski göz önünde bulundurulmalı.'
     : 'Fiziksel dolaşım alanı stabil.';
 
-  const clinicianSummary = `T_0 (${t0Date}) tarihinde başlayan ${medication.name} (${medication.dosageMg}mg) tedavisinin T_${-daysWindow} vs T_+${daysWindow} karşılaştırmasında: Gece dinlenme süresinde %${Math.abs(nightPct)} ${nightPct <= 0 ? 'iyileşme' : 'sapma'}, psikomotor tempoda %${Math.abs(wpmDelta?.changePercent ?? 0)} değişim kaydedildi.`;
+  const clinicianSummary = `T_0 (${t0Date}) tarihinde başlayan ${medication.name} (${medication.dosage}mg) tedavisinin T_${-daysWindow} vs T_+${daysWindow} karşılaştırmasında: Gece dinlenme süresinde %${Math.abs(nightPct)} ${nightPct <= 0 ? 'iyileşme' : 'sapma'}, psikomotor tempoda %${Math.abs(wpmDelta?.changePercent ?? 0)} değişim kaydedildi.`;
 
   return {
     intervention,

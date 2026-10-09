@@ -282,8 +282,8 @@ export const DoctorReportPage: React.FC = () => {
 
     await db.medications.add({
       name: medName.trim(),
-      dosageMg: parseFloat(medDosage) || 10,
-      frequencyPerDay: medFreq,
+      dosage: medDosage,
+      timeSlots: medFreq === 1 ? ["morning"] : medFreq === 2 ? ["morning", "evening"] : ["morning", "noon", "evening"],
       startDate: medStartDate || todayStr,
       notes: medNotes.trim() || 'Hekim tedavi protokolü',
       createdAt: Date.now(),
@@ -559,7 +559,7 @@ export const DoctorReportPage: React.FC = () => {
                           <div className="font-semibold text-xs text-comus-navy flex items-center gap-1.5">
                             <span>{med.name}</span>
                             <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100 text-teal-900 rounded font-bold">
-                              {med.dosageMg} mg
+                              {med.dosage}
                             </span>
                           </div>
                           <span className="text-[10px] text-comus-sand-dark">
@@ -601,9 +601,9 @@ export const DoctorReportPage: React.FC = () => {
 
                     <div className="pt-2 border-t border-comus-sand-light/20 text-[11px] space-y-1">
                       <div className="text-comus-navy font-medium">
-                        {med.frequencyPerDay === 1
+                        {med.timeSlots?.length === 1
                           ? 'Günde 1x (Sabah 09:00)'
-                          : med.frequencyPerDay === 2
+                          : med.timeSlots?.length === 2
                           ? 'Günde 2x (Sabah / Akşam)'
                           : 'Günde 3x (Sabah / Öğle / Akşam)'}
                         {' • '}Tok karnına, bol su ile
@@ -648,7 +648,7 @@ export const DoctorReportPage: React.FC = () => {
                             <Pill className="w-3.5 h-3.5 text-teal-700 shrink-0" />
                             <span>{med.name}</span>
                             <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100/80 text-teal-900 rounded font-bold">
-                              {med.dosageMg} mg
+                              {med.dosage}
                             </span>
                           </div>
                           <div className="text-[10px] text-comus-sand-dark mt-0.5">
@@ -656,9 +656,9 @@ export const DoctorReportPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="p-3 text-comus-navy font-medium">
-                          {med.frequencyPerDay === 1
+                          {med.timeSlots?.length === 1
                             ? 'Günde 1x (Sabah 09:00)'
-                            : med.frequencyPerDay === 2
+                            : med.timeSlots?.length === 2
                             ? 'Günde 2x (Sabah / Akşam)'
                             : 'Günde 3x (Sabah / Öğle / Akşam)'}
                         </td>
@@ -728,10 +728,10 @@ export const DoctorReportPage: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-serif font-bold text-sm text-teal-950">
-                      {ir.medication.name} ({ir.medication.dosageMg}mg)
+                      {ir.medication.name} ({ir.medication.dosage})
                     </span>
                     <span className="text-[11px] text-teal-800">
-                      • Günde {ir.medication.frequencyPerDay}x • Başlangıç: {ir.medication.startDate}
+                      • Günde {(ir.medication.timeSlots?.length || 1)}x • Başlangıç: {ir.medication.startDate}
                     </span>
                   </div>
                   <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900">
