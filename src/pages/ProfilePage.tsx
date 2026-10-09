@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -210,25 +210,48 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* Bölüm C: Yapılandırılmış Bilgi Izgarası (Bento Grid) */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+          {/* Yaş & Cinsiyet (1x1) */}
+          <div className="bg-slate-50/50 rounded-3xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1 shadow-sm">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Yaş</span>
-            <span className="text-xs font-bold text-slate-700">{userProfile.age || 'Belirtilmedi'}</span>
+            <span className="text-sm font-bold text-slate-700">{userProfile.age || 'Belirtilmedi'}</span>
           </div>
 
-          <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
+          <div className="bg-slate-50/50 rounded-3xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1 shadow-sm">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cinsiyet</span>
-            <span className="text-xs font-bold text-slate-700">{userProfile.gender || 'Belirtilmedi'}</span>
+            <span className="text-sm font-bold text-slate-700">{userProfile.gender || 'Belirtilmedi'}</span>
           </div>
-          
-          <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Mevcut Ritim</span>
-            <span className="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-0.5 border border-amber-100/50">{mentalTwin.stateLabel}</span>
+
+          {/* Mevcut Ritim (Col Span 2) */}
+          <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl p-4 border border-amber-100/50 flex flex-col items-center justify-center text-center gap-1 shadow-sm">
+            <span className="text-[10px] font-semibold text-amber-600/70 uppercase tracking-wider">Mevcut Ritim</span>
+            <span className="text-sm font-bold text-amber-700">{mentalTwin.stateLabel}</span>
           </div>
-          <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baz Hattı</span>
-            <span className="text-xs font-bold text-slate-700">{distinctDays} Gün Aktif</span>
+
+          {/* Baz Hattı Aktifliği (Col Span 2) */}
+          <div className="col-span-2 bg-comus-surface rounded-3xl p-4 border border-comus-sand-light/30 flex flex-row items-center justify-between shadow-sm">
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baz Hattı</span>
+              <span className="text-sm font-bold text-slate-700">{distinctDays} Gün Aktif Telemetri</span>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-comus-copper">
+              <Activity className="w-5 h-5" />
+            </div>
           </div>
+
+          {/* GAD-7 & PHQ-9 (Col Span 2 or 1 depending on screen) */}
+          <button 
+            onClick={() => navigate('/assessment')}
+            className="col-span-2 md:col-span-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-3xl p-4 border border-blue-100/50 flex flex-row items-center justify-between transition-colors shadow-sm text-left cursor-pointer"
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-indigo-900">Klinik Anket (GAD-7 & PHQ-9)</span>
+              <span className="text-[10px] font-medium text-indigo-700/70">16 soruluk ruh sağlığı taraması</span>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-indigo-600 shrink-0">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
         </div>
 
         {/* Bölüm D: Alt Buton */}
