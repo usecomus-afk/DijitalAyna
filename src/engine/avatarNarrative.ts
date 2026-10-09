@@ -231,7 +231,7 @@ export function generateAvatarNarrative({
         const tagClause = tagListText
           ? ` Özellikle ${tagListText} etiketleri yoğun bir baskıya işaret ediyor.`
           : '';
-        dialogue = `Son dönemdeki bildirimlerinde kendini sıklıkla 'Zorlu' hissettiğini belirttin ${safeName}.${tagClause} Sensör baz hattın henüz öğrenme aşamasında (${effectiveDays}/14 Gün) olsa da, dijital mental ikizimn şu an zihninin ve bedeninin dinlenmeye ihtiyaç duyduğunu yansıtıyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`;
+        dialogue = `Son dönemdeki bildirimlerinde kendini sıklıkla 'Zorlu' hissettiğini belirttin ${safeName}.${tagClause} Sensör baz hattın henüz öğrenme aşamasında (${effectiveDays}/14 Gün) olsa da, dijital mental iİkizimn şu an zihninin ve bedeninin dinlenmeye ihtiyaç duyduğunu yansıtıyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`;
         mirrorText = `${safeName}, aktif ruh hali kayıtların son günlerde yüksek bir zihinsel yük altında olduğunu gösteriyor. Dijital ikizin bu sinyali doğrulayarak dinlenmeni öneriyor.`;
       } else {
         const tagClause = tagListText
@@ -283,7 +283,7 @@ export function generateAvatarNarrative({
 
       if (!isEstablished) {
         dialogue = `Merhaba ${safeName}! Kişisel baz hattın oluşturulurken (${effectiveDays}/14 Gün) hissiyatın ve sensör verilerin dengeli bir akışta seyrediyor.`;
-        mirrorText = `Merhaba ${safeName}! Dijital Mental İkizim şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
+        mirrorText = `Merhaba ${safeName}! Dijital Mental İİkizim şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
       } else {
         dialogue = `Şu an dingin ve dengeli bir akıştayız ${safeName}. Sensör dinamiklerin standart kişisel baz hattınla uyumlu. Rutinine sakin adımlarla devam edebilirsin.`;
         mirrorText = `${safeName}, cihaz içi biyobelirteçlerin referans aralığında. Dijital ikizin stabil durumda.`;

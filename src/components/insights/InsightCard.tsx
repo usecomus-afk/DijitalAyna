@@ -32,8 +32,8 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
 
   const handleShare = async () => {
     const result = await shareContent({
-      title: `Dijital Mental İkizim Farkındalık Notu: ${insight.title}`,
-      text: `${insight.title}\n\n${insight.body}\n\nÖneri: ${insight.suggestedAction}\n\n— Dijital Mental İkizim Farkındalık Sistemi\n\n* Bu bir teşhis değil, istatistiksel bir farkındalık içgörüsüdür.`,
+      title: `Dijital Mental İİkizim Farkındalık Notu: ${insight.title}`,
+      text: `${insight.title}\n\n${insight.body}\n\nÖneri: ${insight.suggestedAction}\n\n— Dijital Mental İİkizim Farkındalık Sistemi\n\n* Bu bir teşhis değil, istatistiksel bir farkındalık içgörüsüdür.`,
     });
 
     setShareFeedback(result.message);

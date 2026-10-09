@@ -188,10 +188,10 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
                   <span>Bilişsel Koruma Müdahalesi</span>
                 </div>
                 <h4 className="font-serif font-bold text-lg text-white">
-                  "Şu an bilişsel kapasiten düşük görünüyor. Bu önemli kararı 2 saat sonraya veya yarına bırakmak ister misin?"
+                  "Şu an bilişsel kapasiten düşük görünüyor. Bu önemli kararı 2 saat sonraya veya yarına bırakmak ister misin-
                 </h4>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Yazım ritminizde %38 yavaşlama ve düzeltme oranında ani artış var. Stresli ve yorgun anlarda verilen tepkisel kararların önüne geçmek için Dijital Mental İkizim bu kararı askıya almanızı öneriyor.
+                  Yazım ritminizde %38 yavaşlama ve düzeltme oranında ani artış var. Stresli ve yorgun anlarda verilen tepkisel kararların önüne geçmek için Dijital Mental İİkizim bu kararı askıya almanızı öneriyor.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -293,7 +293,7 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
                   00:{impulseCountdown < 10 ? `0${impulseCountdown}` : impulseCountdown}
                 </div>
                 <div className="text-sm font-serif font-medium text-white/90">
-                  "{mindfulnessBreath}... Bu kararı gerçekten şimdi mi vermek istiyorsun?"
+                  "{mindfulnessBreath}... Bu kararı gerçekten şimdi mi vermek istiyorsun-
                 </div>
                 <p className="text-xs text-white/70 max-w-sm mx-auto leading-relaxed">
                   Cihaz etkileşiminiz 15 saniyeliğine yavaşlatıldı. Sert bir yasaklama değil; pişmanlıkları önleyen bir nefes ve farkındalık anı sunuyoruz.

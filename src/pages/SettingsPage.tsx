@@ -362,7 +362,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         <p className="text-xs text-comus-sand-dark leading-relaxed">
-          Dijital Mental İkizim'in Apple Sağlık veri kaynakları (Data Sources &amp; Access) listesinde görünebilmesi ve uyku/hareket analizleri yapabilmesi için aşağıdaki butona tıklayarak izin verin.
+          Dijital Mental İİkizim'in Apple Sağlık veri kaynakları (Data Sources &amp; Access) listesinde görünebilmesi ve uyku/hareket analizleri yapabilmesi için aşağıdaki butona tıklayarak izin verin.
         </p>
 
         <button
@@ -816,7 +816,7 @@ export const SettingsPage: React.FC = () => {
 
         <div className="space-y-2.5 text-xs text-amber-950 leading-relaxed">
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>Temel Feragatname:</strong> Dijital Mental İkizim, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
+            <strong>Temel Feragatname:</strong> Dijital Mental İİkizim, tıbbi tavsiye, teşhis veya tedavi sunmaz. Uygulama içindeki analizler istatistiksel verilere dayanır ve hata payı içerebilir.
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
@@ -839,7 +839,7 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-1">
-            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, Dijital Mental İkizim ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
+            <strong>İlişki Beyanı:</strong> Uygulama kullanımı, Dijital Mental İİkizim ile kullanıcı arasında 'doktor-hasta' veya 'terapist-danışan' ilişkisi kurmaz.
           </div>
         </div>
       </div>

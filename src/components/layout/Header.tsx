@@ -18,11 +18,11 @@ export const Header: React.FC = () => {
         {/* Brand with New Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group">
           <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-comus-sand-light/30 shadow-soft group-hover:scale-105 transition-transform">
-            <img src={logoImg} alt="Dijital Mental İkizim Logo" className="w-full h-full object-cover" />
+            <img src={logoImg} alt="Dijital Mental İİkizim Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">Dijital Mental İkizim</span>
+              <span className="font-serif font-bold text-lg text-comus-navy tracking-tight">Dijital Mental İİkizim</span>
             </div>
             <p className="text-[11px] text-comus-sand-dark flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline" />

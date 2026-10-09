@@ -28,9 +28,9 @@ export const App: React.FC = () => {
 
     const processAuthUrl = async (urlStr: string) => {
       if (
-        urlStr.startsWith('dijitalmentalikizim://auth-callback') ||
-        urlStr.startsWith('dijitalmentalikizim://google-auth') ||
-        urlStr.startsWith('dijitalmentalikizim://apple-auth') ||
+        urlStr.startsWith('dijitalmentaliİkizim://auth-callback') ||
+        urlStr.startsWith('dijitalmentaliİkizim://google-auth') ||
+        urlStr.startsWith('dijitalmentaliİkizim://apple-auth') ||
         urlStr.includes('googleusercontent.apps')
       ) {
         try {

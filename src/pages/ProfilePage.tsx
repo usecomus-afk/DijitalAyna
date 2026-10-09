@@ -66,20 +66,20 @@ export const ProfilePage: React.FC = () => {
 
     const safetyTimer = setTimeout(() => {
       setIsSyncing(false);
-      setSyncFeedback('Ä°ÅŸlem zaman aÅŸÄ±mÄ±na uÄŸradÄ±. LÃ¼tfen tekrar deneyin.');
+      setSyncFeedback('İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.');
     }, 12000);
 
     try {
       const res = await syncCloudDataNow();
       clearTimeout(safetyTimer);
       if (res.success) {
-        setSyncFeedback('Buluta baÅŸarÄ±yla yedeklendi.');
+        setSyncFeedback('Buluta başarıyla yedeklendi.');
       } else {
-        setSyncFeedback(res.message || 'Yedekleme baÅŸarÄ±sÄ±z.');
+        setSyncFeedback(res.message || 'Yedekleme başarısız.');
       }
     } catch (err: any) {
       clearTimeout(safetyTimer);
-      setSyncFeedback(err?.message || 'BaÄŸlantÄ± hatasÄ± oluÅŸtu.');
+      setSyncFeedback(err?.message || 'Bağlantı hatası oluştu.');
     } finally {
       clearTimeout(safetyTimer);
       setIsSyncing(false);
@@ -98,14 +98,14 @@ export const ProfilePage: React.FC = () => {
       const dateStr = new Date().toISOString().split('T')[0];
       const safeName = (userProfile.name || 'Kullanici').replace(/\s+/g, '_');
       a.href = url;
-      a.download = `DijitalMentalIkizim_Yedek_${safeName}_${dateStr}.json`;
+      a.download = `DijitalMentalIİkizim_Yedek_${safeName}_${dateStr}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setExportFeedback('9 gÃ¼nlÃ¼k tÃ¼m verileriniz telefonunuza dosya olarak indirildi.');
+      setExportFeedback('9 günlük tüm verileriniz telefonunuza dosya olarak indirildi.');
     } catch {
-      setExportFeedback('Dosya dÄ±ÅŸa aktarÄ±lamadÄ±.');
+      setExportFeedback('Dosya dışa aktarılamadı.');
     } finally {
       setTimeout(() => setExportFeedback(null), 4000);
     }
@@ -117,9 +117,9 @@ export const ProfilePage: React.FC = () => {
     try {
       const text = await file.text();
       const res = await importDataFromJson(text);
-      setExportFeedback(`${res.restoredMetrics} metrik ve ${res.restoredReports} ruh hali kaydÄ± baÅŸarÄ±yla yÃ¼klendi.`);
+      setExportFeedback(`${res.restoredMetrics} metrik ve ${res.restoredReports} ruh hali kaydı başarıyla yüklendi.`);
     } catch (err: any) {
-      setExportFeedback(err?.message || 'Yedek yÃ¼klenirken hata oluÅŸtu.');
+      setExportFeedback(err?.message || 'Yedek yüklenirken hata oluştu.');
     } finally {
       e.target.value = '';
       setTimeout(() => setExportFeedback(null), 4500);
@@ -141,7 +141,7 @@ export const ProfilePage: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     await setUserProfile({
-      name: name.trim() || 'KullanÄ±cÄ±',
+      name: name.trim() || 'Kullanıcı',
       age,
             picture: customPicture,
     });
@@ -161,7 +161,7 @@ export const ProfilePage: React.FC = () => {
       {/* Profile Header Card */}
       <div className="bg-white rounded-3xl p-6 shadow-soft border border-comus-sand-light/20 relative overflow-hidden space-y-6">
         
-        {/* BÃ¶lÃ¼m A: Ãœst Rozet ve DÃ¼zenleme Butonu */}
+        {/* Bölüm A: Üst Rozet ve Düzenleme Butonu */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
           {settings.cloudBackupEnabled && (
             <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5 flex items-center gap-1">
@@ -178,19 +178,19 @@ export const ProfilePage: React.FC = () => {
               setIsEditing(!isEditing);
             }}
             className="hover:bg-slate-100 rounded-full p-1.5 transition text-slate-400 hover:text-slate-700 cursor-pointer"
-            title="Profili DÃ¼zenle"
+            title="Profili Düzenle"
           >
             <Edit2 className="w-4 h-4" />
           </button>
         </div>
 
-        {/* BÃ¶lÃ¼m B: Avatar ve KullanÄ±cÄ± Kimlik AlanÄ± */}
+        {/* Bölüm B: Avatar ve Kullanıcı Kimlik Alanı */}
         <div className="flex flex-col items-center text-center mt-2">
           <div className="relative mb-3">
             <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-[#F5F2EB] to-[#EAE5DC] shadow-sm overflow-hidden flex items-center justify-center">
               <img
                 src={mentalTwin.avatarSrc}
-                alt={mentalTwin.avatarAlt || 'Dijital Mental Ä°kizim Profil FotoÄŸrafÄ±'}
+                alt={mentalTwin.avatarAlt || 'Dijital Mental İİkizim Profil Fotoğrafı'}
                 className="w-full h-full object-contain select-none"
               />
             </div>
@@ -203,16 +203,16 @@ export const ProfilePage: React.FC = () => {
             {userProfile.name || 'Profilim'}
           </h1>
           <div className="text-xs text-slate-500 flex items-center justify-center gap-1.5 mt-1">
-            {userProfile.isGoogleConnected ? 'Google HesabÄ±' : userProfile.isAppleConnected ? 'Apple HesabÄ±' : 'Yerel Hesap'}
+            {userProfile.isGoogleConnected ? 'Google Hesabı' : userProfile.isAppleConnected ? 'Apple Hesabı' : 'Yerel Hesap'}
             <span className="text-slate-300">â€¢</span>
-            {userProfile.email || 'Cihaz iÃ§i ÅŸifreli profil'}
+            {userProfile.email || 'Cihaz içi şifreli profil'}
           </div>
         </div>
 
-        {/* BÃ¶lÃ¼m C: YapÄ±landÄ±rÄ±lmÄ±ÅŸ Bilgi IzgarasÄ± (Bento Grid) */}
+        {/* Bölüm C: Yapılandırılmış Bilgi Izgarası (Bento Grid) */}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">YaÅŸ</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Yaş</span>
             <span className="text-xs font-bold text-slate-700">{userProfile.age || 'Belirtilmedi'}</span>
           </div>
 
@@ -226,12 +226,12 @@ export const ProfilePage: React.FC = () => {
             <span className="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-0.5 border border-amber-100/50">{mentalTwin.stateLabel}</span>
           </div>
           <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baz HattÄ±</span>
-            <span className="text-xs font-bold text-slate-700">{distinctDays} GÃ¼n Aktif</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baz Hattı</span>
+            <span className="text-xs font-bold text-slate-700">{distinctDays} Gün Aktif</span>
           </div>
         </div>
 
-        {/* BÃ¶lÃ¼m D: Alt Buton */}
+        {/* Bölüm D: Alt Buton */}
         {!isEditing && (
           <button
             onClick={() => {
@@ -243,14 +243,14 @@ export const ProfilePage: React.FC = () => {
             }}
             className="w-full mt-2 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
           >
-            Profili ve Hedefleri GÃ¼ncelle
+            Profili ve Hedefleri Güncelle
           </button>
         )}
 
         {saveSuccess && (
           <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
             <Check className="w-4 h-4 text-emerald-600" />
-            <span>Profil bilgileriniz baÅŸarÄ±yla gÃ¼ncellendi.</span>
+            <span>Profil bilgileriniz başarıyla güncellendi.</span>
           </div>
         )}
 
@@ -259,13 +259,13 @@ export const ProfilePage: React.FC = () => {
           <form onSubmit={handleSave} className="mt-5 pt-5 border-t border-comus-sand-light/20 space-y-4 animate-fadeIn">
             {/* Profile Photo Customization */}
             <div className="space-y-1.5 p-3 rounded-2xl bg-comus-surface/60 border border-comus-sand-light/30">
-              <label className="text-xs font-semibold text-comus-navy block">Google / Profil FotoÄŸrafÄ±:</label>
+              <label className="text-xs font-semibold text-comus-navy block">Google / Profil Fotoğrafı:</label>
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-white shadow-soft bg-white shrink-0 flex items-center justify-center">
                   {customPicture ? (
                     <img
                       src={customPicture}
-                      alt="Profil Ã–nizleme"
+                      alt="Profil Önizleme"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
@@ -276,7 +276,7 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-comus-copper/10 border border-comus-sand-light/40 text-xs font-semibold text-comus-navy transition-colors shadow-soft">
                     <Camera className="w-3.5 h-3.5 text-comus-copper" />
-                    <span>FotoÄŸraf SeÃ§</span>
+                    <span>Fotoğraf Seç</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -299,7 +299,7 @@ export const ProfilePage: React.FC = () => {
                       onClick={() => setCustomPicture(undefined)}
                       className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                     >
-                      KaldÄ±r
+                      Kaldır
                     </button>
                   )}
                 </div>
@@ -321,7 +321,7 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-comus-navy block">YaÅŸ:</label>
+                <label className="text-xs font-semibold text-comus-navy block">Yaş:</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -359,7 +359,7 @@ export const ProfilePage: React.FC = () => {
                 onClick={() => setIsEditing(false)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-comus-sand-dark hover:bg-comus-surface transition-colors cursor-pointer"
               >
-                Ä°ptal
+                İptal
               </button>
               <button
                 type="submit"
@@ -381,10 +381,10 @@ export const ProfilePage: React.FC = () => {
             </div>
             <div>
               <h2 className="font-serif font-bold text-base text-comus-navy">
-                Cihaz Ä°Ã§i Baz HattÄ± Durumu
+                Cihaz İçi Baz Hattı Durumu
               </h2>
               <p className="text-xs text-comus-sand-dark">
-                YalnÄ±zca bu cihazdan toplanan gerÃ§ek biyobelirteÃ§ telemetrisi
+                Yalnızca bu cihazdan toplanan gerçek biyobelirteç telemetrisi
               </p>
             </div>
           </div>
@@ -392,18 +392,18 @@ export const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
-            <span className="text-[11px] text-comus-sand-dark block">KayÄ±tlÄ± GÃ¼n</span>
-            <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} GÃ¼n</strong>
+            <span className="text-[11px] text-comus-sand-dark block">Kayıtlı Gün</span>
+            <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} Gün</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
-            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali YoklamasÄ±</span>
-            <strong className="text-lg font-bold font-serif text-comus-navy">{reportsCount} KayÄ±t</strong>
+            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklaması</span>
+            <strong className="text-lg font-bold font-serif text-comus-navy">{reportsCount} Kayıt</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 col-span-2 sm:col-span-1">
             <span className="text-[11px] text-comus-sand-dark block">Yerel Depolama</span>
             <strong className="text-xs font-semibold text-emerald-700 flex items-center gap-1 mt-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>%100 Cihazda Åifreli</span>
+              <span>%100 Cihazda Şifreli</span>
             </strong>
           </div>
         </div>
@@ -419,14 +419,14 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-semibold text-xs sm:text-sm text-comus-navy">
-              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme KapalÄ±'}
+              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalı'}
             </h3>
             <p className="text-[11px] text-comus-sand-dark">
               {settings.cloudBackupEnabled
                 ? settings.lastCloudSyncTimestamp
                   ? `Son yedekleme: ${new Date(settings.lastCloudSyncTimestamp).toLocaleString('tr-TR')}`
-                  : 'Verileriniz hesabÄ±nÄ±zla gÃ¼venle yedekleniyor'
-                : 'Veriler yalnÄ±zca bu telefonda saklanÄ±r. Ayarlar sayfasÄ±ndan aÃ§abilirsiniz.'}
+                  : 'Verileriniz hesabınızla güvenle yedekleniyor'
+                : 'Veriler yalnızca bu telefonda saklanır. Ayarlar sayfasından açabilirsiniz.'}
             </p>
             {syncFeedback && (
               <span className="text-[10.5px] font-semibold text-emerald-600 mt-0.5 block animate-fadeIn">
@@ -447,25 +447,25 @@ export const ProfilePage: React.FC = () => {
               onClick={handleManualSync}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-comus-surface hover:bg-comus-copper-subtle/50 text-comus-navy text-xs font-semibold border border-comus-sand-light/40 transition-colors cursor-pointer shrink-0 disabled:opacity-50 shadow-soft"
-              title="DoÄŸrudan Google Firestore bulutuna yedekle"
+              title="Doğrudan Google Firestore bulutuna yedekle"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-comus-copper ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Yedekleniyor...' : 'Åimdi Yedekle'}</span>
+              <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
             </button>
           )}
 
           <button
             onClick={handleExportJson}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold border border-emerald-200 transition-colors cursor-pointer shrink-0 shadow-soft"
-            title="9 gÃ¼nlÃ¼k verilerinizi telefonunuza JSON dosyasÄ± olarak indirin"
+            title="9 günlük verilerinizi telefonunuza JSON dosyası olarak indirin"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600" />
-            <span>YedeÄŸi Ä°ndir (.json)</span>
+            <span>Yedeği İndir (.json)</span>
           </button>
 
           <label className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold border border-stone-200 transition-colors cursor-pointer shrink-0 shadow-soft">
             <Upload className="w-3.5 h-3.5 text-stone-500" />
-            <span>Geri YÃ¼kle</span>
+            <span>Geri Yükle</span>
             <input
               type="file"
               accept=".json"
@@ -491,7 +491,7 @@ export const ProfilePage: React.FC = () => {
                 Klinik & Uzman Doktor Raporu
               </div>
               <div className="text-[11px] text-comus-sand-dark">
-                BiyobelirteÃ§ deÄŸiÅŸimlerini ve ilaÃ§ etkileÅŸimlerini hekiminizle paylaÅŸÄ±n
+                Biyobelirteç değişimlerini ve ilaç etkileşimlerini hekiminizle paylaşın
               </div>
             </div>
           </div>
@@ -508,10 +508,10 @@ export const ProfilePage: React.FC = () => {
             </div>
             <div>
               <div className="font-semibold text-xs sm:text-sm text-comus-navy">
-                Cihaz SensÃ¶r & Bildirim AyarlarÄ±
+                Cihaz Sensör & Bildirim Ayarları
               </div>
               <div className="text-[11px] text-comus-sand-dark">
-                Ä°vmeÃ¶lÃ§er, yazÄ±m ritmi, bildirimler ve veri sÄ±fÄ±rlama
+                İvmeölçer, yazım ritmi, bildirimler ve veri sıfırlama
               </div>
             </div>
           </div>

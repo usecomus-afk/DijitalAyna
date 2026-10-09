@@ -24,7 +24,7 @@ class NotificationService {
       if (Capacitor.isNativePlatform()) {
         // Register standard notification channels
         await LocalNotifications.createChannel({
-          id: 'dijital_mental_ikizim_reminders',
+          id: 'dijital_mental_iİkizim_reminders',
           name: 'Günlük Farkındalık Hatırlatıcıları',
           description: 'Sabah ve akşam ruh hali / bilişsel yoklama bildirimleri',
           importance: 4,
@@ -33,7 +33,7 @@ class NotificationService {
         }).catch(() => {});
 
         await LocalNotifications.createChannel({
-          id: 'dijital_mental_ikizim_alerts',
+          id: 'dijital_mental_iİkizim_alerts',
           name: 'Bilişsel Fren & Öngörücü Uyarılar',
           description: 'Anomali ve stres kayması acil durum bildirimleri',
           importance: 5,
@@ -111,17 +111,17 @@ class NotificationService {
           notifications: [
             {
               id: 9999,
-              title: 'Dijital Mental İkizim Bildirim Sistemi 🔔',
+              title: 'Dijital Mental İİkizim Bildirim Sistemi 🔔',
               body: 'iOS bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
               schedule: { at: new Date(Date.now() + 1000) },
               sound: 'beep.wav',
-              channelId: 'dijital_mental_ikizim_alerts',
+              channelId: 'dijital_mental_iİkizim_alerts',
               extra: { type: 'test' },
             },
           ],
         });
       } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Dijital Mental İkizim Bildirim Sistemi 🔔', {
+        new Notification('Dijital Mental İİkizim Bildirim Sistemi 🔔', {
           body: 'Bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
           icon: '/logo.png',
         });
@@ -167,7 +167,7 @@ class NotificationService {
           notifications: [
             {
               id: 1001,
-              title: 'Günün İlk Dijital Mental İkizim Yansıması 🪞',
+              title: 'Günün İlk Dijital Mental İİkizim Yansıması 🪞',
               body: 'Güne nasıl başladınız? Anlık hissiyatınızı ve sabah enerjinizi kaydetmek için dokunun.',
               schedule: {
                 at: morning,
@@ -175,7 +175,7 @@ class NotificationService {
                 every: 'day',
               },
               sound: 'beep.wav',
-              channelId: 'dijital_mental_ikizim_reminders',
+              channelId: 'dijital_mental_iİkizim_reminders',
               extra: { type: 'morning_checkin' },
             },
             {
@@ -188,7 +188,7 @@ class NotificationService {
                 every: 'day',
               },
               sound: 'beep.wav',
-              channelId: 'dijital_mental_ikizim_reminders',
+              channelId: 'dijital_mental_iİkizim_reminders',
               extra: { type: 'evening_reflection' },
             },
           ],
@@ -216,7 +216,7 @@ class NotificationService {
               body,
               schedule: { at: new Date(Date.now() + 500) },
               sound: 'beep.wav',
-              channelId: 'dijital_mental_ikizim_alerts',
+              channelId: 'dijital_mental_iİkizim_alerts',
               extra: { type: 'predictive_alert' },
             },
           ],
@@ -287,7 +287,7 @@ class NotificationService {
             body: getRandomQuote(mindfulnessQuotes.morning),
             schedule: { at: morning, repeats: true, every: 'day' },
             sound: 'beep.wav',
-            channelId: 'dijital_mental_ikizim_reminders',
+            channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_morning' },
           });
         }
@@ -304,7 +304,7 @@ class NotificationService {
             body: getRandomQuote(mindfulnessQuotes.noon),
             schedule: { at: noon, repeats: true, every: 'day' },
             sound: 'beep.wav',
-            channelId: 'dijital_mental_ikizim_reminders',
+            channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_noon' },
           });
         }
@@ -321,7 +321,7 @@ class NotificationService {
             body: getRandomQuote(mindfulnessQuotes.evening),
             schedule: { at: evening, repeats: true, every: 'day' },
             sound: 'beep.wav',
-            channelId: 'dijital_mental_ikizim_reminders',
+            channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_evening' },
           });
         }
@@ -359,7 +359,7 @@ class NotificationService {
               body: `${name} ilacınızı alma saatiniz geldi.`,
               schedule: { at, repeats: true, every: 'day' },
               sound: 'beep.wav',
-              channelId: 'dijital_mental_ikizim_reminders',
+              channelId: 'dijital_mental_iİkizim_reminders',
             }
           ]
         });

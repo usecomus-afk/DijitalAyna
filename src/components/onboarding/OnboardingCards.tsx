@@ -17,7 +17,7 @@ const CARDS: OnboardingCardData[] = [
     badge: 'ADIM 1 / 5 • KİŞİSEL BAZ HATTI',
     title: 'Seni Başkalarıyla Kıyaslamaz, Senin Normalini Öğrenir',
     body:
-      'Herkesin biyolojik saati farklıdır. Kimi için günde 6 saat uyku yeterliyken, kimi için 8 saat normaldir. Mental Dijital İkiz sabit genel kalıplar kullanmaz. İlk 14 gün boyunca senin hareket, uyku ve kullanım alışkanlıklarını sessizce izleyerek sadece sana özel bir "olağan durum" (baz hattı) oluşturur.',
+      'Herkesin biyolojik saati farklıdır. Kimi için günde 6 saat uyku yeterliyken, kimi için 8 saat normaldir. Mental Dijital İkiz sabit genel kalıplar kullanımaz. İlk 14 gün boyunca senin hareket, uyku ve kullanım alışkanlıklarını sessizce izleyerek sadece sana özel bir "olağan durum" (baz hattı) oluşturur.',
     highlight:
       'Sistem, seni ortalama bir insanla değil; bugünkü seni, geçmiş 14 gündeki olağan sen ile kıyaslar.',
   },
@@ -41,7 +41,7 @@ const CARDS: OnboardingCardData[] = [
     badge: 'ADIM 4 / 5 • BİLİŞSEL VE MOTOR RİTİM',
     title: 'Ne Yazdığına Değil, Nasıl Yazdığına Bakar',
     body:
-      'Gizliliğin tamdır; yazdığın kelimeler veya harfler asla kaydedilmez. Yalnızca tuşa basılı tutma süren (milisaniye) ve silme tuşunu kullanma sıklığın ölçülür.',
+      'Gizliliğin tamdır; yazdığın kelimeler veya harfler asla kaydedilmez. Yalnızca tuşa basılı tutma süren (milisaniye) ve silme tuşunu kullanıma sıklığın ölçülür.',
     example:
       'Uygulama içine günlük notunu yazarken tuşlara basılı tutma süren olağandan belirgin şekilde uzadıysa ve sık sık silip baştan yazıyorsan; bu durum zihinsel yorgunluk ve dikkat dalgalanmasının bir yansıması olabilir.',
   },

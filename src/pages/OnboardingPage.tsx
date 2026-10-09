@@ -92,12 +92,12 @@ export const OnboardingPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center p-1 border border-comus-sand-light/30 shadow-soft">
-              <img src={logoImg} alt="Dijital Mental Ä°kizim Logo" className="w-full h-full object-contain" />
+              <img src={logoImg} alt="Dijital Mental İİkizim Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-serif font-bold text-comus-navy">Dijital Mental Ä°kizim</span>
+            <span className="font-serif font-bold text-comus-navy">Dijital Mental İİkizim</span>
           </div>
           <span className="text-xs font-semibold text-comus-sand-dark">
-            AdÄ±m {step} / 4
+            Adım {step} / 4
           </span>
         </div>
         <div className="w-full bg-comus-sand-light/30 h-1.5 rounded-full overflow-hidden">
@@ -112,18 +112,18 @@ export const OnboardingPage: React.FC = () => {
       {step === 1 && (
         <div className="my-auto py-6 animate-fadeIn">
           <div className="w-20 h-20 rounded-3xl bg-white border border-comus-sand-light/30 flex items-center justify-center p-2 mb-6 shadow-soft">
-            <img src={logoImg} alt="Dijital Mental Ä°kizim Logo" className="w-full h-full object-contain" />
+            <img src={logoImg} alt="Dijital Mental İİkizim Logo" className="w-full h-full object-contain" />
           </div>
 
           <span className="text-xs font-bold uppercase tracking-widest text-comus-copper">
-            KiÅŸiselleÅŸtirilmiÅŸ BiyobelirteÃ§ Takibi
+            Kişiselleştirilmiş Biyobelirteç Takibi
           </span>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-comus-navy mt-1 mb-3 leading-tight">
-            Dijital Mental Ä°kizim'e HoÅŸ Geldin.
+            Dijital Mental İİkizim'e Hoş Geldin.
           </h1>
 
           <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed mb-6">
-            Dijital Mental Ä°kizim tÄ±bbi teÅŸhis koymaz; akÄ±llÄ± cihazÄ±nÄ±zla etkileÅŸiminizdeki ince ritimleri izleyerek size Ã¶zel dijital baz hattÄ±nÄ±zÄ± oluÅŸturur. BaÅŸlamak iÃ§in Google veya Apple hesabÄ±nÄ±zla giriÅŸ yapÄ±n:
+            Dijital Mental İİkizim tıbbi teşhis koymaz; akıllı cihazınızla etkileşiminizdeki ince ritimleri izleyerek size özel dijital baz hattınızı oluşturur. Başlamak için Google veya Apple hesabınızla giriş yapın:
           </p>
 
           <div className="bg-white p-5 sm:p-6 rounded-3xl border border-comus-sand-light/20 shadow-soft">
@@ -134,7 +134,7 @@ export const OnboardingPage: React.FC = () => {
                 type="button"
                 onClick={async () => {
                   await setUserProfile({
-                    name: 'Demo KullanÄ±cÄ±sÄ±',
+                    name: 'Demo Kullanıcısı',
                     email: 'demo@apple.com',
                     isPasswordAccount: true,
                     createdAt: Date.now()
@@ -143,7 +143,7 @@ export const OnboardingPage: React.FC = () => {
                 }}
                 className="w-full py-3 px-4 bg-comus-surface text-comus-navy border-2 border-comus-navy/10 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-comus-sand-light/20 transition-colors"
               >
-                <span>GiriÅŸ Yapmadan Ä°ncele (Demo Modu)</span>
+                <span>Giriş Yapmadan İncele (Demo Modu)</span>
               </button>
             </div>
           </div>
@@ -162,10 +162,10 @@ export const OnboardingPage: React.FC = () => {
               Biyometrik Kalibrasyon
             </span>
             <h2 className="font-serif text-2xl font-bold text-comus-navy mt-1 mb-2">
-              YaÅŸ ve Cinsiyet Bilgisi
+              Yaş ve Cinsiyet Bilgisi
             </h2>
             <p className="text-xs text-comus-sand-dark leading-relaxed">
-              YazÄ±m akÄ±cÄ±lÄ±ÄŸÄ±, motor titreme ve sirkadiyen ritim normlarÄ± yaÅŸ ve biyolojik faktÃ¶rlere gÃ¶re deÄŸiÅŸir. Bu bilgiler baz hattÄ±nÄ±zÄ± doÄŸru kalibre etmek iÃ§in yalnÄ±zca cihazÄ±nÄ±zda saklanÄ±r.
+              Yazım akıcılığı, motor titreme ve sirkadiyen ritim normları yaş ve biyolojik faktörlere göre değişir. Bu bilgiler baz hattınızı doğru kalibre etmek için yalnızca cihazınızda saklanır.
             </p>
           </div>
 
@@ -173,10 +173,10 @@ export const OnboardingPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-comus-navy flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-comus-copper" />
-                <span>YaÅŸÄ±nÄ±z:</span>
+                <span>Yaşınız:</span>
               </label>
               <span className="text-base font-serif font-bold text-comus-navy">
-                {selectedAge} yaÅŸ
+                {selectedAge} yaş
               </span>
             </div>
             <input
@@ -202,13 +202,13 @@ export const OnboardingPage: React.FC = () => {
       {step === 3 && (
         <div className="my-auto py-6 animate-fadeIn">
           <span className="text-xs font-bold uppercase tracking-widest text-comus-copper">
-            Maksimum SensÃ¶r Hassasiyeti
+            Maksimum Sensör Hassasiyeti
           </span>
           <h2 className="font-serif text-2xl font-bold text-comus-navy mt-1 mb-2">
-            Cihaz BiyobelirteÃ§ Ä°zinleri
+            Cihaz Biyobelirteç İzinleri
           </h2>
           <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed mb-4">
-            Uygulama tam bir mobil deneyim saÄŸlamak iÃ§in cihaz sensÃ¶rlerinizden nesnel telemetri toplar. TÃ¼m hesaplamalar %100 telefonunuzda yerel iÅŸlenir:
+            Uygulama tam bir mobil deneyim sağlamak için cihaz sensörlerinizden nesnel telemetri toplar. Tüm hesaplamalar %100 telefonunuzda yerel işlenir:
           </p>
 
           <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
@@ -221,10 +221,10 @@ export const OnboardingPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-bold text-xs text-comus-navy">
-                      Bulut Yedekleme & SÄ±fÄ±rlanmama KorumasÄ± (Ä°steÄŸe BaÄŸlÄ±)
+                      Bulut Yedekleme & Sıfırlanmama Koruması (İsteğe Bağlı)
                     </div>
                     <div className="text-[10.5px] text-emerald-800 font-semibold">
-                      UygulamayÄ± silseniz bile baz hattÄ±nÄ±z (1/7 gÃ¼n) kaybolmaz
+                      Uygulamayı silseniz bile baz hattınız (1/7 gün) kaybolmaz
                     </div>
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export const OnboardingPage: React.FC = () => {
                 />
               </div>
               <p className="text-[11px] text-comus-sand-dark leading-relaxed pl-10.5">
-                KiÅŸisel biyobelirteÃ§leriniz Google hesabÄ±nÄ±zla ÅŸifreli olarak bulutta saklanÄ±r. UygulamayÄ± kaldÄ±rsanÄ±z dahi aynÄ± hesapla girdiÄŸinizde kaldÄ±ÄŸÄ±nÄ±z gÃ¼nden itibaren otomatik tanÄ±nÄ±rsÄ±nÄ±z.
+                Kişisel biyobelirteçleriniz Google hesabınızla şifreli olarak bulutta saklanır. Uygulamayı kaldırsanız dahi aynı hesapla girdiğinizde kaldığınız günden itibaren otomatik tanınırsınız.
               </p>
             </div>
 
@@ -246,8 +246,8 @@ export const OnboardingPage: React.FC = () => {
                   <Smartphone className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">Hareket & Titreme (Ä°vmeÃ¶lÃ§er / Jiroskop)</div>
-                  <div className="text-[11px] text-comus-sand-dark">Mikrotremor, motor stabilite ve yÃ¼rÃ¼me ritmi</div>
+                  <div className="font-semibold text-xs text-comus-navy">Hareket & Titreme (İvmeölçer / Jiroskop)</div>
+                  <div className="text-[11px] text-comus-sand-dark">Mikrotremor, motor stabilite ve yürüme ritmi</div>
                 </div>
               </div>
               <input
@@ -263,8 +263,8 @@ export const OnboardingPage: React.FC = () => {
                   <Keyboard className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">YazÄ±m AkÄ±cÄ±lÄ±ÄŸÄ± (Keystroke Dynamics)</div>
-                  <div className="text-[11px] text-comus-sand-dark">YazÄ±m temposu ve duraklama (iÃ§erik ASLA okunmaz)</div>
+                  <div className="font-semibold text-xs text-comus-navy">Yazım Akıcılığı (Keystroke Dynamics)</div>
+                  <div className="text-[11px] text-comus-sand-dark">Yazım temposu ve duraklama (içerik ASLA okunmaz)</div>
                 </div>
               </div>
               <input
@@ -280,8 +280,8 @@ export const OnboardingPage: React.FC = () => {
                   <Mic className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">Ses Ton DinamiÄŸi & Ritim (Web Audio API)</div>
-                  <div className="text-[11px] text-comus-sand-dark">KonuÅŸma ritmi ve perde varyansÄ± (ses kaydÄ± yapÄ±lmaz)</div>
+                  <div className="font-semibold text-xs text-comus-navy">Ses Ton Dinamiği & Ritim (Web Audio API)</div>
+                  <div className="text-[11px] text-comus-sand-dark">Konuşma ritmi ve perde varyansı (ses kaydı yapılmaz)</div>
                 </div>
               </div>
               <input
@@ -297,8 +297,8 @@ export const OnboardingPage: React.FC = () => {
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">Sirkadiyen Mobilite & YaÅŸam AlanÄ±</div>
-                  <div className="text-[11px] text-comus-sand-dark">Ev-Ã§alÄ±ÅŸma hareketlilik yarÄ±Ã§apÄ± ve aÃ§Ä±k hava dÃ¶ngÃ¼sÃ¼</div>
+                  <div className="font-semibold text-xs text-comus-navy">Sirkadiyen Mobilite & Yaşam Alanı</div>
+                  <div className="text-[11px] text-comus-sand-dark">Ev-çalışma hareketlilik yarıçapı ve açık hava döngüsü</div>
                 </div>
               </div>
               <input
@@ -314,8 +314,8 @@ export const OnboardingPage: React.FC = () => {
                   <BatteryCharging className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">Pil & Åarj AlÄ±ÅŸkanlÄ±klarÄ± (Battery Status)</div>
-                  <div className="text-[11px] text-comus-sand-dark">Gece ÅŸarj dÃ¼zeni ve cihaz aÃ§Ä±k kalma dÃ¶ngÃ¼sÃ¼</div>
+                  <div className="font-semibold text-xs text-comus-navy">Pil & Şarj Alışkanlıkları (Battery Status)</div>
+                  <div className="text-[11px] text-comus-sand-dark">Gece şarj düzeni ve cihaz açık kalma döngüsü</div>
                 </div>
               </div>
               <input
@@ -331,8 +331,8 @@ export const OnboardingPage: React.FC = () => {
                   <Wifi className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">AÄŸ ve Ã‡evrimdÄ±ÅŸÄ± Durumu (Network Telemetry)</div>
-                  <div className="text-[11px] text-comus-sand-dark">BaÄŸlantÄ± kararlÄ±lÄ±ÄŸÄ± ve Ã§evrimdÄ±ÅŸÄ± Ã§alÄ±ÅŸma doÄŸrulamasÄ±</div>
+                  <div className="font-semibold text-xs text-comus-navy">Ağ ve Çevrimdışı Durumu (Network Telemetry)</div>
+                  <div className="text-[11px] text-comus-sand-dark">Bağlantı kararlılığı ve çevrimdışı çalışma doğrulaması</div>
                 </div>
               </div>
               <input
@@ -349,7 +349,7 @@ export const OnboardingPage: React.FC = () => {
                 </div>
                 <div>
                   <div className="font-semibold text-xs text-comus-navy">iOS Bildirimleri & Yoklamalar</div>
-                  <div className="text-[11px] text-comus-sand-dark">Sabah 09:00 ve akÅŸam 21:00 durum kontrolÃ¼</div>
+                  <div className="text-[11px] text-comus-sand-dark">Sabah 09:00 ve akşam 21:00 durum kontrolü</div>
                 </div>
               </div>
               <input
@@ -374,26 +374,26 @@ export const OnboardingPage: React.FC = () => {
             Gizlilik ve Sorumluluk
           </span>
           <h2 className="font-serif text-2xl font-bold text-comus-navy mt-1 mb-3">
-            GÃ¼venliÄŸin & Tam Yerel Depolama
+            Güvenliğin & Tam Yerel Depolama
           </h2>
 
           <div className="space-y-3.5 text-xs sm:text-sm text-comus-sand-dark leading-relaxed">
             <div className="p-4 bg-white rounded-2xl border border-comus-sand-light/30 shadow-soft">
               <h4 className="font-semibold text-comus-navy mb-1 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                TÄ±bbi TeÅŸhis DeÄŸildir
+                Tıbbi Teşhis Değildir
               </h4>
               <p>
-                Dijital Mental Ä°kizim bir tÄ±bbi tanÄ± veya klinik tedavi aracÄ± deÄŸildir. DavranÄ±ÅŸsal deÄŸiÅŸimleri istatistiksel baz hattÄ± Ã¼zerinden ayna tutarak farkÄ±ndalÄ±k sunar.
+                Dijital Mental İİkizim bir tıbbi tanı veya klinik tedavi aracı değildir. Davranışsal değişimleri istatistiksel baz hattı üzerinden ayna tutarak farkındalık sunar.
               </p>
             </div>
 
             <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200">
               <h4 className="font-semibold text-rose-900 mb-1">
-                Acil Durum ve Kriz DesteÄŸi
+                Acil Durum ve Kriz Desteği
               </h4>
               <p className="text-rose-800">
-                AÅŸÄ±rÄ± zorlanma, kriz veya tehlike anÄ±nda lÃ¼tfen vakit kaybetmeden <strong>112 Acil</strong> veya <strong>Alo 182</strong> hatlarÄ±nÄ± arayarak hekim ve uzman desteÄŸine baÅŸvurun.
+                Aşırı zorlanma, kriz veya tehlike anında lütfen vakit kaybetmeden <strong>112 Acil</strong> veya <strong>Alo 182</strong> hatlarını arayarak hekim ve uzman desteğine başvurun.
               </p>
             </div>
           </div>
@@ -419,7 +419,7 @@ export const OnboardingPage: React.FC = () => {
             onClick={handleDemographicsSubmit}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-comus-navy text-white text-xs sm:text-sm font-semibold hover:bg-comus-navy-light shadow-soft transition-all cursor-pointer"
           >
-            <span>Ä°zinlere GeÃ§</span>
+            <span>İzinlere Geç</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         )}
@@ -439,7 +439,7 @@ export const OnboardingPage: React.FC = () => {
             onClick={handleFinish}
             className="flex items-center gap-2 px-7 py-3 rounded-2xl bg-comus-copper text-white text-xs sm:text-sm font-semibold hover:bg-comus-copper-dark shadow-soft-lg transition-all cursor-pointer"
           >
-            <span>AnladÄ±m, Aynaya BaÅŸla</span>
+            <span>Anladım, Aynaya Başla</span>
             <Check className="w-4 h-4" />
           </button>
         )}

@@ -346,7 +346,7 @@ export async function exportLocalDataAsJson(): Promise<string> {
     ]);
 
   const exportObj = {
-    app: 'Dijital Mental İkizim',
+    app: 'Dijital Mental İİkizim',
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
     userProfile: profileItem?.value,
@@ -370,12 +370,12 @@ export async function importDataFromJson(
   const data = JSON.parse(jsonString);
   if (
     !data ||
-    (data.app !== 'Dijital Mental İkizim' &&
-      data.app !== 'DijitalMentalIkizim' &&
+    (data.app !== 'Dijital Mental İİkizim' &&
+      data.app !== 'DijitalMentalIİkizim' &&
       data.app !== 'MentalDijitalAyna' &&
-      data.app !== 'DijitalMentalIkizim')
+      data.app !== 'DijitalMentalIİkizim')
   ) {
-    throw new Error('Geçersiz Dijital Mental İkizim yedek dosyası.');
+    throw new Error('Geçersiz Dijital Mental İİkizim yedek dosyası.');
   }
 
   let restoredMetrics = 0;

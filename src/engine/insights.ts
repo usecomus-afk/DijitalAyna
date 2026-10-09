@@ -210,7 +210,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
           ? 'Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor. 14 günlük stabil baz hattınız oluştuktan sonra kişiselleştirilmiş içgörüler ve anomali analizleri üretilecektir.'
           : 'Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel baz hattınla son derece uyumlu ve dengeli seyrediyor.',
         suggestedAction: isLearning
-          ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
+          ? 'Cihazınızı her zamanki gibi doğal akışında kullanımaya devam edebilirsiniz.'
           : 'Bu dingin ve sürdürülebilir ritmini korumak için günün keyfini çıkarabilirsin.',
         evidence: evidenceList,
         dismissed: false,
@@ -233,7 +233,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         ? 'Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor. 14 günlük stabil baz hattınız oluştuktan sonra kişiselleştirilmiş içgörüler ve anomali analizleri üretilecektir.'
         : 'Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz başarıyla incelendi. Belirgin bir risk faktörü veya tükenmişlik sapması tespit edilmedi.',
       suggestedAction: isLearning
-        ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
+        ? 'Cihazınızı her zamanki gibi doğal akışında kullanımaya devam edebilirsiniz.'
         : 'Doğal ritminizi korumak için gününüze dengeli molalar eklemeye devam edebilirsiniz.',
       evidence: [mobEv, wpmEv].filter(Boolean) as EvidenceItem[],
       dismissed: false,
