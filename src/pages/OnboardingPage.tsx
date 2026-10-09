@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { AuthPanel } from '../components/auth/AuthPanel';
 import { UserProfile } from '../types/user';
@@ -314,7 +314,7 @@ export const OnboardingPage: React.FC = () => {
                   <BatteryCharging className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-comus-navy">Pil & Şarj Alışkanlıkları (Battery Status)</div>
+                  <div className="font-semibold text-xs text-comus-navy">Pil & Şarj Alışkanlıkları (Battery Status)</div>
                   <div className="text-[11px] text-comus-sand-dark">Gece şarj düzeni ve cihaz açık kalma döngüsü</div>
                 </div>
               </div>

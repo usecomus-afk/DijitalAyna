@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -204,7 +204,7 @@ export const ProfilePage: React.FC = () => {
           </h1>
           <div className="text-xs text-slate-500 flex items-center justify-center gap-1.5 mt-1">
             {userProfile.isGoogleConnected ? 'Google Hesabı' : userProfile.isAppleConnected ? 'Apple Hesabı' : 'Yerel Hesap'}
-            <span className="text-slate-300">â€¢</span>
+            <span className="text-slate-300">•</span>
             {userProfile.email || 'Cihaz içi şifreli profil'}
           </div>
         </div>
@@ -396,14 +396,14 @@ export const ProfilePage: React.FC = () => {
             <strong className="text-lg font-bold font-serif text-comus-navy">{distinctDays} Gün</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20">
-            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklaması</span>
+            <span className="text-[11px] text-comus-sand-dark block">Ruh Hali Yoklamasıı</span>
             <strong className="text-lg font-bold font-serif text-comus-navy">{reportsCount} Kayıt</strong>
           </div>
           <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/20 col-span-2 sm:col-span-1">
             <span className="text-[11px] text-comus-sand-dark block">Yerel Depolama</span>
             <strong className="text-xs font-semibold text-emerald-700 flex items-center gap-1 mt-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>%100 Cihazda Şifreli</span>
+              <span>%100 Cihazda Şifreli</span>
             </strong>
           </div>
         </div>
@@ -419,7 +419,7 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-semibold text-xs sm:text-sm text-comus-navy">
-              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalı'}
+              {settings.cloudBackupEnabled ? 'Bulut Senkronizasyonu & Yedekleme Aktif' : 'Bulut Yedekleme Kapalıı'}
             </h3>
             <p className="text-[11px] text-comus-sand-dark">
               {settings.cloudBackupEnabled
@@ -450,7 +450,7 @@ export const ProfilePage: React.FC = () => {
               title="Doğrudan Google Firestore bulutuna yedekle"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-comus-copper ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
+              <span>{isSyncing ? 'Yedekleniyor...' : 'Şimdi Yedekle'}</span>
             </button>
           )}
 
@@ -511,7 +511,7 @@ export const ProfilePage: React.FC = () => {
                 Cihaz Sensör & Bildirim Ayarları
               </div>
               <div className="text-[11px] text-comus-sand-dark">
-                İvmeölçer, yazım ritmi, bildirimler ve veri sıfırlama
+                İİvmeölçer, yazım ritmi, bildirimler ve veri sıfırlama
               </div>
             </div>
           </div>
