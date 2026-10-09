@@ -14,11 +14,14 @@ platform :ios do
 
     # Otomatik Kod İmzalama (Automatic Code Signing)
     # Match yerine Xcode'un otomatik imzalama özelliğini API Key ile kullanıyoruz.
+    key_content = ENV["APP_STORE_CONNECT_API_KEY_KEY"].gsub(/\\n/, "\n")
+    File.write(File.expand_path("~/api_key.p8"), key_content)
+
     build_app(
       project: "App.xcodeproj",
       scheme: "App",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates DEVELOPMENT_TEAM=R8LQC6KZG8"
+      xcargs: "-allowProvisioningUpdates DEVELOPMENT_TEAM=R8LQC6KZG8 -authenticationKeyIssuerID #{ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID']} -authenticationKeyID #{ENV['APP_STORE_CONNECT_API_KEY_KEY_ID']} -authenticationKeyPath #{File.expand_path('~/api_key.p8')}"
     )
 
     upload_to_app_store(skip_screenshots: true, skip_metadata: true)
