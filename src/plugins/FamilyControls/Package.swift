@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "ComusFamilyControls",
-    platforms: [.iOS(.v16)],
+    platforms: [.iOS(.v15)],
     products: [
         .library(
             name: "ComusFamilyControls",
