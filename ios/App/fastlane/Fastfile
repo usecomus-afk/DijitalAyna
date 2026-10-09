@@ -24,6 +24,6 @@ platform :ios do
       xcargs: "-allowProvisioningUpdates DEVELOPMENT_TEAM=R8LQC6KZG8 -authenticationKeyIssuerID #{ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID']} -authenticationKeyID #{ENV['APP_STORE_CONNECT_API_KEY_KEY_ID']} -authenticationKeyPath #{File.expand_path('~/api_key.p8')}"
     )
 
-    upload_to_app_store(skip_screenshots: true, skip_metadata: true)
+    upload_to_app_store(skip_screenshots: true, skip_metadata: true, run_precheck_before_submit: false)
   end
 end
