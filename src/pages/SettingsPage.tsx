@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { healthService } from '../services/native/healthService';
 import { FamilyControls } from 'comus-family-controls';
+import { DigitalNarcoticModal } from '../components/shield/DigitalNarcoticModal';
 import { AuthPanel } from '../components/auth/AuthPanel';
 import {
   Settings,
@@ -143,6 +144,8 @@ export const SettingsPage: React.FC = () => {
       setTimeout(() => setCloudActionFeedback(null), 4000);
     }
   };
+
+  const [showNarcoticModal, setShowNarcoticModal] = useState(false);
 
   return (
     <div className="space-y-6 pb-24 animate-fadeIn">
@@ -332,10 +335,13 @@ export const SettingsPage: React.FC = () => {
             <div className="flex gap-2">
                <button onClick={async () => { await FamilyControls.setShield(); alert('Kalkan Aktif!'); }} className="flex-1 py-2 rounded-xl bg-slate-100 text-xs font-semibold hover:bg-slate-200 cursor-pointer text-slate-700">Test: Kalkanı Kur</button>
                <button onClick={async () => { await FamilyControls.clearShield(); alert('Kalkan Kaldırıldı!'); }} className="flex-1 py-2 rounded-xl bg-slate-100 text-xs font-semibold hover:bg-slate-200 cursor-pointer text-slate-700">Test: Kalkanı İndir</button>
+            
+               <button onClick={() => setShowNarcoticModal(true)} className="flex-1 py-2 rounded-xl bg-slate-100 text-xs font-semibold hover:bg-slate-200 cursor-pointer text-slate-700">Test: Kalkan Arayüzü</button>
             </div>
-          </div>
+</div>
         </div>
 
+        <DigitalNarcoticModal isOpen={showNarcoticModal} onClose={() => setShowNarcoticModal(false)} />
 
         {/* 2. APPLE SAĞLIK (HEALTHKIT) ENTEGRASYONU */}
       <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">

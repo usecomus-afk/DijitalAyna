@@ -4,7 +4,7 @@ import { EvidenceItem, Insight, PredictiveAlert } from '../types/engine';
 import { detectAnomaliesForDay } from './anomaly';
 import { synthesizeBiomarkers } from './biomarkers';
 import { evaluatePredictivePatterns } from './prediction';
-import { checkAndTriggerCrisisIfNeeded } from '../safety/crisisDetector';
+import { checkAndTriggerCrisisIfNeeded, checkVulnerableWindowForShield } from '../safety/crisisDetector';
 import { notificationService } from '../services/notificationService';
 import { calculateRecentMoodScore, calculateEmotionalBalanceIndex } from './avatarNarrative';
 import { ClinicalPhenotypeClassifier } from '../classifier/ClinicalPhenotypeClassifier';
@@ -78,6 +78,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
     const recentMoods = await db.moodReports.orderBy('date').reverse().limit(5).toArray();
     if (!isLearning) {
       checkAndTriggerCrisisIfNeeded(anomalies, recentMoods);
+      checkVulnerableWindowForShield(anomalies);
     }
   } catch {
     // Graceful fallback in environments where moodReports may be empty
