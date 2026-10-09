@@ -7,9 +7,11 @@ import { MedicationImpactChart } from '../components/charts/MedicationImpactChar
 import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 import { Disclaimer } from '../components/common/Disclaimer';
 import { LineChart, Calendar, Tag, Pill, Sparkles } from 'lucide-react';
+import { getAvatarMap } from '../constants/avatars';
 
 export const TriggersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mood' | 'medication'>('mood');
+  const avatarMap = getAvatarMap();
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
@@ -137,12 +139,12 @@ export const TriggersPage: React.FC = () => {
             {moodReports.length > 0 ? (
               <div className="space-y-3">
                 {moodReports.slice(0, 8).map((mood) => {
-                  const moodLabels: Record<number, { emoji: string; text: string; color: string; bgColor: string }> = {
-                    1: { emoji: '😩', text: 'Zorlu', color: 'bg-rose-50 text-rose-700 border-rose-200', bgColor: 'bg-rose-50' },
-                    2: { emoji: '😕', text: 'Düşük', color: 'bg-amber-50 text-amber-800 border-amber-200', bgColor: 'bg-[#FEF5E7]' },
-                    3: { emoji: '😐', text: 'Normal', color: 'bg-stone-50 text-stone-700 border-stone-200', bgColor: 'bg-[#EEF2FA]' },
-                    4: { emoji: '😊', text: 'İyi', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', bgColor: 'bg-emerald-50' },
-                    5: { emoji: '🤩', text: 'Harika', color: 'bg-teal-50 text-teal-700 border-teal-200', bgColor: 'bg-purple-50' },
+                  const moodLabels: Record<number, { avatarSrc: string; text: string; color: string; bgColor: string }> = {
+                    1: { avatarSrc: avatarMap.zorlu, text: 'Zorlu', color: 'bg-rose-50 text-rose-700 border-rose-200', bgColor: 'bg-rose-50' },
+                    2: { avatarSrc: avatarMap.dusuk, text: 'Düşük', color: 'bg-amber-50 text-amber-800 border-amber-200', bgColor: 'bg-[#FEF5E7]' },
+                    3: { avatarSrc: avatarMap.normal, text: 'Normal', color: 'bg-stone-50 text-stone-700 border-stone-200', bgColor: 'bg-[#EEF2FA]' },
+                    4: { avatarSrc: avatarMap.iyi, text: 'İyi', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', bgColor: 'bg-emerald-50' },
+                    5: { avatarSrc: avatarMap.harika, text: 'Harika', color: 'bg-teal-50 text-teal-700 border-teal-200', bgColor: 'bg-purple-50' },
                   };
 
                   const currentLabel = moodLabels[mood.score] || moodLabels[3];
@@ -154,7 +156,7 @@ export const TriggersPage: React.FC = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-comus-sand-light/20 shadow-sm ${currentLabel.bgColor}`}>
-                          <span className="text-2xl drop-shadow-sm" title={currentLabel.text}>{currentLabel.emoji}</span>
+                          <img src={currentLabel.avatarSrc} alt={currentLabel.text} className="w-8 h-8 object-contain drop-shadow-sm" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -190,7 +192,7 @@ export const TriggersPage: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-6 text-xs text-comus-sand-dark">
-                Henüz ruh hali kaydı girilmedi. Yukarıdaki seçeneklere dokunarak ilk kaydınızı oluşturabilirsiniz.
+                Henüz ruh hali kaydı girilmedi. Yukarıdaki avatarlara dokunarak ilk kaydınızı oluşturabilirsiniz.
               </div>
             )}
           </div>

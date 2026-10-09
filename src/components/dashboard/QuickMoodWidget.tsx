@@ -1,22 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Smile, CheckCircle, Plus } from 'lucide-react';
 import { db } from '../../db';
+import { getAvatarMap } from '../../constants/avatars';
+
 const AVAILABLE_TAGS = ['İş', 'Uyku', 'Zihinsel Yük', 'Sosyal', 'Açık Hava', 'Yorgunluk'];
 
 export const QuickMoodWidget: React.FC = () => {
+  const avatarMap = getAvatarMap();
+
   const moodOptions = [
-    { id: 'harika', score: 5, emoji: '🤩', label: 'Harika', bgColor: 'bg-purple-50', hoverBg: 'hover:bg-purple-100' },
-    { id: 'enerjik', score: 5, emoji: '⚡', label: 'Enerjik', bgColor: 'bg-indigo-50', hoverBg: 'hover:bg-indigo-100' },
-    { id: 'iyi', score: 4, emoji: '😊', label: 'İyi', bgColor: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-100' },
-    { id: 'mutlu', score: 4, emoji: '😄', label: 'Mutlu', bgColor: 'bg-teal-50', hoverBg: 'hover:bg-teal-100' },
-    { id: 'normal', score: 3, emoji: '😐', label: 'Normal', bgColor: 'bg-[#EEF2FA]', hoverBg: 'hover:bg-[#E2E8F4]' },
-    { id: 'dusuk', score: 2, emoji: '😕', label: 'Düşük', bgColor: 'bg-[#FEF5E7]', hoverBg: 'hover:bg-[#FDEED2]' },
-    { id: 'uzgun', score: 2, emoji: '😢', label: 'Üzgün', bgColor: 'bg-orange-50', hoverBg: 'hover:bg-orange-100' },
-    { id: 'kaygili', score: 2, emoji: '😰', label: 'Kaygılı', bgColor: 'bg-yellow-50', hoverBg: 'hover:bg-yellow-100' },
-    { id: 'zorlu', score: 1, emoji: '😩', label: 'Zorlu', bgColor: 'bg-rose-50', hoverBg: 'hover:bg-rose-100' },
-    { id: 'mutsuz', score: 1, emoji: '😞', label: 'Mutsuz', bgColor: 'bg-red-50', hoverBg: 'hover:bg-red-100' },
-    { id: 'ofkeli', score: 1, emoji: '😡', label: 'Öfkeli', bgColor: 'bg-red-100', hoverBg: 'hover:bg-red-200' },
-    { id: 'umutsuz', score: 1, emoji: '🖤', label: 'Umutsuz', bgColor: 'bg-zinc-100', hoverBg: 'hover:bg-zinc-200' },
+    { id: 'harika', score: 5, avatarSrc: avatarMap.harika, label: 'Harika', bgColor: 'bg-purple-50', hoverBg: 'hover:bg-purple-100' },
+    { id: 'enerjik', score: 5, avatarSrc: avatarMap.enerjik, label: 'Enerjik', bgColor: 'bg-indigo-50', hoverBg: 'hover:bg-indigo-100' },
+    { id: 'iyi', score: 4, avatarSrc: avatarMap.iyi, label: 'İyi', bgColor: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-100' },
+    { id: 'mutlu', score: 4, avatarSrc: avatarMap.mutlu, label: 'Mutlu', bgColor: 'bg-teal-50', hoverBg: 'hover:bg-teal-100' },
+    { id: 'normal', score: 3, avatarSrc: avatarMap.normal, label: 'Normal', bgColor: 'bg-[#EEF2FA]', hoverBg: 'hover:bg-[#E2E8F4]' },
+    { id: 'dusuk', score: 2, avatarSrc: avatarMap.dusuk, label: 'Düşük', bgColor: 'bg-[#FEF5E7]', hoverBg: 'hover:bg-[#FDEED2]' },
+    { id: 'uzgun', score: 2, avatarSrc: avatarMap.uzgun, label: 'Üzgün', bgColor: 'bg-orange-50', hoverBg: 'hover:bg-orange-100' },
+    { id: 'kaygili', score: 2, avatarSrc: avatarMap.kaygili, label: 'Kaygılı', bgColor: 'bg-yellow-50', hoverBg: 'hover:bg-yellow-100' },
+    { id: 'zorlu', score: 1, avatarSrc: avatarMap.zorlu, label: 'Zorlu', bgColor: 'bg-rose-50', hoverBg: 'hover:bg-rose-100' },
+    { id: 'mutsuz', score: 1, avatarSrc: avatarMap.mutsuz, label: 'Mutsuz', bgColor: 'bg-red-50', hoverBg: 'hover:bg-red-100' },
+    { id: 'ofkeli', score: 1, avatarSrc: avatarMap.ofkeli, label: 'Öfkeli', bgColor: 'bg-red-100', hoverBg: 'hover:bg-red-200' },
+    { id: 'umutsuz', score: 1, avatarSrc: avatarMap.umutsuz, label: 'Umutsuz', bgColor: 'bg-zinc-100', hoverBg: 'hover:bg-zinc-200' },
   ];
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -155,9 +159,11 @@ export const QuickMoodWidget: React.FC = () => {
                 : `${opt.bgColor} ${opt.hoverBg} border-transparent text-comus-navy/80`
             }`}
           >
-            <span className="text-4xl mb-1.5 group-hover:scale-110 transition-transform">
-              {opt.emoji}
-            </span>
+            <img
+              src={opt.avatarSrc}
+              alt={opt.label}
+              className="w-14 h-14 object-contain rounded-xl mb-1.5 drop-shadow-sm group-hover:scale-110 transition-transform"
+            />
             <span className="text-[11px] font-semibold text-center leading-tight w-full">
               {opt.label}
             </span>
