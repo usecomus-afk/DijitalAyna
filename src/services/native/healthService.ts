@@ -43,11 +43,11 @@ class HealthService {
       }
 
       const status = await Health.requestAuthorization({
-        read: ['steps', 'sleep' as any, 'exerciseTime' as any],
+        read: ['steps'],
         write: [],
       });
 
-      const granted = status.readAuthorized && (status.readAuthorized.includes('steps') || status.readAuthorized.includes('sleep' as any));
+      const granted = status.readAuthorized && status.readAuthorized.includes('steps');
       return {
         granted: Boolean(granted),
         error: granted ? undefined : 'Apple Sağlık izni kullanıcı tarafından reddedildi.',
@@ -111,103 +111,7 @@ class HealthService {
   /**
    * Fetch yesterday's sleep stages: TST, WASO, and SOL in minutes
    */
-  async getYesterdaySleep(): Promise<HealthSleepResult> {
-    if (!Capacitor.isNativePlatform()) {
-      return {
-        tst: null,
-        waso: null,
-        sol: null,
-        source: 'missing',
-        error: 'Web platformunda Apple HealthKit uyku verisi bulunmamaktadır.',
-      };
-    }
-
-    try {
-      // Query window: yesterday 18:00 to today 14:00
-      const now = new Date();
-      const yesterdayEvening = new Date(now);
-      yesterdayEvening.setDate(yesterdayEvening.getDate() - 1);
-      yesterdayEvening.setHours(18, 0, 0, 0);
-
-      const todayAfternoon = new Date(now);
-      todayAfternoon.setHours(14, 0, 0, 0);
-
-      const result = await Health.readSamples({
-        dataType: 'sleep' as any,
-        startDate: yesterdayEvening.toISOString(),
-        endDate: todayAfternoon.toISOString(),
-        limit: 500,
-      });
-
-      if (!result || !result.samples || result.samples.length === 0) {
-        return {
-          tst: null,
-          waso: null,
-          sol: null,
-          source: 'missing',
-          error: 'Son geceye ait Apple Sağlık uyku kaydı bulunamadı.',
-        };
-      }
-
-      let totalAsleepMinutes = 0;
-      let totalAwakeMinutes = 0;
-      let firstInBedTime: number | null = null;
-      let firstAsleepTime: number | null = null;
-
-      // Sort samples chronologically
-      const sortedSamples = [...result.samples].sort(
-        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
-
-      for (const sample of sortedSamples) {
-        const start = new Date(sample.startDate).getTime();
-        const end = new Date(sample.endDate).getTime();
-        const durationMin = Math.max(0, (end - start) / (1000 * 60));
-
-        if ((sample as any).sleepState === 'inBed') {
-          if (firstInBedTime === null || start < firstInBedTime) {
-            firstInBedTime = start;
-          }
-        } else if (
-          (sample as any).sleepState === 'asleep' ||
-          (sample as any).sleepState === 'deep' ||
-          (sample as any).sleepState === 'rem' ||
-          (sample as any).sleepState === 'light'
-        ) {
-          totalAsleepMinutes += durationMin;
-          if (firstAsleepTime === null || start < firstAsleepTime) {
-            firstAsleepTime = start;
-          }
-        } else if ((sample as any).sleepState === 'awake') {
-          // If awake occurs after first sleep onset, count as WASO
-          if (firstAsleepTime !== null) {
-            totalAwakeMinutes += durationMin;
-          }
-        }
-      }
-
-      let solMinutes: number | null = null;
-      if (firstInBedTime !== null && firstAsleepTime !== null && firstAsleepTime >= firstInBedTime) {
-        solMinutes = Math.round((firstAsleepTime - firstInBedTime) / (1000 * 60));
-      }
-
-      return {
-        tst: totalAsleepMinutes > 0 ? Math.round(totalAsleepMinutes) : null,
-        waso: totalAwakeMinutes > 0 ? Math.round(totalAwakeMinutes) : 0,
-        sol: solMinutes,
-        source: totalAsleepMinutes > 0 ? 'native-sensor' : 'missing',
-      };
-    } catch (err: any) {
-      console.warn('[HealthService] getYesterdaySleep error:', err);
-      return {
-        tst: null,
-        waso: null,
-        sol: null,
-        source: 'missing',
-        error: err?.message || 'Apple Sağlık uyku verisi okunamadı.',
-      };
-    }
-  }
+  async getYesterdaySleep(): Promise<HealthSleepResult> { return { tst: null, waso: null, sol: null, source: 'missing', error: 'Sleep plugin unsupported' }; }
 
   /**
    * Sync native HealthKit steps and sleep into daily metrics
