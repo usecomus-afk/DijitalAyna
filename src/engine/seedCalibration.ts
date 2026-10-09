@@ -27,6 +27,7 @@ export const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; 
   impulse_risk_index: { mean: 18, std: 5, min: 0, max: 100 },
   gaming_duration: { mean: 20, std: 15, min: 0, max: 360 },
   camera_interaction_count: { mean: 1.5, std: 1.0, min: 0, max: 20 },
+  sleep_efficiency: { mean: 85, std: 10, min: 0, max: 100 },
 };
 
 /**

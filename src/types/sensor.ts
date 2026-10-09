@@ -1,4 +1,4 @@
-export type SensorType = 'motion' | 'typing' | 'touch' | 'session' | 'light' | 'battery' | 'network' | 'voice';
+export type SensorType = 'motion' | 'typing' | 'touch' | 'session' | 'light' | 'battery' | 'network' | 'voice' | 'sleep';
 
 export type DataProvenanceSource = 'native-sensor' | 'web-api' | 'missing' | 'screen-brightness-proxy';
 
@@ -38,13 +38,14 @@ export type MetricKey =
   | 'cognitive_fatigue_score'
   | 'impulse_risk_index'
   | 'gaming_duration'
-  | 'camera_interaction_count';
+  | 'camera_interaction_count'
+  | 'sleep_efficiency';
 
 export interface MetricDefinition {
   key: MetricKey;
   label: string;
   unit: string;
-  category: 'motion' | 'typing' | 'touch' | 'session' | 'light' | 'battery' | 'network' | 'voice';
+  category: 'motion' | 'typing' | 'touch' | 'session' | 'light' | 'battery' | 'network' | 'voice' | 'sleep';
   description: string;
   healthyTrend: 'higher' | 'lower' | 'balanced';
 }
@@ -217,6 +218,14 @@ export const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     category: 'session',
     description: 'Günlük toplam oyun süresi ve tekil en uzun oyun oturumu süresi.',
     healthyTrend: 'balanced',
+  },
+  sleep_efficiency: {
+    key: 'sleep_efficiency',
+    label: 'Uyku Verimliliği',
+    unit: 'puan',
+    category: 'sleep',
+    description: 'Apple Sağlık üzerinden alınan TST ve WASO analizlerine dayalı uyku kalitesi.',
+    healthyTrend: 'higher',
   },
   camera_interaction_count: {
     key: 'camera_interaction_count',

@@ -1,0 +1,26 @@
+{
+  "name": "comus-sleep-plugin",
+  "version": "1.0.0",
+  "description": "Comus Sleep Analysis Plugin",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "dist/index.js",
+  "files": [
+    "dist/",
+    "ios/Plugin/",
+    "ComusSleep.podspec"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios",
+      "name": "ComusSleep"
+    }
+  }
+}

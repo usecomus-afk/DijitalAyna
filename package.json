@@ -37,6 +37,7 @@
     "@capgo/capacitor-health": "^7.2.15",
     "clsx": "^2.1.1",
     "comus-family-controls": "file:src/plugins/FamilyControls",
+    "comus-sleep-plugin": "file:src/plugins/ComusSleep",
     "dexie": "^4.0.8",
     "dexie-react-hooks": "^1.1.7",
     "firebase": "^12.18.0",
