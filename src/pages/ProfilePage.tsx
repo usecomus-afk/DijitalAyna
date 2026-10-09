@@ -32,6 +32,7 @@ export const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(userProfile.name);
   const [age, setAge] = useState<number>(userProfile.age || 28);
+  const [gender, setGender] = useState<string>(userProfile.gender || 'Belirtilmedi');
     const [customPicture, setCustomPicture] = useState<string | undefined>(userProfile.picture);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -172,6 +173,7 @@ export const ProfilePage: React.FC = () => {
             onClick={() => {
               setName(userProfile.name);
               setAge(userProfile.age || 28);
+              setGender(userProfile.gender || 'Belirtilmedi');
                             setCustomPicture(userProfile.picture || profilePhotoUrl);
               setIsEditing(!isEditing);
             }}
@@ -213,6 +215,11 @@ export const ProfilePage: React.FC = () => {
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">YaÅŸ</span>
             <span className="text-xs font-bold text-slate-700">{userProfile.age || 'Belirtilmedi'}</span>
           </div>
+
+          <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cinsiyet</span>
+            <span className="text-xs font-bold text-slate-700">{userProfile.gender || 'Belirtilmedi'}</span>
+          </div>
           
           <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-1">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Mevcut Ritim</span>
@@ -230,6 +237,7 @@ export const ProfilePage: React.FC = () => {
             onClick={() => {
               setName(userProfile.name);
               setAge(userProfile.age || 28);
+              setGender(userProfile.gender || 'Belirtilmedi');
                             setCustomPicture(userProfile.picture || profilePhotoUrl);
               setIsEditing(true);
             }}
@@ -327,6 +335,23 @@ export const ProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-comus-navy block">Cinsiyet:</label>
+                  <div className="relative">
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full text-xs p-2.5 pl-8 rounded-xl bg-comus-surface border border-comus-sand-light/40 focus:outline-none focus:border-comus-copper text-comus-navy appearance-none"
+                    >
+                      <option value="Belirtilmedi">Belirtilmedi</option>
+                      <option value="Erkek">Erkek</option>
+                      <option value="Kadın">Kadın</option>
+                      <option value="Diğer">Diğer</option>
+                    </select>
+                    <User className="w-3.5 h-3.5 text-comus-sand absolute left-2.5 top-3" />
+                  </div>
+                </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
