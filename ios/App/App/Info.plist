@@ -73,6 +73,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Kamera yalnızca isteğe bağlı ölçümler ve fotoğraf çekimi için kullanılır; görüntüler kaydedilmez veya sunuculara gönderilmez.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Günlüğünüze fotoğraf eklemek ve kaydetmek için erişim gereklidir.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Galeri etkileşim döngülerini analiz edebilmek ve günlüğünüze ekleyebilmeniz için fotoğraf erişimi gereklidir.</string>
 	<key>NSMotionUsageDescription</key>
