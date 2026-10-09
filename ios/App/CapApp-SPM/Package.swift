@@ -25,7 +25,9 @@ let package = Package(
         .package(name: "CapacitorShare", path: "..\..\..\node_modules\@capacitor\share"),
         .package(name: "CapacitorSplashScreen", path: "..\..\..\node_modules\@capacitor\splash-screen"),
         .package(name: "CapacitorStatusBar", path: "..\..\..\node_modules\@capacitor\status-bar"),
-        .package(name: "CapgoCapacitorHealth", path: "..\..\..\node_modules\@capgo\capacitor-health")
+        .package(name: "CapgoCapacitorHealth", path: "..\..\..\node_modules\@capgo\capacitor-health"),
+        .package(name: "ComusFamilyControls", path: "..\..\..\src\plugins\FamilyControls"),
+        .package(name: "ComusSleepPlugin", path: "..\..\..\src\plugins\ComusSleep")
     ],
     targets: [
         .target(
@@ -46,7 +48,9 @@ let package = Package(
                 .product(name: "CapacitorShare", package: "CapacitorShare"),
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
-                .product(name: "CapgoCapacitorHealth", package: "CapgoCapacitorHealth")
+                .product(name: "CapgoCapacitorHealth", package: "CapgoCapacitorHealth"),
+                .product(name: "ComusFamilyControls", package: "ComusFamilyControls"),
+                .product(name: "ComusSleepPlugin", package: "ComusSleepPlugin")
             ]
         )
     ]
