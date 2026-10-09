@@ -13,6 +13,7 @@ import { TriggersPage } from './pages/TriggersPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { DoctorReportPage } from './pages/DoctorReportPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { JournalPage } from './pages/JournalPage';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -113,7 +114,8 @@ export const App: React.FC = () => {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/doctor" element={<DoctorReportPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/journal" element={<JournalPage />} />
+                                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
 

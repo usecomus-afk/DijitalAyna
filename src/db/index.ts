@@ -5,6 +5,7 @@ import { Medication, MedicationLog } from '../types/medication';
 import { UserAccountRecord } from '../types/user';
 import { sanitizeSensorEvent } from '../safety/sanitizer';
 import { ClinicalSurveyResult } from '../data/clinicalSurveys';
+import { JournalEntry } from '../types/journal';
 
 export interface SettingItem {
   key: string;
@@ -23,6 +24,7 @@ export class ComusDatabase extends Dexie {
   medicationLogs!: Table<MedicationLog, number>;
   users!: Table<UserAccountRecord, number>;
   clinicalSurveyResults!: Table<ClinicalSurveyResult, number>;
+  journalEntries!: Table<JournalEntry, number>;
 
   constructor() {
     super('ComusAIDatabase');
@@ -47,6 +49,10 @@ export class ComusDatabase extends Dexie {
 
     this.version(4).stores({
       clinicalSurveyResults: '++id, timestamp, date',
+    });
+
+    this.version(5).stores({
+      journalEntries: '++id, date, createdAt',
     });
   }
 
