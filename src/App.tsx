@@ -14,6 +14,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { DoctorReportPage } from './pages/DoctorReportPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { JournalPage } from './pages/JournalPage';
+import { JournalEditPage } from './pages/JournalEditPage';
 import { AssessmentPage } from './pages/AssessmentPage';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
@@ -116,6 +117,7 @@ export const App: React.FC = () => {
                 <Route path="/doctor" element={<DoctorReportPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/journal" element={<JournalPage />} />
+                <Route path="/journal/edit" element={<JournalEditPage />} />
                 <Route path="/assessment" element={<AssessmentPage />} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
