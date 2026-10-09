@@ -1,14 +1,21 @@
-import avatarZorlu from '../assets/avatars/avatar-zorlu.png';
-import avatarDusuk from '../assets/avatars/avatar-dusuk.png';
-import avatarNormal from '../assets/avatars/avatar-normal.png';
-import avatarIyi from '../assets/avatars/avatar-iyi.png';
-import avatarHarika from '../assets/avatars/avatar-harika.png';
+﻿import avatarZorlu from '../assets/avatars/avatar-zorlu.jpg';
+import avatarDusuk from '../assets/avatars/avatar-dusuk.jpg';
+import avatarNormal from '../assets/avatars/avatar-normal.jpg';
+import avatarIyi from '../assets/avatars/avatar-iyi.jpg';
+import avatarHarika from '../assets/avatars/avatar-harika.jpg';
+import avatarMutsuz from '../assets/avatars/avatar-mutsuz.jpg';
+import avatarUzgun from '../assets/avatars/avatar-uzgun.jpg';
+import avatarKaygili from '../assets/avatars/avatar-kaygili.jpg';
+import avatarOfkeli from '../assets/avatars/avatar-ofkeli.jpg';
+import avatarUmutsuz from '../assets/avatars/avatar-umutsuz.jpg';
+import avatarMutlu from '../assets/avatars/avatar-mutlu.jpg';
+import avatarEnerjik from '../assets/avatars/avatar-enerjik.jpg';
 
-import avatarKadinZorlu from '../assets/avatars/avatar-kadin-zorlu.png';
-import avatarKadinDusuk from '../assets/avatars/avatar-kadin-dusuk.png';
-import avatarKadinNormal from '../assets/avatars/avatar-kadin-normal.png';
-import avatarKadinIyi from '../assets/avatars/avatar-kadin-iyi.png';
-import avatarKadinHarika from '../assets/avatars/avatar-kadin-harika.png';
+import avatarKadinZorlu from '../assets/avatars/avatar-zorlu.jpg';
+import avatarKadinDusuk from '../assets/avatars/avatar-dusuk.jpg';
+import avatarKadinNormal from '../assets/avatars/avatar-normal.jpg';
+import avatarKadinIyi from '../assets/avatars/avatar-iyi.jpg';
+import avatarKadinHarika from '../assets/avatars/avatar-harika.jpg';
 
 export const AVATAR_IMAGES_MALE = {
   zorlu: avatarZorlu,
@@ -16,6 +23,13 @@ export const AVATAR_IMAGES_MALE = {
   normal: avatarNormal,
   iyi: avatarIyi,
   harika: avatarHarika,
+  mutsuz: avatarMutsuz,
+  uzgun: avatarUzgun,
+  kaygili: avatarKaygili,
+  ofkeli: avatarOfkeli,
+  umutsuz: avatarUmutsuz,
+  mutlu: avatarMutlu,
+  enerjik: avatarEnerjik,
   1: avatarZorlu,
   2: avatarDusuk,
   3: avatarNormal,
@@ -29,6 +43,13 @@ export const AVATAR_IMAGES_FEMALE = {
   normal: avatarKadinNormal,
   iyi: avatarKadinIyi,
   harika: avatarKadinHarika,
+  mutsuz: avatarMutsuz, // using same neutral ones
+  uzgun: avatarUzgun,
+  kaygili: avatarKaygili,
+  ofkeli: avatarOfkeli,
+  umutsuz: avatarUmutsuz,
+  mutlu: avatarMutlu,
+  enerjik: avatarEnerjik,
   1: avatarKadinZorlu,
   2: avatarKadinDusuk,
   3: avatarKadinNormal,
@@ -60,4 +81,3 @@ export const getAvatarByScore = (score: number, gender?: string): string => {
       return avatarSet.normal;
   }
 };
-

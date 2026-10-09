@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Smile, CheckCircle, Plus } from 'lucide-react';
 import { db } from '../../db';
 import { getAvatarMap } from '../../constants/avatars';
@@ -11,14 +11,31 @@ export const QuickMoodWidget: React.FC = () => {
   const avatarMap = getAvatarMap(userProfile?.gender);
 
   const moodOptions = [
-    { score: 1, avatarSrc: avatarMap.zorlu, label: 'Zorlu', fullLabel: 'Çok Zorlayıcı', bgColor: 'bg-rose-50', hoverBg: 'hover:bg-rose-100' },
-    { score: 2, avatarSrc: avatarMap.dusuk, label: 'Düşük', fullLabel: 'Düşük Enerji', bgColor: 'bg-[#FEF5E7]', hoverBg: 'hover:bg-[#FDEED2]' }, // Custom orange/amber
-    { score: 3, avatarSrc: avatarMap.normal, label: 'Normal', fullLabel: 'Nötr / Normal', bgColor: 'bg-[#EEF2FA]', hoverBg: 'hover:bg-[#E2E8F4]' }, // Custom blue
-    { score: 4, avatarSrc: avatarMap.iyi, label: 'İyi', fullLabel: 'İyi / Dengeli', bgColor: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-100' },
-    { score: 5, avatarSrc: avatarMap.harika, label: 'Harika', fullLabel: 'Çok Dengeli / Yüksek', bgColor: 'bg-purple-50', hoverBg: 'hover:bg-purple-100' },
+    { id: 'harika', score: 5, avatarSrc: avatarMap.harika, label: 'Harika', bgColor: 'bg-purple-50', hoverBg: 'hover:bg-purple-100' },
+    { id: 'enerjik', score: 5, avatarSrc: avatarMap.enerjik, label: 'Enerjik', bgColor: 'bg-indigo-50', hoverBg: 'hover:bg-indigo-100' },
+    { id: 'iyi', score: 4, avatarSrc: avatarMap.iyi, label: 'İyi', bgColor: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-100' },
+    { id: 'mutlu', score: 4, avatarSrc: avatarMap.mutlu, label: 'Mutlu', bgColor: 'bg-teal-50', hoverBg: 'hover:bg-teal-100' },
+    { id: 'normal', score: 3, avatarSrc: avatarMap.normal, label: 'Normal', bgColor: 'bg-[#EEF2FA]', hoverBg: 'hover:bg-[#E2E8F4]' },
+    { id: 'dusuk', score: 2, avatarSrc: avatarMap.dusuk, label: 'Düşük', bgColor: 'bg-[#FEF5E7]', hoverBg: 'hover:bg-[#FDEED2]' },
+    { id: 'uzgun', score: 2, avatarSrc: avatarMap.uzgun, label: 'Üzgün', bgColor: 'bg-orange-50', hoverBg: 'hover:bg-orange-100' },
+    { id: 'kaygili', score: 2, avatarSrc: avatarMap.kaygili, label: 'Kaygılı', bgColor: 'bg-yellow-50', hoverBg: 'hover:bg-yellow-100' },
+    { id: 'zorlu', score: 1, avatarSrc: avatarMap.zorlu, label: 'Zorlu', bgColor: 'bg-rose-50', hoverBg: 'hover:bg-rose-100' },
+    { id: 'mutsuz', score: 1, avatarSrc: avatarMap.mutsuz, label: 'Mutsuz', bgColor: 'bg-red-50', hoverBg: 'hover:bg-red-100' },
+    { id: 'ofkeli', score: 1, avatarSrc: avatarMap.ofkeli, label: 'Öfkeli', bgColor: 'bg-red-100', hoverBg: 'hover:bg-red-200' },
+    { id: 'umutsuz', score: 1, avatarSrc: avatarMap.umutsuz, label: 'Umutsuz', bgColor: 'bg-zinc-100', hoverBg: 'hover:bg-zinc-200' },
   ];
 
-  const [selectedScore, setSelectedScore] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // To center 'normal' initially
+  useEffect(() => {
+    if (scrollRef.current) {
+      // scroll to center roughly
+      scrollRef.current.scrollLeft = 200;
+    }
+  }, []);
+
+  const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [lastSavedId, setLastSavedId] = useState<number | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -42,48 +59,49 @@ export const QuickMoodWidget: React.FC = () => {
     }
   };
 
-  const handleSelectScore = (score: number) => {
-    setSelectedScore(score);
+  const handleSelectMood = (id: string) => {
+    setSelectedMoodId(id);
     setSavedSuccess(false);
   };
 
   const handleExplicitSave = async () => {
-    if (!selectedScore || isSaving) return;
+    if (!selectedMoodId || isSaving) return;
     setIsSaving(true);
     setSaveError(null);
     const todayStr = new Date().toISOString().split('T')[0];
+    const selectedMood = moodOptions.find(m => m.id === selectedMoodId);
+    if (!selectedMood) return;
+
+    // Combine manual tags with the selected exact mood label
+    const combinedTags = Array.from(new Set([...selectedTags, selectedMood.label]));
 
     try {
       if (lastSavedId) {
         await db.moodReports.update(lastSavedId, {
-          score: selectedScore,
-          energyScore: selectedScore,
-          tags: selectedTags,
+          score: selectedMood.score,
+          energyScore: selectedMood.score,
+          tags: combinedTags,
           timestamp: Date.now(),
         });
       } else {
         const id = await db.moodReports.add({
           timestamp: Date.now(),
           date: todayStr,
-          score: selectedScore,
-          energyScore: selectedScore,
-          tags: selectedTags,
+          score: selectedMood.score,
+          energyScore: selectedMood.score,
+          tags: combinedTags,
         });
         setLastSavedId(id as number);
       }
 
-      // The record is safely stored locally: confirm to the user immediately.
       setSavedSuccess(true);
       setTimeout(() => {
-        // Start a fresh entry next time instead of overwriting this record.
-        setSelectedScore(null);
+        setSelectedMoodId(null);
         setSelectedTags([]);
         setLastSavedId(null);
         setSavedSuccess(false);
       }, 2500);
 
-      // Re-analysis and optional cloud backup run in the background so they can never block
-      // or silently break the save confirmation.
       void (async () => {
         try {
           const store = (await import('../../store/useAppStore')).useAppStore.getState();
@@ -112,10 +130,10 @@ export const QuickMoodWidget: React.FC = () => {
           </div>
           <div>
             <h4 className="font-semibold text-comus-navy text-sm sm:text-base leading-tight">
-              Anlık Ruh Hali & Hissiyat Bildirimi
+              Kendini nasıl hissediyorsun?
             </h4>
             <span className="text-[11px] text-comus-sand-dark">
-              Pasif sensör verileriyle aynı zaman ekseninde eşleştirilir
+              Şu anki hissiyatını seç ve kaydet
             </span>
           </div>
         </div>
@@ -127,15 +145,18 @@ export const QuickMoodWidget: React.FC = () => {
         )}
       </div>
 
-      {/* 3D Avatar Scale (No Emojis, Bundled Avatars) */}
-      <div className="grid grid-cols-5 gap-2 my-4">
+      <div 
+        ref={scrollRef}
+        className="flex overflow-x-auto gap-2.5 my-4 pb-3 snap-x hide-scrollbar"
+        style={{ scrollBehavior: 'smooth' }}
+      >
         {moodOptions.map((opt) => (
           <button
-            key={opt.score}
-            onClick={() => handleSelectScore(opt.score)}
-            title={opt.fullLabel}
-            className={`flex flex-col items-center justify-center h-24 sm:h-26 p-2 rounded-2xl border transition-all duration-200 group ${
-              selectedScore === opt.score
+            key={opt.id}
+            onClick={() => handleSelectMood(opt.id)}
+            title={opt.label}
+            className={`flex-shrink-0 w-[88px] flex flex-col items-center justify-center h-28 p-2 rounded-2xl border transition-all duration-200 group snap-center ${
+              selectedMoodId === opt.id
                 ? `${opt.bgColor} text-comus-navy font-bold border-comus-copper shadow-md scale-105 ring-1 ring-comus-copper`
                 : `${opt.bgColor} ${opt.hoverBg} border-transparent text-comus-navy/80`
             }`}
@@ -143,16 +164,15 @@ export const QuickMoodWidget: React.FC = () => {
             <img
               src={opt.avatarSrc}
               alt={opt.label}
-              className="w-11 h-11 sm:w-12 sm:h-12 object-contain rounded-xl mb-1 drop-shadow-sm group-hover:scale-110 transition-transform"
+              className="w-14 h-14 object-contain rounded-xl mb-1.5 drop-shadow-sm group-hover:scale-110 transition-transform"
             />
-            <span className="text-[10.5px] font-semibold text-center leading-none truncate max-w-full">
+            <span className="text-[11px] font-semibold text-center leading-tight w-full">
               {opt.label}
             </span>
           </button>
         ))}
       </div>
 
-      {/* Quick Tags */}
       <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-comus-sand-light/10">
         <span className="text-[11px] text-comus-sand-dark mr-1">Etiket ekle:</span>
         {AVAILABLE_TAGS.map((tag) => {
@@ -174,16 +194,15 @@ export const QuickMoodWidget: React.FC = () => {
         })}
       </div>
 
-      {/* Explicit Save Action */}
       <div className="mt-3.5 pt-2.5 border-t border-comus-sand-light/10 flex items-center justify-between gap-3">
         <span className="text-[11px] text-comus-sand-dark truncate">
-          {selectedScore
-            ? `${moodOptions.find((m) => m.score === selectedScore)?.label} seçildi (${selectedTags.length} etiket)`
+          {selectedMoodId
+            ? `${moodOptions.find((m) => m.id === selectedMoodId)?.label} seçildi (${selectedTags.length} etiket)`
             : 'Modunuzu ve etiketleri seçin'}
         </span>
         <button
           onClick={handleExplicitSave}
-          disabled={!selectedScore || isSaving}
+          disabled={!selectedMoodId || isSaving}
           className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
             savedSuccess
               ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -191,7 +210,7 @@ export const QuickMoodWidget: React.FC = () => {
           }`}
         >
           <CheckCircle className={`w-3.5 h-3.5 ${savedSuccess ? 'text-white' : 'text-emerald-400'}`} />
-          <span>{savedSuccess ? 'Kayıtlara İşlendi' : isSaving ? 'Kaydediliyor...' : 'Kayıtlara İşle'}</span>
+          <span>{savedSuccess ? 'Kayıtlara işlendi' : isSaving ? 'Kaydediliyor...' : 'Kayıtlara işle'}</span>
         </button>
       </div>
       {saveError && (
