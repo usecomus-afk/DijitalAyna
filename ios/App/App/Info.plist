@@ -72,9 +72,9 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Kamera yalnızca isteğe bağlı ölçümler için kullanılır; görüntüler kaydedilmez veya sunuculara gönderilmez.</string>
+	<string>Kamera yalnızca isteğe bağlı ölçümler ve fotoğraf çekimi için kullanılır; görüntüler kaydedilmez veya sunuculara gönderilmez.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Galeri etkileşim döngülerini analiz edebilmek için fotoğraf erişimi gereklidir. Fotoğraflarınız kaydedilmez veya sunuculara gönderilmez.</string>
+	<string>Galeri etkileşim döngülerini analiz edebilmek ve günlüğünüze ekleyebilmeniz için fotoğraf erişimi gereklidir.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Dijital Mental İkizim, fiziksel hareketlilik, mikrotremor ve yürüme/adım ritminiz üzerinden nesnel davranışsal baz hattı oluşturmak için ivmeölçer verilerini cihazınızda güvenle işler.</string>
 	<key>NSMicrophoneUsageDescription</key>

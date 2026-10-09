@@ -42,7 +42,7 @@ export const JournalPage: React.FC = () => {
         notes,
         dreamNotes,
         imageUrls: images,
-        createdAt: entryId ? undefined : now, // Keep existing if editing
+        createdAt: entryId ? undefined : now,
         updatedAt: now,
       } as any;
 
@@ -76,6 +76,7 @@ export const JournalPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Image capture failed', error);
+      alert('Fotoğraf açılamadı veya iptal edildi: ' + String(error));
     }
   };
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Sparkles, LineChart, User, Sliders } from 'lucide-react';
+import { Activity, Sparkles, BookHeart, User, Sliders } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 
@@ -11,7 +11,7 @@ export const Navbar: React.FC = () => {
     {
       to: '/',
       label: 'Ayna',
-      fullName: 'Dijital Mental İİkizim',
+      fullName: 'Dijital Mental İkizim',
       icon: Activity,
     },
     {
@@ -22,10 +22,10 @@ export const Navbar: React.FC = () => {
       badge: unreadInsights > 0 ? unreadInsights : undefined,
     },
     {
-      to: '/triggers',
+      to: '/journal',
       label: 'Günlük',
       fullName: 'Ruh Hali & Günlük',
-      icon: LineChart,
+      icon: BookHeart,
     },
     {
       to: '/profile',

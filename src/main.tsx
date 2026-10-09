@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { initVersionWatcher } from './utils/versionCheck';
+import { defineCustomElements } from '@ionic/pwa-elements/loader';
 
 // Initialize autonomous OTA version watcher
 initVersionWatcher();
+defineCustomElements(window);
 
 
 
