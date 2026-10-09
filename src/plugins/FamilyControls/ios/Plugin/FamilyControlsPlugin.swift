@@ -49,7 +49,7 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func setShield(_ call: CAPPluginCall) {
         if #available(iOS 15.0, *) {
             store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
-            store.shield.applicationCategories = selection.categoryTokens.isEmpty ? nil : ShieldSettings.ActivityCategoryPolicy.specific(Array(selection.categoryTokens))
+            store.shield.applicationCategories = selection.categoryTokens.isEmpty ? nil : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
             call.resolve(["success": true])
         } else {
             call.reject("Family Controls requires iOS 15.0+")
