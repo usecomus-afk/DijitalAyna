@@ -45,21 +45,21 @@ export function LongitudinalTrendChart() {
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-sm border border-zinc-200 dark:border-zinc-800">
+    <div className="bg-white rounded-3xl p-5 shadow-soft border border-comus-sand-light/50">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-semibold text-lg flex items-center gap-2">
-          <Activity className="w-5 h-5 text-blue-500" />
+        <h3 className="font-semibold text-lg flex items-center gap-2 text-comus-navy">
+          <Activity className="w-5 h-5 text-comus-copper" />
           Klinik Seyir
         </h3>
-        <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+        <div className="flex bg-stone-100/80 rounded-xl p-1 shadow-inner border border-stone-200/50">
           {(['G', 'H', 'A', '6A', 'Y'] as TimeFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                 filter === f
-                  ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  ? 'bg-white text-comus-navy shadow-sm border border-stone-200'
+                  : 'text-stone-500 hover:text-stone-700'
               }`}
             >
               {f}
@@ -72,12 +72,12 @@ export function LongitudinalTrendChart() {
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#52525b" strokeOpacity={0.2} />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" strokeOpacity={0.8} />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#78716c', fontWeight: 600 }} />
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 12, fill: '#71717a' }}
+                tick={{ fontSize: 11, fill: '#78716c', fontWeight: 600 }}
                 domain={[0, 27]}
                 ticks={[0, 5, 10, 15, 20]}
                 tickFormatter={(val) => {
@@ -90,38 +90,42 @@ export function LongitudinalTrendChart() {
                 }}
               />
               <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                labelStyle={{ color: '#71717a', marginBottom: '4px' }}
+                contentStyle={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px -2px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
+                labelStyle={{ color: '#1e293b', marginBottom: '4px', fontWeight: 'bold' }}
               />
-              <Line type="monotone" name="Anksiyete (GAD-7)" dataKey="gad7" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
-              <Line type="monotone" name="Depresyon (PHQ-9)" dataKey="phq9" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" name="Anksiyete (GAD-7)" dataKey="gad7" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 4, fill: '#0ea5e9', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" name="Depresyon (PHQ-9)" dataKey="phq9" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400">
-            <Activity className="w-10 h-10 mb-2 opacity-20" />
-            <p className="text-sm">Henüz yeterli veri yok.</p>
+          <div className="w-full h-full flex flex-col items-center justify-center text-stone-400 bg-stone-50/50 rounded-2xl border border-stone-100 border-dashed">
+            <Activity className="w-10 h-10 mb-3 text-stone-300" />
+            <p className="text-sm font-medium">Henüz yeterli veri yok.</p>
           </div>
         )}
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-        <div className="flex gap-3">
-          <div className="mt-1">
-            <ClipboardEdit className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      <div className="bg-blue-50/70 p-5 rounded-2xl border border-blue-100/60 shadow-sm relative overflow-hidden">
+        <div className="absolute -right-4 -top-4 opacity-5">
+          <ClipboardEdit className="w-32 h-32 text-blue-900" />
+        </div>
+        <div className="flex gap-4 relative z-10">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 shadow-sm">
+            <ClipboardEdit className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+            <h4 className="text-sm font-bold text-comus-navy mb-1.5">
               Anksiyete & Depresyon Riski Anketi
             </h4>
-            <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+            <p className="text-xs text-stone-600 leading-relaxed mb-4 font-medium">
               Düzenli aralıklarla bu değerlendirmeyi yapmak ruh sağlığınızın uzun vadeli seyrini hekiminizle paylaşmanın önemli bir parçasıdır.
             </p>
             <button 
               onClick={() => setShowSurvey(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-xl transition-colors w-full sm:w-auto"
+              className="bg-comus-navy hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-colors shadow-md active:scale-95 inline-flex items-center gap-2"
             >
-              Anketi Başlat
+              <span>Anketi Başlat</span>
+              <Activity className="w-3.5 h-3.5 opacity-70" />
             </button>
           </div>
         </div>
@@ -139,8 +143,6 @@ export function LongitudinalTrendChart() {
           onClose={() => setSurveyResult(null)}
           onViewTimeline={() => setSurveyResult(null)}
           onAddToReport={() => {
-            // Logic to handle adding to report could be implemented here
-            // e.g. navigating to report generation or raising an event
             setSurveyResult(null);
           }}
         />
