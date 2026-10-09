@@ -10,8 +10,8 @@ const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
   morning: '🌅 Sabah',
   noon: '☀️ Öğle',
   evening: '🌇 Akşam',
-  night: '🌙 Gece',
-  as_needed: '⚡ PRN'
+  night: '🌙 Gece/Yatarken',
+  as_needed: '⚡ İhtiyaç Halinde'
 };
 
 const DEFAULT_TIMES: Record<TimeSlot, string> = {

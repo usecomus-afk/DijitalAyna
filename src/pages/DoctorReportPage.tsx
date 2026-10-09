@@ -26,8 +26,26 @@ import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
 import { healthService } from '../services/native/healthService';
 import { DoctorShareWizard } from '../components/doctor/DoctorShareWizard';
+import { TimeSlot, Medication } from '../types/medication';
+import { notificationService } from '../services/notificationService';
 
 export type MetricDisplayStatus = 'active' | 'permission_required' | 'unsupported' | 'waiting_data' | 'self_report_required';
+
+const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
+  morning: '🌅 Sabah',
+  noon: '☀️ Öğle',
+  evening: '🌇 Akşam',
+  night: '🌙 Gece/Yatarken',
+  as_needed: '⚡ İhtiyaç Halinde'
+};
+
+const DEFAULT_TIMES: Record<TimeSlot, string> = {
+  morning: '09:00',
+  noon: '13:00',
+  evening: '19:00',
+  night: '23:00',
+  as_needed: ''
+};
 
 export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDisplayStatus {
   if (hasData) return 'active';
@@ -92,7 +110,11 @@ export const DoctorReportPage: React.FC = () => {
   const [isAddMedModalOpen, setIsAddMedModalOpen] = useState(false);
   const [medName, setMedName] = useState('');
   const [medDosage, setMedDosage] = useState<string>('10');
-  const [medFreq, setMedFreq] = useState<number>(1);
+  const [medTimeSlots, setMedTimeSlots] = useState<TimeSlot[]>([]);
+  const [medCustomTimesMap, setMedCustomTimesMap] = useState<Record<string, string>>({
+    morning: '09:00', noon: '13:00', evening: '19:00', night: '23:00', as_needed: ''
+  });
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [medStartDate, setMedStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [medNotes, setMedNotes] = useState('');
   const [medError, setMedError] = useState<string | null>(null);
@@ -273,25 +295,57 @@ export const DoctorReportPage: React.FC = () => {
     }
   };
 
+  const handleToggleTimeSlot = (slot: TimeSlot) => {
+    if (medTimeSlots.includes(slot)) {
+      setMedTimeSlots(medTimeSlots.filter(s => s !== slot));
+    } else {
+      setMedTimeSlots([...medTimeSlots, slot]);
+    }
+  };
+
+  const scheduleNotifications = (med: Medication) => {
+    med.customTimes?.forEach((time, index) => {
+      if (time && time.length === 5 && med.id) {
+        notificationService.scheduleMedicationReminder(med.id + index, med.name, time);
+      }
+    });
+  };
+
   const handleSaveNewMedication = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!medName.trim()) {
       setMedError('Lütfen ilaç adını giriniz.');
       return;
     }
+    
+    if (medTimeSlots.length === 0) {
+      setMedError('Lütfen en az bir kullanım zamanı seçiniz.');
+      return;
+    }
 
-    await db.medications.add({
+    const customTimes = medTimeSlots.map(slot => medCustomTimesMap[slot] || DEFAULT_TIMES[slot]);
+
+    const medData = {
       name: medName.trim(),
       dosage: medDosage,
-      timeSlots: medFreq === 1 ? ["morning"] : medFreq === 2 ? ["morning", "evening"] : ["morning", "noon", "evening"],
+      timeSlots: medTimeSlots,
+      customTimes: customTimes,
       startDate: medStartDate || todayStr,
       notes: medNotes.trim() || 'Hekim tedavi protokolü',
       createdAt: Date.now(),
-    });
+    };
+
+    const newId = await db.medications.add(medData);
+    
+    if (typeof newId === 'number') {
+      scheduleNotifications({ ...medData, id: newId } as Medication);
+    }
 
     setMedName('');
     setMedDosage('10');
-    setMedFreq(1);
+    setMedTimeSlots([]);
+    setMedCustomTimesMap(DEFAULT_TIMES);
+    setShowTimePicker(false);
     setMedNotes('');
     setMedError(null);
     setIsAddMedModalOpen(false);
@@ -1105,7 +1159,7 @@ export const DoctorReportPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-comus-navy block mb-1">
                     Dozaj (mg)
@@ -1120,23 +1174,62 @@ export const DoctorReportPage: React.FC = () => {
                     required
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="font-semibold text-comus-navy block mb-1">
-                    Günlük Sıklık
-                  </label>
-                  <select
-                    value={medFreq}
-                    onChange={(e) => setMedFreq(Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-comus-surface border border-comus-sand-light/40 text-comus-navy focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  >
-                    <option value={1}>Günde 1x (Sabah)</option>
-                    <option value={2}>Günde 2x (Sabah/Akşam)</option>
-                    <option value={3}>Günde 3x (3 Öğün)</option>
-                  </select>
+              <div>
+                <label className="font-semibold text-comus-navy block mb-2">
+                  Kullanım Zamanı / Vakti (Çoklu Seçilebilir):
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {(Object.keys(TIME_SLOT_LABELS) as TimeSlot[]).map(slot => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => handleToggleTimeSlot(slot)}
+                      className={`px-3 py-2 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
+                        medTimeSlots.includes(slot)
+                          ? 'bg-comus-navy text-white border-transparent'
+                          : 'bg-comus-surface text-comus-sand-dark border border-comus-sand-light/40 hover:border-comus-copper/50'
+                      }`}
+                    >
+                      {TIME_SLOT_LABELS[slot]}
+                    </button>
+                  ))}
                 </div>
               </div>
 
+              {medTimeSlots.filter(s => s !== 'as_needed').length > 0 && (
+                <div className="bg-white rounded-xl border border-comus-sand-light/40 overflow-hidden mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowTimePicker(!showTimePicker)}
+                    className="w-full flex items-center justify-between p-3 text-xs font-semibold text-comus-navy hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-comus-copper" />
+                      <span>Özel Saat Ayarla & Hatırlatıcı Kur (Opsiyonel)</span>
+                    </div>
+                  </button>
+                  
+                  {showTimePicker && (
+                    <div className="p-3 border-t border-comus-sand-light/40 bg-slate-50/50 grid grid-cols-2 gap-3">
+                      {medTimeSlots.filter(s => s !== 'as_needed').map(slot => (
+                        <div key={slot} className="flex flex-col gap-1">
+                          <span className="text-[10px] font-semibold text-comus-sand-dark uppercase">
+                            {TIME_SLOT_LABELS[slot]}
+                          </span>
+                          <input
+                            type="time"
+                            value={medCustomTimesMap[slot]}
+                            onChange={(e) => setMedCustomTimesMap({...medCustomTimesMap, [slot]: e.target.value})}
+                            className="w-full text-xs p-2 rounded-lg bg-white border border-comus-sand-light/40 focus:outline-none focus:ring-2 focus:ring-teal-600 font-mono"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="font-semibold text-comus-navy block mb-1">
                   Başlangıç Tarihi
