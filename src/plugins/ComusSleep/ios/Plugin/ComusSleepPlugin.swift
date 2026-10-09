@@ -3,7 +3,14 @@ import Capacitor
 import HealthKit
 
 @objc(ComusSleepPlugin)
-public class ComusSleepPlugin: CAPPlugin {
+public class ComusSleepPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "ComusSleepPlugin"
+    public let jsName = "ComusSleep"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "requestAuthorization", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getSleepData", returnType: CAPPluginReturnPromise)
+    ]
+    
     private let healthStore = HKHealthStore()
 
     @objc func requestAuthorization(_ call: CAPPluginCall) {

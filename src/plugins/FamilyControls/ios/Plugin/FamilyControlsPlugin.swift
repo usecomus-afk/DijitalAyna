@@ -5,7 +5,15 @@ import ManagedSettings
 import SwiftUI
 
 @objc(FamilyControlsPlugin)
-public class FamilyControlsPlugin: CAPPlugin {
+public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "FamilyControlsPlugin"
+    public let jsName = "FamilyControls"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "requestAuthorization", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "selectApps", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setShield", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearShield", returnType: CAPPluginReturnPromise)
+    ]
     
     private var selection = FamilyActivitySelection()
     private let store = ManagedSettingsStore()
