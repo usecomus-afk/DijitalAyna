@@ -43,7 +43,7 @@ class HealthService {
       }
 
       const status = await Health.requestAuthorization({
-        read: ['steps'],
+        read: ['steps', 'heartRate', 'calories'],
         write: [],
       });
 
