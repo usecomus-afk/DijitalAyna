@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { Book, Plus, ChevronRight, Image as ImageIcon, Calendar } from 'lucide-react';
+import { Book, Plus, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 export const JournalPage: React.FC = () => {
   const navigate = useNavigate();
