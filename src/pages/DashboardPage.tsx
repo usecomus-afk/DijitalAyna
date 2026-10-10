@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
@@ -19,9 +18,6 @@ import {
   CheckCircle2,
   Battery,
   Wifi,
-  ArrowRight,
-  FileText,
-  User,
 } from 'lucide-react';
 import { calculateZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
@@ -303,4 +299,5 @@ export const DashboardPage: React.FC = () => {
     </div>
   );
 };
+
 
