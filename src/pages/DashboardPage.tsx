@@ -4,7 +4,6 @@ import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { DigitalTwinMirror } from '../components/dashboard/DigitalTwinMirror';
 import { MetricCard } from '../components/dashboard/MetricCard';
-import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 import { PredictiveAlertModal } from '../components/alerts/PredictiveAlertModal';
 import { ProactivePredictionModal } from '../components/alerts/ProactivePredictionModal';
 import { checkProactivePrediction } from '../engine/proactiveAdvisor';
@@ -291,13 +290,11 @@ export const DashboardPage: React.FC = () => {
         />
       </div>
 
-      {/* Instant Mood Check-In Widget */}
-      <QuickMoodWidget />
-
       {/* Micro Disclaimer */}
       <Disclaimer />
     </div>
   );
 };
+
 
 

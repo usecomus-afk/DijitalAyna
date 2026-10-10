@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Book, Plus, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 
 export const JournalPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ export const JournalPage: React.FC = () => {
       </header>
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
+        {/* Instant Mood Check-In Widget */}
+        <QuickMoodWidget />
         {entries.length === 0 ? (
           <div className="bg-white rounded-3xl p-8 border border-comus-sand-light/30 shadow-soft text-center mt-4">
             <div className="w-16 h-16 bg-comus-copper/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -94,3 +97,5 @@ export const JournalPage: React.FC = () => {
     </div>
   );
 };
+
+
