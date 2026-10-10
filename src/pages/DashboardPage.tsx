@@ -298,55 +298,9 @@ export const DashboardPage: React.FC = () => {
       {/* Instant Mood Check-In Widget */}
       <QuickMoodWidget />
 
-      {/* Quick Navigation Cards: Doctor Report & Profile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Link
-          to="/doctor"
-          className="p-5 rounded-3xl bg-gradient-to-br from-teal-900 to-comus-navy text-white shadow-soft hover:shadow-soft-lg transition-all group space-y-2"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-2xl bg-white/10 text-teal-300 flex items-center justify-center">
-              <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </div>
-            <span className="text-[10px] bg-teal-400/20 text-teal-200 px-2.5 py-0.5 rounded-full border border-teal-400/30 font-semibold">
-              Klinik Görünüm
-            </span>
-          </div>
-          <h4 className="font-serif font-bold text-base text-white">Klinik & Uzman Raporu</h4>
-          <p className="text-xs text-white/80 leading-relaxed">
-            Cihaz içi biyobelirteç dinamiklerini ve ilaç etkileşimlerini doktorunuzla güvenle paylaşın.
-          </p>
-          <div className="flex items-center gap-1 text-xs text-teal-300 font-semibold pt-1">
-            <span>Raporu Görüntüle</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-
-        <Link
-          to="/profile"
-          className="p-5 rounded-3xl bg-gradient-to-br from-indigo-900 to-comus-navy text-white shadow-soft hover:shadow-soft-lg transition-all group space-y-2"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-2xl bg-white/10 text-amber-300 flex items-center justify-center">
-              <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </div>
-            <span className="text-[10px] bg-amber-400/20 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-400/30 font-semibold">
-              Biyometrik Profil
-            </span>
-          </div>
-          <h4 className="font-serif font-bold text-base text-white">Kişisel Profil & Baz Hattı</h4>
-          <p className="text-xs text-white/80 leading-relaxed">
-            Yaş, cinsiyet normları, aktif cihaz telemetrisi ve yerel güvenlik durumunu yönetin.
-          </p>
-          <div className="flex items-center gap-1 text-xs text-amber-300 font-semibold pt-1">
-            <span>Profili Yönet</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-      </div>
-
       {/* Micro Disclaimer */}
       <Disclaimer />
     </div>
   );
 };
+
