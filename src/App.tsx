@@ -36,6 +36,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { handleAuthDeepLink } from './auth/firebaseAuth';
 
 export const App: React.FC = () => {
@@ -43,6 +44,22 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     initialize();
+
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
+        const { notification } = notificationAction;
+        const extra = notification.extra || {};
+        const type = extra.type;
+        
+        if (type === 'morning_checkin' || type === 'evening_reflection' || type === 'inspiration_morning' || type === 'inspiration_noon' || type === 'inspiration_evening') {
+          window.location.hash = '#/nasil-hissediyorsun';
+        } else if (type === 'predictive_alert') {
+          window.location.hash = '#/icgoru';
+        } else {
+          window.location.hash = '#/ayna';
+        }
+      });
+    }
 
     const processAuthUrl = async (urlStr: string) => {
       if (
@@ -169,3 +186,5 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
+
