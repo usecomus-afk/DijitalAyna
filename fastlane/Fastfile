@@ -24,7 +24,7 @@ platform :ios do
 
     # Enable capabilities required by App.entitlements (HealthKit, Sign in with Apple)
     bundle = Spaceship::ConnectAPI::BundleId.find(bundle_id)
-    ["HEALTHKIT", "APPLE_ID_AUTH"].each do |capability|
+    ["HEALTHKIT", "APPLE_ID_AUTH", "FAMILY_CONTROLS"].each do |capability|
       begin
         bundle.create_capability(capability)
         UI.message("Enabled capability #{capability}")
@@ -73,3 +73,4 @@ platform :ios do
     )
   end
 end
+
