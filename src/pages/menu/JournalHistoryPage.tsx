@@ -44,7 +44,7 @@ export const JournalHistoryPage: React.FC = () => {
               return (
                 <div 
                   key={entry.id} 
-                  onClick={() => navigate(/journal/edit?date= + entry.date)}
+                  onClick={() => navigate(`/journal/edit?date=${entry.date}`)}
                   className="bg-white rounded-3xl p-4 border border-comus-sand-light/30 shadow-soft cursor-pointer hover:shadow-md transition-shadow flex items-start gap-4"
                 >
                   <div className="w-12 h-12 rounded-2xl bg-slate-50 flex flex-col items-center justify-center border border-comus-sand-light/40 shrink-0">
@@ -85,3 +85,4 @@ export const JournalHistoryPage: React.FC = () => {
     </div>
   );
 };
+
