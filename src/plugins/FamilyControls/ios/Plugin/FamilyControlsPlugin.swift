@@ -19,7 +19,7 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
     private let store = ManagedSettingsStore()
 
     @objc func requestAuthorization(_ call: CAPPluginCall) {
-        if #available(iOS 15.0, *) {
+        if #available(iOS 16.0, *) {
             Task {
                 do {
                     try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
@@ -29,12 +29,12 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         } else {
-            call.reject("Family Controls requires iOS 15.0+")
+            call.reject("Family Controls requires iOS 16.0+")
         }
     }
 
     @objc func selectApps(_ call: CAPPluginCall) {
-        if #available(iOS 15.0, *) {
+        if #available(iOS 16.0, *) {
             DispatchQueue.main.async {
                 let binding = Binding(
                     get: { self.selection },
@@ -45,32 +45,32 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.bridge?.viewController?.present(hostingController, animated: true, completion: nil)
             }
         } else {
-            call.reject("Family Controls requires iOS 15.0+")
+            call.reject("Family Controls requires iOS 16.0+")
         }
     }
 
     @objc func setShield(_ call: CAPPluginCall) {
-        if #available(iOS 15.0, *) {
+        if #available(iOS 16.0, *) {
             store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
             store.shield.applicationCategories = selection.categoryTokens.isEmpty ? nil : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
             call.resolve(["success": true])
         } else {
-            call.reject("Family Controls requires iOS 15.0+")
+            call.reject("Family Controls requires iOS 16.0+")
         }
     }
 
     @objc func clearShield(_ call: CAPPluginCall) {
-        if #available(iOS 15.0, *) {
+        if #available(iOS 16.0, *) {
             store.shield.applications = nil
             store.shield.applicationCategories = nil
             call.resolve(["success": true])
         } else {
-            call.reject("Family Controls requires iOS 15.0+")
+            call.reject("Family Controls requires iOS 16.0+")
         }
     }
 }
 
-@available(iOS 15.0, *)
+@available(iOS 16.0, *)
 struct PickerView: View {
     @Binding var selection: FamilyActivitySelection
     var call: CAPPluginCall
