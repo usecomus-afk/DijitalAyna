@@ -36,8 +36,11 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func selectApps(_ call: CAPPluginCall) {
         if #available(iOS 15.0, *) {
             DispatchQueue.main.async {
-                let picker = FamilyActivityPicker(selection: self.$selection)
-                let hostingController = UIHostingController(rootView: PickerView(selection: self.$selection, call: call))
+                let binding = Binding(
+                    get: { self.selection },
+                    set: { self.selection = $0 }
+                )
+                let hostingController = UIHostingController(rootView: PickerView(selection: binding, call: call))
                 hostingController.modalPresentationStyle = .pageSheet
                 self.bridge?.viewController?.present(hostingController, animated: true, completion: nil)
             }
