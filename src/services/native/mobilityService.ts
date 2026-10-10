@@ -245,24 +245,33 @@ class MobilityService {
       });
 
       // Update mobility score in dailyMetrics if present
-      const existing = await db.dailyMetrics
-        .where('[metricKey+date]')
-        .equals(['mobility_index', today])
-        .first();
-
       const mobilityScore = Math.min(100, Math.round((metrics.radiusOfGyrationKm * 20) + (100 - (metrics.homestayPercentage ?? 50)) * 0.5));
-      if (existing && existing.id) {
-        await db.dailyMetrics.update(existing.id, {
-          value: Math.max(existing.value, mobilityScore),
-          sampleCount: (existing.sampleCount || 1) + 1,
-        });
-      } else {
-        await db.dailyMetrics.add({
-          date: today,
-          metricKey: 'mobility_index',
-          value: mobilityScore,
-          sampleCount: 1,
-        });
+      const homestayRatio = (metrics.homestayPercentage ?? 50) / 100;
+      const metricsToSave = [
+        { key: 'mobility_index', val: mobilityScore },
+        { key: 'homestay_ratio', val: homestayRatio },
+        { key: 'mobility_radius', val: metrics.radiusOfGyrationKm }
+      ];
+
+      for (const m of metricsToSave) {
+        const existing = await db.dailyMetrics
+          .where('[metricKey+date]')
+          .equals([m.key, today])
+          .first();
+
+        if (existing && existing.id) {
+          await db.dailyMetrics.update(existing.id, {
+            value: m.key === 'homestay_ratio' || m.key === 'mobility_radius' ? m.val : Math.max(existing.value, m.val),
+            sampleCount: (existing.sampleCount || 1) + 1,
+          });
+        } else {
+          await db.dailyMetrics.add({
+            date: today,
+            metricKey: m.key as any,
+            value: m.val,
+            sampleCount: 1,
+          });
+        }
       }
     }
   }

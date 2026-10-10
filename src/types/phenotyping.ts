@@ -79,7 +79,7 @@ export interface DailyPhenotypeFeatures {
   totalSocialInteractions: number;
 
   // Accelerometer Movement
-  tremorVariance: number;
+  tremorVariance: number | null;
   activityIntensityScore: number;
 }
 

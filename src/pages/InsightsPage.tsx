@@ -210,7 +210,7 @@ export const InsightsPage: React.FC = () => {
       )}
 
       <div className="pt-6">
-        <h2 className="font-serif font-bold text-xl text-comus-navy mb-4">Anl�k Fenotip Verileri</h2>
+        <h2 className="font-serif font-bold text-xl text-comus-navy mb-4">Anlık Fenotip Verileri</h2>
 {/* 4 Core Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 1. Hareketlilik (Mobility) */}

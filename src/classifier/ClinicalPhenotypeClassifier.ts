@@ -300,7 +300,9 @@ export class ClinicalPhenotypeClassifier {
   /**
    * Computes the 0-100 Affective State Balance Index
    */
-  static calculateAffectiveStateIndex(zScores: Record<string, number>): number {
+  static calculateAffectiveStateIndex(zScores: Record<string, number>): number | null {
+    if (Object.keys(zScores).length === 0) return null;
+
     const zMobility = zScores['mobility_index'] ?? 0;
     const zTyping = zScores['typing_wpm'] ?? 0;
     const zNight = zScores['night_usage_minutes'] ?? 0;
@@ -390,11 +392,13 @@ export class ClinicalPhenotypeClassifier {
         const homestayPct = rawValues['homestayPercentage']!;
         const zHomestay = zScores['homestay_ratio'] ?? 0;
         const zRadius = zScores['mobility_radius'] ?? 0;
+        const zSol = zScores['sleep_sol'] ?? 0;
 
         const isHomestayHigh = zHomestay >= 2.0 || homestayPct >= 85;
         const isRadiusRestricted = zRadius <= -2.0;
+        const isSolHigh = zSol >= 1.8;
 
-        if ((isHomestayHigh && isRadiusRestricted) || homestayPct >= 85 || (zHomestay >= 1.6 && zRadius <= -2.0)) {
+        if (isSolHigh || (isHomestayHigh && isRadiusRestricted) || homestayPct >= 85 || (zHomestay >= 1.6 && zRadius <= -2.0)) {
           return {
             status: 'triggered',
             alert: {
@@ -405,6 +409,7 @@ export class ClinicalPhenotypeClassifier {
               explainableEvidences: [
                 `Evde Kalma Oranı: Günlük evde geçirilen süre %${Math.round(homestayPct)} seviyesine ulaştı.`,
                 `Hareketlilik Yarıçapı: Coğrafi hareketlilik alanınız ${(zRadius <= 0 ? zRadius : -2.1).toFixed(1)}σ daralma gösterdi.`,
+                ...(isSolHigh ? [`Uyku Gecikmesi: Uykuya dalma sürenizde belirgin artış (Z: +${zSol.toFixed(1)}) tespit edildi.`] : []),
                 'Süreç: Bu tablo ardışık 3 gündür devam ediyor (Guth et al., 2025; Aalbers et al., 2025).',
               ],
               ethicalDisclaimer: rule.ethicalDisclaimer,
@@ -419,14 +424,16 @@ export class ClinicalPhenotypeClassifier {
       }
 
       case 'anxietySleep': {
-        const solMinutes = rawValues['sleepOnsetLatencyMinutes']!;
+        const solMinutes = rawValues['sleep_sol']!;
         const nocturnalUnlocks = rawValues['nocturnalScreen02to04Unlocks']!;
         const zNocturnal = zScores['night_usage_minutes'] ?? 0;
+        const zSol = zScores['sleep_sol'] ?? 0;
 
         const isNightElevated = zNocturnal >= 1.8 || nocturnalUnlocks >= 3;
         const isSolProlonged = solMinutes >= 30;
+        const isSolZHigh = zSol >= 1.8;
 
-        if (isNightElevated && isSolProlonged) {
+        if (isSolZHigh || (isNightElevated && isSolProlonged)) {
           return {
             status: 'triggered',
             alert: {
@@ -435,8 +442,8 @@ export class ClinicalPhenotypeClassifier {
               title: rule.title,
               personalizedDeviationStatement: rule.personalizedDeviationStatement,
               explainableEvidences: [
-                `Gece Ekran Penceresi: 02:00-04:00 saatleri arasında ${nocturnalUnlocks} kez kilit açma ve yoğun aktif ekran kullanımı kaydedildi.`,
-                `Uykuya Dalma Süresi (SOL): Bazal ortalamanıza kıyasla ${Math.round(solMinutes)} dakika uzama tespit edildi.`,
+                ...(isNightElevated ? [`Gece Ekran Penceresi: 02:00-04:00 saatleri arasında ${nocturnalUnlocks} kez kilit açma ve yoğun aktif ekran kullanımı kaydedildi.`] : []),
+                `Uykuya Dalma Süresi (SOL): ${Math.round(solMinutes)} dakika uzama tespit edildi (Z: +${zSol.toFixed(1)}).`,
                 'Süreç: Son 7 günün 3 gecesinde bu gece uyanıklığı döngüsü tekrarlandı (Lee et al., 2025).',
               ],
               ethicalDisclaimer: rule.ethicalDisclaimer,

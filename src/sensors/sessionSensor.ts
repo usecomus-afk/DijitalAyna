@@ -129,8 +129,8 @@ class SessionSensorCollector {
   private async checkNightUsage(): Promise<void> {
     if (!this.isVisible) return;
     const hour = new Date().getHours();
-    // 01:00 - 05:00 circadian night vulnerability window
-    if (hour >= 1 && hour < 5) {
+    // 02:00 - 04:00 circadian night vulnerability window
+    if (hour >= 2 && hour < 4) {
       await db.logSensorEvent({
         type: 'session',
         timestamp: Date.now(),

@@ -231,7 +231,7 @@ export function generateAvatarNarrative({
         const tagClause = tagListText
           ? ` Özellikle ${tagListText} etiketleri yoğun bir baskıya işaret ediyor.`
           : '';
-        dialogue = `Son dönemdeki bildirimlerinde kendini sıklıkla 'Zorlu' hissettiğini belirttin ${safeName}.${tagClause} Sensör baz hattın henüz öğrenme aşamasında (${effectiveDays}/14 Gün) olsa da, dijital mental iİkizimn şu an zihninin ve bedeninin dinlenmeye ihtiyaç duyduğunu yansıtıyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`;
+        dialogue = `Son dönemdeki bildirimlerinde kendini sıklıkla 'Zorlu' hissettiğini belirttin ${safeName}.${tagClause} Sensör baz hattın henüz öğrenme aşamasında (${effectiveDays}/14 Gün) olsa da, dijital ikizin şu an zihninin ve bedeninin dinlenmeye ihtiyaç duyduğunu yansıtıyor. Kendini zorlama; bir fincan su alıp derin bir nefesle duraklamaya ne dersin?`;
         mirrorText = `${safeName}, aktif ruh hali kayıtların son günlerde yüksek bir zihinsel yük altında olduğunu gösteriyor. Dijital ikizin bu sinyali doğrulayarak dinlenmeni öneriyor.`;
       } else {
         const tagClause = tagListText
@@ -251,14 +251,17 @@ export function generateAvatarNarrative({
       glowColor = '#f59e0b';
       bgBase = 'bg-gradient-to-b from-amber-950/20 to-slate-900/30';
       colorClass = 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]';
-      energyText = `%${affectiveIndex} Duygusal Denge (Hassas)`;
+      energyText = affectiveIndex === null ? 'Veri Bekleniyor' : `%${affectiveIndex} Duygusal Denge (Hassas)`;
       moodPill = {
         text: 'Düşük Hareketlilik & Ritim',
         color: 'bg-amber-50 text-amber-900 border-amber-200',
       };
 
       const tagClause = tagListText ? ` (${tagListText})` : '';
-      if (!isEstablished) {
+      if (affectiveIndex === null) {
+        dialogue = `Bugün tempomuz biraz düşük ${safeName}${tagClause}. Bildirdiğin hissiyatlar enerjinin azaldığını gösteriyor. Kendine küçük bir mola ayırabilirsin.`;
+        mirrorText = `${safeName}, son günlerdeki hissiyat bildirimlerin hafif bir durgunluğa işaret ediyor.`;
+      } else if (!isEstablished) {
         dialogue = `Bugün tempomuz biraz düşük ${safeName}${tagClause}. Sensör baz hattın öğrenilmeye devam ederken (${effectiveDays}/14 Gün), bildirdiğin hissiyatlar enerjinin azaldığını gösteriyor. Kendine küçük bir mola ayırabilirsin.`;
         mirrorText = `${safeName}, son günlerdeki hissiyat bildirimlerin ve düşük hareketlilik hafif bir durgunluğa işaret ediyor.`;
       } else {
@@ -276,12 +279,15 @@ export function generateAvatarNarrative({
       glowColor = '#6366f1';
       bgBase = 'bg-gradient-to-b from-indigo-950/20 to-slate-900/30';
       colorClass = 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.7)]';
-      energyText = `%${affectiveIndex} Duygusal Denge (Dengeli)`;
+      energyText = affectiveIndex === null ? 'Veri Bekleniyor' : `%${affectiveIndex} Duygusal Denge (Dengeli)`;
       moodPill = isEstablished
         ? { text: 'Dengeli Ritim', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' }
         : { text: `Öğrenme Dönemi (${effectiveDays}/14 Gün)`, color: 'bg-indigo-50 text-indigo-800 border-indigo-200' };
 
-      if (!isEstablished) {
+      if (affectiveIndex === null) {
+        dialogue = `Merhaba ${safeName}! Dengeli bir hissiyat içindesin.`;
+        mirrorText = `Merhaba ${safeName}! Dijital Mental İkizim şu anda girdiğin ruh hali verilerini yansıtıyor.`;
+      } else if (!isEstablished) {
         dialogue = `Merhaba ${safeName}! Kişisel baz hattın oluşturulurken (${effectiveDays}/14 Gün) hissiyatın ve sensör verilerin dengeli bir akışta seyrediyor.`;
         mirrorText = `Merhaba ${safeName}! Dijital Mental İkizim şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
       } else {
@@ -299,11 +305,16 @@ export function generateAvatarNarrative({
       glowColor = '#10b981';
       bgBase = 'bg-gradient-to-b from-emerald-950/20 to-slate-900/30';
       colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
-      energyText = `%${affectiveIndex} Duygusal Denge (Pozitif)`;
+      energyText = affectiveIndex === null ? 'Veri Bekleniyor' : `%${affectiveIndex} Duygusal Denge (Pozitif)`;
       moodPill = { text: 'Canlı & Pozitif', color: 'bg-teal-50 text-teal-800 border-teal-200' };
 
-      dialogue = `Yüzüm gülüyor ${safeName}! Yazım tempon akıcı, günlük hareketliliğin canlı. Zihinsel enerjimizin bu pozitif dalgasını güzel hedeflere dönüştürebilirsin.`;
-      mirrorText = `${safeName}, tuş akıcılığın ve sirkadiyen düzenin güçlü bir denge gösteriyor.`;
+      if (affectiveIndex === null) {
+        dialogue = `Bugün kendini iyi hissettiğini belirttin ${safeName}! Zihinsel enerjimizin bu pozitif dalgasını güzel hedeflere dönüştürebilirsin.`;
+        mirrorText = `${safeName}, ruh hali kayıtların oldukça iyi.`;
+      } else {
+        dialogue = `Yüzüm gülüyor ${safeName}! Yazım tempon akıcı, günlük hareketliliğin canlı. Zihinsel enerjimizin bu pozitif dalgasını güzel hedeflere dönüştürebilirsin.`;
+        mirrorText = `${safeName}, tuş akıcılığın ve sirkadiyen düzenin güçlü bir denge gösteriyor.`;
+      }
       break;
     }
 
@@ -316,11 +327,16 @@ export function generateAvatarNarrative({
       glowColor = '#f59e0b';
       bgBase = 'bg-gradient-to-b from-amber-950/25 to-comus-navy/40';
       colorClass = 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]';
-      energyText = `%${affectiveIndex} Duygusal Denge (Yüksek)`;
+      energyText = affectiveIndex === null ? 'Veri Bekleniyor' : `%${affectiveIndex} Duygusal Denge (Yüksek)`;
       moodPill = { text: 'Yüksek Enerji', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
 
-      dialogue = `Işıl ışıl bir zihin durumundayız ${safeName}! Zihinsel berraklığımız ve motivasyonumuz zirvede. Bu neşeli ve ilham verici enerjinin tadını çıkar!`;
-      mirrorText = `${safeName}, tüm biyobelirteçler en yüksek dengede. Zihinsel akış ve etkileşim hızın mükemmel.`;
+      if (affectiveIndex === null) {
+        dialogue = `Işıl ışıl bir ruh halinde olduğunu belirttin ${safeName}! Bu neşeli ve ilham verici enerjinin tadını çıkar!`;
+        mirrorText = `${safeName}, tüm ruh hali kayıtların harika bir dengede olduğunu gösteriyor.`;
+      } else {
+        dialogue = `Işıl ışıl bir zihin durumundayız ${safeName}! Zihinsel berraklığımız ve motivasyonumuz zirvede. Bu neşeli ve ilham verici enerjinin tadını çıkar!`;
+        mirrorText = `${safeName}, tüm biyobelirteçler en yüksek dengede. Zihinsel akış ve etkileşim hızın mükemmel.`;
+      }
       break;
     }
   }

@@ -31,18 +31,7 @@ export interface AnomalyResult {
   direction: 'above' | 'below';
 }
 
-export type BiomarkerType =
-  | 'emotional_burnout'
-  | 'social_withdrawal'
-  | 'circadian_disruption'
-  | 'high_stress'
-  | 'cognitive_fatigue'
-  | 'neurodivergent_pattern'
-  | 'impulsive_risk'
-  | 'voice_monotone'
-  | 'gaming_avoidance'
-  | 'appearance_sensitivity'
-  | 'healthy_balance';
+export type BiomarkerType = string;
 
 export interface BiomarkerResult {
   type: BiomarkerType;

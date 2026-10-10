@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.dijitalmentalikizim.app',
-  appName: 'Dijital Mental Ikizim',
+  appName: 'duty',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

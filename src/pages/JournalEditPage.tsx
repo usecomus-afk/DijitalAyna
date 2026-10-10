@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, Save, Image as ImageIcon, Book, Moon, Camera, X } from 'lucide-react';
+import { ChevronLeft, Save, Image as ImageIcon, Book, Moon, Camera, X, Trash2 } from 'lucide-react';
 import { db } from '../db';
 import { JournalEntry } from '../types/journal';
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
@@ -86,6 +86,18 @@ export const JournalEditPage: React.FC = () => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleDelete = async () => {
+    if (entryId === undefined) return;
+    if (!window.confirm('Bu günlük kaydını silmek istediğine emin misin? Bu işlem geri alınamaz.')) return;
+    try {
+      await db.journalEntries.delete(entryId);
+      navigate(-1);
+    } catch (e) {
+      console.error('Failed to delete journal:', e);
+      alert('Günlük silinemedi, lütfen tekrar deneyin.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 text-comus-navy pb-24">
       {/* Header */}
@@ -100,14 +112,27 @@ export const JournalEditPage: React.FC = () => {
           
           <h1 className="text-base font-bold font-serif">Kişisel Günlük</h1>
           
-          <button 
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-4 py-2 flex items-center gap-2 rounded-xl bg-comus-copper text-white text-xs font-bold hover:bg-comus-copper-dark transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? '...' : 'Kaydet'}
-          </button>
+          <div className="flex items-center gap-2">
+            {entryId !== undefined && (
+              <button
+                onClick={handleDelete}
+                disabled={isSaving}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors disabled:opacity-50"
+                title="Günlüğü sil"
+                aria-label="Günlüğü sil"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 flex items-center gap-2 rounded-xl bg-comus-copper text-white text-xs font-bold hover:bg-comus-copper-dark transition-colors disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? '...' : 'Kaydet'}
+            </button>
+          </div>
         </div>
       </header>
 

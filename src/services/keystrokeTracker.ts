@@ -169,6 +169,7 @@ class KeystrokeTracker {
     await this.updateDailyMetric('typing_iki', today, metrics.ikiMs);
     await this.updateDailyMetric('typing_backspace_rate', today, metrics.backspaceRate);
     await this.updateDailyMetric('typing_pause_count', today, metrics.pauseCount);
+    await this.updateDailyMetric('typing_hold_time', today, metrics.holdTimeMs);
 
     this.reset();
   }

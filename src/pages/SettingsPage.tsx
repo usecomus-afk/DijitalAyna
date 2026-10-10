@@ -125,7 +125,7 @@ export const SettingsPage: React.FC = () => {
   const typing = getMetricData('typing_wpm', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
 
 
-  const battery = getMetricData('battery_level', '[Veri Al�nam�yor / �zin Bekleniyor]');
+  const battery = getMetricData('battery_level', '[Veri Alınamıyor / İzin Bekleniyor]');
 
   const handleManualEvaluate = async () => {
     await runAnalysisPipeline();

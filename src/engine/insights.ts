@@ -9,6 +9,7 @@ import { notificationService } from '../services/notificationService';
 import { calculateRecentMoodScore, calculateEmotionalBalanceIndex } from './avatarNarrative';
 import { ClinicalPhenotypeClassifier } from '../classifier/ClinicalPhenotypeClassifier';
 import { resolveDailyState, applyDailyStateToInsight } from './dailyState';
+import { PHENOTYPE_RULES } from '../classifier/phenotypeRules.config';
 
 /**
  * Upserts a daily insight record by primary date (YYYY-MM-DD), preserving historical records.
@@ -122,80 +123,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   const generatedInsights: Insight[] = [];
 
   for (const bio of biomarkers) {
-    if (bio.type === 'emotional_burnout') {
-      const wpmEv = await buildEvidence('typing_wpm');
-      const errEv = await buildEvidence('typing_backspace_rate');
-      const nightEv = await buildEvidence('night_usage_minutes');
-      const evidenceList = [wpmEv, errEv, nightEv].filter(Boolean) as EvidenceItem[];
-
-      generatedInsights.push({
-        createdAt: Date.now(),
-        date: latestDate,
-        severity: 'high',
-        biomarkerType: 'emotional_burnout',
-        title: 'Yazım Ritmin ve Bilişsel Tempon Hakkında Bir Gözlem',
-        body: 'Son birkaç gündür klavye yazım hızında sakin bir yavaşlama ve geriye dönüp düzeltme sıklığında belirgin bir artış fark ettik. Bu davranış örüntüsü genellikle yoğun zihinsel yorgunluk ve tükenmişlik evrelerinde gözlemlenebilir.',
-        suggestedAction: 'Şu an üst üste binen sorumluluklar arasında küçük bir nefes alanı açmak ve bugün zihnini dinlendirecek 20 dakikalık ekransız bir mola vermek nasıl hissettirirdi?',
-        evidence: evidenceList,
-        dismissed: false,
-        provisional: !isFinalized,
-        finalized: isFinalized,
-      });
-    } else if (bio.type === 'circadian_disruption') {
-      const nightEv = await buildEvidence('night_usage_minutes');
-      const screenEv = await buildEvidence('screen_on_time');
-      const evidenceList = [nightEv, screenEv].filter(Boolean) as EvidenceItem[];
-
-      generatedInsights.push({
-        createdAt: Date.now() - 1000,
-        date: latestDate,
-        severity: 'medium',
-        biomarkerType: 'circadian_disruption',
-        title: 'Gece Dinlenme Penceresi ve Sirkadiyen Ritim',
-        body: 'Son 3 gecedir biyolojik onarım penceresi olan 02:00–04:00 saatleri arasında cihaz etkileşiminde artış tespit edildi. Gece ışığı ve geç saat uyanıklığı, sonraki günün bilişsel dayanıklılığını etkileyebilir.',
-        suggestedAction: 'Yatmadan 45 dakika önce telefonunu yatak başucundan uzağa bırakıp uyku öncesi sakinleştirici bir rutin oluşturmayı denemek ister misin?',
-        evidence: evidenceList,
-        dismissed: false,
-        provisional: !isFinalized,
-        finalized: isFinalized,
-      });
-    } else if (bio.type === 'social_withdrawal') {
-      const mobEv = await buildEvidence('mobility_index');
-      const touchEv = await buildEvidence('touch_interaction_frequency');
-      const evidenceList = [mobEv, touchEv].filter(Boolean) as EvidenceItem[];
-
-      generatedInsights.push({
-        createdAt: Date.now(),
-        date: latestDate,
-        severity: 'high',
-        biomarkerType: 'social_withdrawal',
-        title: 'Hareketlilik ve Etkileşim Dinamiklerinde Değişim',
-        body: 'Günlük fiziksel hareketlilik seviyende ve cihaz içi aktif etkileşim sıklığında kişisel baz hattına kıyasla belirgin bir geri çekilme görülüyor. Bu örüntü çoğu zaman sosyal enerjinin azaldığı dönemlerde öne çıkar.',
-        suggestedAction: 'Bugün dışarıda kısa bir hava alma yürüyüşü yapmayı ya da seni anlayan bir dostunla kısa bir merhaba paylaşmayı planlamak iyi gelebilir mi?',
-        evidence: evidenceList,
-        dismissed: false,
-        provisional: !isFinalized,
-        finalized: isFinalized,
-      });
-    } else if (bio.type === 'high_stress') {
-      const scrollEv = await buildEvidence('touch_scroll_velocity');
-      const tremorEv = await buildEvidence('tremor_variance');
-      const evidenceList = [scrollEv, tremorEv].filter(Boolean) as EvidenceItem[];
-
-      generatedInsights.push({
-        createdAt: Date.now(),
-        date: latestDate,
-        severity: 'medium',
-        biomarkerType: 'high_stress',
-        title: 'Dokunmatik Gezinme Hızında Stres Yansıması',
-        body: 'Ekranda kaydırma hızının normalinden %40 daha yüksek olduğu ve oturumların sık bölündüğü fark ediliyor. Bu hızlı geçişler genellikle zihinsel telaş ve baskı anlarında ortaya çıkar.',
-        suggestedAction: 'Birkaç derin diyafram nefesi alıp omuzlarını serbest bırakmayı ve ritmini yavaşlatmayı denemek ister misin?',
-        evidence: evidenceList,
-        dismissed: false,
-        provisional: !isFinalized,
-        finalized: isFinalized,
-      });
-    } else if (bio.type === 'healthy_balance') {
+    if (bio.type === 'healthy_balance') {
       const mobEv = await buildEvidence('mobility_index');
       const wpmEv = await buildEvidence('typing_wpm');
       const evidenceList = [mobEv, wpmEv].filter(Boolean) as EvidenceItem[];
@@ -217,6 +145,31 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         provisional: !isFinalized,
         finalized: isFinalized,
       });
+    } else {
+      const ruleKey = Object.keys(PHENOTYPE_RULES).find(k => PHENOTYPE_RULES[k].id === bio.type);
+      const rule = ruleKey ? PHENOTYPE_RULES[ruleKey] : null;
+
+      if (rule) {
+        const validMetrics = [...rule.requiredMetrics, ...rule.requiredZMetrics]
+          .filter(m => METRIC_DEFINITIONS[m as MetricKey]);
+        const evidencePromises = validMetrics.map(metric => buildEvidence(metric as MetricKey));
+        const resolvedEvidence = await Promise.all(evidencePromises);
+        const evidenceList = resolvedEvidence.filter(Boolean) as EvidenceItem[];
+
+        generatedInsights.push({
+          createdAt: Date.now(),
+          date: latestDate,
+          severity: rule.severity,
+          biomarkerType: bio.type,
+          title: rule.title,
+          body: rule.personalizedDeviationStatement,
+          suggestedAction: rule.ethicalDisclaimer,
+          evidence: evidenceList,
+          dismissed: false,
+          provisional: !isFinalized,
+          finalized: isFinalized,
+        });
+      }
     }
   }
 

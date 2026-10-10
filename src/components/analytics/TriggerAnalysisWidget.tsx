@@ -1,21 +1,101 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
-
-const data = [
-  { time: '10:00', mood: 50, trigger: null },
-  { time: '11:00', mood: 55, trigger: null },
-  { time: '12:00', mood: 80, trigger: 'Enerjik Çalma Listesi' },
-  { time: '13:00', mood: 75, trigger: null },
-  { time: '14:00', mood: 60, trigger: null },
-  { time: '15:00', mood: 30, trigger: 'Aşırı Sosyal Medya' },
-  { time: '16:00', mood: 35, trigger: null },
-  { time: '17:00', mood: 45, trigger: null },
-  { time: '18:00', mood: 70, trigger: 'Yürüyüş' },
-  { time: '19:00', mood: 72, trigger: null },
-];
+import { db } from '../../db';
 
 export const TriggerAnalysisWidget: React.FC = () => {
+  const [data, setData] = useState<{ time: string; mood: number; trigger: string | null; isHigh?: boolean; isLow?: boolean }[]>([]);
+  const [boosters, setBoosters] = useState<string[]>([]);
+  const [drainers, setDrainers] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRealData = async () => {
+      try {
+        const fourteenDaysAgo = new Date();
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+        
+        const recentReports = await db.moodReports
+          .where('timestamp')
+          .above(fourteenDaysAgo.getTime())
+          .toArray();
+
+        if (recentReports.length < 3) {
+          setLoading(false);
+          return;
+        }
+
+        // Calculate tag averages
+        const tagScores: Record<string, { total: number; count: number }> = {};
+        recentReports.forEach((report: any) => {
+          report.tags.forEach((tag: string) => {
+            if (!tagScores[tag]) tagScores[tag] = { total: 0, count: 0 };
+            tagScores[tag].total += report.score;
+            tagScores[tag].count += 1;
+          });
+        });
+
+        const newBoosters: string[] = [];
+        const newDrainers: string[] = [];
+        
+        for (const [tag, stats] of Object.entries(tagScores)) {
+          const avg = stats.total / stats.count;
+          if (avg >= 3.5) newBoosters.push(tag);
+          else if (avg <= 2.5) newDrainers.push(tag);
+        }
+
+        setBoosters(newBoosters);
+        setDrainers(newDrainers);
+
+        // Map recent 10 reports to chart data
+        const chartData = recentReports
+          .sort((a: any, b: any) => a.timestamp - b.timestamp)
+          .slice(-10)
+          .map((report: any) => {
+            const date = new Date(report.timestamp);
+            const time = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            // map score 1-5 to 20-100
+            const mood = report.score * 20; 
+            const trigger = report.tags.length > 0 ? report.tags[0] : null;
+            return {
+              time,
+              mood,
+              trigger,
+              isHigh: report.score >= 4,
+              isLow: report.score <= 2
+            };
+          });
+
+        setData(chartData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadRealData();
+  }, []);
+
+  if (loading) return null;
+
+  if (data.length < 3) {
+    return (
+      <div className="bg-white rounded-3xl p-6 shadow-soft border border-comus-sand-light/20 space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-xl bg-comus-navy-subtle flex items-center justify-center text-comus-navy">
+            <Activity className="w-4 h-4" />
+          </div>
+          <h3 className="font-serif font-bold text-lg text-comus-navy">
+            Tetikleyici Analizi
+          </h3>
+        </div>
+        <div className="h-32 flex items-center justify-center text-sm text-comus-sand-dark text-center">
+          Tetikleyici analizi için yeterli veri toplanıyor.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-3xl p-6 shadow-soft border border-comus-sand-light/20 space-y-4">
       <div className="flex items-center gap-2 mb-2">
@@ -62,9 +142,11 @@ export const TriggerAnalysisWidget: React.FC = () => {
               dot={{ r: 3, fill: '#0f172a', strokeWidth: 0 }}
               activeDot={{ r: 6, fill: '#D97757', stroke: '#fff', strokeWidth: 2 }}
             />
-            <ReferenceDot x="12:00" y={80} r={6} fill="#10B981" stroke="#fff" strokeWidth={2} />
-            <ReferenceDot x="15:00" y={30} r={6} fill="#EF4444" stroke="#fff" strokeWidth={2} />
-            <ReferenceDot x="18:00" y={70} r={6} fill="#10B981" stroke="#fff" strokeWidth={2} />
+            {data.map((entry, index) => {
+              if (entry.isHigh) return <ReferenceDot key={index} x={entry.time} y={entry.mood} r={6} fill="#10B981" stroke="#fff" strokeWidth={2} />;
+              if (entry.isLow) return <ReferenceDot key={index} x={entry.time} y={entry.mood} r={6} fill="#EF4444" stroke="#fff" strokeWidth={2} />;
+              return null;
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -74,13 +156,17 @@ export const TriggerAnalysisWidget: React.FC = () => {
           <div className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
             <TrendingUp className="w-4 h-4" /> Modu Yükseltenler
           </div>
-          <p className="text-[11px] text-emerald-800 leading-relaxed">Enerjik Çalma Listesi, Açık Havada Yürüyüş</p>
+          <p className="text-[11px] text-emerald-800 leading-relaxed">
+            {boosters.length > 0 ? boosters.join(', ') : 'Yeterli veri yok'}
+          </p>
         </div>
         <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100 flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
             <TrendingDown className="w-4 h-4" /> Modu Düşürenler
           </div>
-          <p className="text-[11px] text-rose-800 leading-relaxed">Aşırı Sosyal Medya Kullanımı, Uzun Ekran Süresi</p>
+          <p className="text-[11px] text-rose-800 leading-relaxed">
+            {drainers.length > 0 ? drainers.join(', ') : 'Yeterli veri yok'}
+          </p>
         </div>
       </div>
     </div>

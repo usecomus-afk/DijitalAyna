@@ -133,7 +133,7 @@ export class TelemetryPipeline {
     const wpm = KeystrokeFeatureExtractor.estimateTypingSpeedWpm(this.keystrokeBuffer);
 
     // 3. Circadian & Screen Dynamics
-    const nocturnalMins = CircadianFeatureExtractor.nocturnalScreenTime(this.screenBuffer, 0, 6);
+    const nocturnalMins = CircadianFeatureExtractor.nocturnalScreenTime(this.screenBuffer, 2, 4);
     const unlockFreq = CircadianFeatureExtractor.unlockFrequency(this.screenBuffer, 16);
     const hyperCheck = CircadianFeatureExtractor.hyperCheckingIndex(this.screenBuffer, 30);
     const totalScreenMins = CircadianFeatureExtractor.totalScreenOnTime(this.screenBuffer);
@@ -150,7 +150,7 @@ export class TelemetryPipeline {
     const tremorVar =
       tremors.length > 1
         ? tremors.reduce((acc, v) => acc + Math.pow(v - meanTremor, 2), 0) / tremors.length
-        : 0.15;
+        : null;
 
     const features: DailyPhenotypeFeatures = {
       date,
@@ -178,7 +178,7 @@ export class TelemetryPipeline {
       outgoingCallRatio: outgoingRatio,
       totalSocialInteractions: totalCalls,
 
-      tremorVariance: Math.round(tremorVar * 100) / 100,
+      tremorVariance: tremorVar !== null ? Math.round(tremorVar * 100) / 100 : null,
       activityIntensityScore: Math.round(Math.min(100, (totalDist / 100) + (rg / 50))),
     };
 

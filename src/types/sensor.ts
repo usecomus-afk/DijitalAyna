@@ -23,6 +23,7 @@ export type MetricKey =
   | 'typing_iki'
   | 'typing_backspace_rate'
   | 'typing_pause_count'
+  | 'typing_hold_time'
   | 'touch_scroll_velocity'
   | 'touch_interaction_frequency'
   | 'session_duration'
@@ -39,7 +40,12 @@ export type MetricKey =
   | 'impulse_risk_index'
   | 'gaming_duration'
   | 'camera_interaction_count'
-  | 'sleep_efficiency';
+  | 'homestay_ratio'
+  | 'mobility_radius'
+  | 'sleep_efficiency'
+  | 'sleep_duration'
+  | 'sleep_sol'
+  | 'sleep_waso';
 
 export interface MetricDefinition {
   key: MetricKey;
@@ -234,5 +240,53 @@ export const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     category: 'session',
     description: 'Kısa sürede tekrarlayan kamera açılış sıklığı ve çekim-silme oranı.',
     healthyTrend: 'balanced',
+  },
+  typing_hold_time: {
+    key: 'typing_hold_time',
+    label: 'Tuş Basılı Tutma Süresi',
+    unit: 'ms',
+    category: 'typing',
+    description: 'Tuşların ne kadar süre basılı tutulduğu.',
+    healthyTrend: 'balanced',
+  },
+  homestay_ratio: {
+    key: 'homestay_ratio',
+    label: 'Evde Kalma Oranı',
+    unit: 'oran',
+    category: 'motion',
+    description: 'Evde geçirilen sürenin oranı.',
+    healthyTrend: 'balanced',
+  },
+  mobility_radius: {
+    key: 'mobility_radius',
+    label: 'Hareketlilik Yarıçapı',
+    unit: 'km',
+    category: 'motion',
+    description: 'Günlük hareket edilen coğrafi alanın yarıçapı.',
+    healthyTrend: 'higher',
+  },
+  sleep_duration: {
+    key: 'sleep_duration',
+    label: 'Toplam Uyku Süresi',
+    unit: 'dk',
+    category: 'sleep',
+    description: 'Toplam uyunan süre.',
+    healthyTrend: 'higher',
+  },
+  sleep_sol: {
+    key: 'sleep_sol',
+    label: 'Uykuya Dalma Süresi',
+    unit: 'dk',
+    category: 'sleep',
+    description: 'Yatağa girişten uykuya dalana kadar geçen süre.',
+    healthyTrend: 'lower',
+  },
+  sleep_waso: {
+    key: 'sleep_waso',
+    label: 'Gece Uyanıklığı',
+    unit: 'dk',
+    category: 'sleep',
+    description: 'Uyku başladıktan sonra uyanık kalınan süre.',
+    healthyTrend: 'lower',
   },
 };

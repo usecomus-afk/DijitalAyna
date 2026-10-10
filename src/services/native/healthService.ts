@@ -153,11 +153,18 @@ class HealthService {
       // HKCategoryValueSleepAnalysisAsleepREM = 5
       let firstSleepOnset: Date | null = null;
       let lastSleepOffset: Date | null = null;
+      let firstInBed: Date | null = null;
 
       for (const sample of result.samples) {
         const sDate = new Date(sample.startDate);
         const eDate = new Date(sample.endDate);
         const durationMinutes = (eDate.getTime() - sDate.getTime()) / (1000 * 60);
+
+        if (sample.value === 0) { // InBed
+          if (!firstInBed || sDate < firstInBed) {
+            firstInBed = sDate;
+          }
+        }
 
         // 1, 3, 4, 5 are all asleep stages
         if (sample.value === 1 || sample.value === 3 || sample.value === 4 || sample.value === 5) { 
@@ -188,10 +195,15 @@ class HealthService {
         }
       }
 
+      let sol = null;
+      if (firstInBed && firstSleepOnset && firstSleepOnset > firstInBed) {
+        sol = (firstSleepOnset.getTime() - firstInBed.getTime()) / (1000 * 60);
+      }
+
       return {
         tst: totalAsleepMinutes > 0 ? Math.round(totalAsleepMinutes) : null,
         waso: totalAwakeMinutesAfterOnset > 0 ? Math.round(totalAwakeMinutesAfterOnset) : null,
-        sol: null, // SOL is complex to derive without full in-bed vs asleep bounds reliably
+        sol: sol !== null ? Math.round(sol) : null,
         source: 'native-sensor'
       };
 
@@ -257,23 +269,32 @@ class HealthService {
         sleepScore = Math.max(0, sleepScore - Math.round(sleepRes.waso / 10));
       }
 
-      const existing = await db.dailyMetrics
-        .where('[metricKey+date]')
-        .equals(['sleep_efficiency', today])
-        .first();
+      const metricsToSave = [
+        { key: 'sleep_efficiency', val: sleepScore },
+        { key: 'sleep_duration', val: sleepRes.tst },
+        ...(sleepRes.waso !== null ? [{ key: 'sleep_waso', val: sleepRes.waso }] : []),
+        ...(sleepRes.sol !== null ? [{ key: 'sleep_sol', val: sleepRes.sol }] : [])
+      ];
 
-      if (existing && existing.id) {
-        await db.dailyMetrics.update(existing.id, {
-          value: sleepScore,
-          sampleCount: (existing.sampleCount || 1) + 1,
-        });
-      } else {
-        await db.dailyMetrics.add({
-          date: today,
-          metricKey: 'sleep_efficiency',
-          value: sleepScore,
-          sampleCount: 1,
-        });
+      for (const m of metricsToSave) {
+        const existing = await db.dailyMetrics
+          .where('[metricKey+date]')
+          .equals([m.key, today])
+          .first();
+
+        if (existing && existing.id) {
+          await db.dailyMetrics.update(existing.id, {
+            value: m.key === 'sleep_efficiency' ? m.val : Math.max(existing.value, m.val),
+            sampleCount: (existing.sampleCount || 1) + 1,
+          });
+        } else {
+          await db.dailyMetrics.add({
+            date: today,
+            metricKey: m.key as any,
+            value: m.val,
+            sampleCount: 1,
+          });
+        }
       }
 
       await db.logSensorEvent({
@@ -282,6 +303,7 @@ class HealthService {
         payload: {
           tst_minutes: sleepRes.tst || 0,
           waso_minutes: sleepRes.waso || 0,
+          sol_minutes: sleepRes.sol || 0,
           sleep_score: sleepScore
         },
         provenance: {
