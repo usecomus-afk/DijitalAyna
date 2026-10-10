@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Book, Plus, ChevronRight, ClipboardList, ShieldCheck } from 'lucide-react';
+import { Book, ChevronRight, ClipboardList, ShieldCheck } from 'lucide-react';
 import { QuickMoodWidget } from '../components/dashboard/QuickMoodWidget';
 
 export const JournalPage: React.FC = () => {
@@ -70,3 +70,4 @@ export const JournalPage: React.FC = () => {
     </div>
   );
 };
+
