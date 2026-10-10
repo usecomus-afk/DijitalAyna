@@ -3,8 +3,12 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { InsightCard } from '../components/insights/InsightCard';
+import { MetricCard } from '../components/dashboard/MetricCard';
+import { calculateZScore } from '../engine/anomaly';
+import { AnomalyResult } from '../types/engine';
+import { healthService } from '../services/native/healthService';
 import { Disclaimer } from '../components/common/Disclaimer';
-import { Sparkles, CheckCircle2 } from 'lucide-react';
+import { Sparkles, CheckCircle2, Activity, Keyboard, Moon, Smartphone } from 'lucide-react';
 import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
 import { applyDailyStateToInsight } from '../engine/dailyState';
 import { TriggerAnalysisWidget } from '../components/analytics/TriggerAnalysisWidget';
@@ -14,6 +18,83 @@ export const InsightsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const insights = useLiveQuery(() => db.insights.toArray()) || [];
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
+  const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
+
+  // Group metrics by key and find latest date
+  const { historyByKey, latestMetricsByKey, baselineMap } = useMemo(() => {
+    const bMap = new Map(baselines.map(b => [b.metricKey, b]));
+    const hMap = new Map<string, { date: string; value: number }[]>();
+    const lMap = new Map<string, number>();
+
+    let maxDate = '';
+
+    // Sort metrics by date
+    const sorted = [...dailyMetrics].sort((a, b) => a.date.localeCompare(b.date));
+
+    for (const m of sorted) {
+      if (m.date > maxDate) maxDate = m.date;
+      if (!hMap.has(m.metricKey)) {
+        hMap.set(m.metricKey, []);
+      }
+      hMap.get(m.metricKey)!.push({
+        date: m.date.slice(5),
+        value: m.value,
+      });
+      lMap.set(m.metricKey, m.value);
+    }
+
+    // Build anomalies for latest date
+    const anoms: AnomalyResult[] = [];
+    if (maxDate) {
+      const todays = sorted.filter(m => m.date === maxDate);
+      for (const t of todays) {
+        const base = bMap.get(t.metricKey);
+        if (base) {
+          const z = calculateZScore(t.value, base.ewmaMean, base.ewmaStd);
+          const dev = base.ewmaMean !== 0
+            ? Math.round(((t.value - base.ewmaMean) / base.ewmaMean) * 100)
+            : 0;
+          anoms.push({
+            metricKey: t.metricKey,
+            date: maxDate,
+            currentValue: t.value,
+            baselineMean: base.ewmaMean,
+            baselineStd: base.ewmaStd,
+            zScore: z,
+            isAnomaly: Math.abs(z) >= 2.0,
+            deviationPercent: dev,
+            direction: z > 0 ? 'above' : 'below',
+          });
+        }
+      }
+    }
+
+    return {
+      historyByKey: hMap,
+      latestMetricsByKey: lMap,
+      anomalies: anoms,
+      baselineMap: bMap,
+    };
+  }, [dailyMetrics, baselines]);
+
+  // Helper to safely get metric info without mocking
+  const getMetricData = (key: any, unavailableReason = '') => {
+    const hasData = latestMetricsByKey.has(key);
+    const curr = hasData ? (latestMetricsByKey.get(key) ?? null) : null;
+    const base = baselineMap.get(key)?.ewmaMean ?? null;
+    const std = baselineMap.get(key)?.ewmaStd ?? 1;
+    const z = curr !== null && base !== null ? calculateZScore(curr, base, std) : null;
+    const dev = curr !== null && base !== null && base !== 0 ? Math.round(((curr - base) / base) * 100) : null;
+    const hist = (historyByKey.get(key) || []).slice(-14);
+    return { hasData, curr, base, z, dev, hist, unavailableReason };
+  };
+
+  const mobility = getMetricData('mobility_index', '[Veri Alınamıyor / İzin Bekleniyor]');
+  const typing = getMetricData('typing_wpm', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
+  const backspace = getMetricData('typing_backspace_rate', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
+  const night = getMetricData('night_usage_minutes', '[Kayıt Yok - Gece kullanımı yok]');
+  const touch = getMetricData('touch_interaction_frequency', '[Kayıt Yok - Etkileşim yok]');
+
 
   const sampleDays = useMemo(() => new Set(dailyMetrics.map((m) => m.date)).size, [dailyMetrics]);
   const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
@@ -127,6 +208,94 @@ export const InsightsPage: React.FC = () => {
           </p>
         </div>
       )}
+
+      <div className="pt-6">
+        <h2 className="font-serif font-bold text-xl text-comus-navy mb-4">Anl�k Fenotip Verileri</h2>
+{/* 4 Core Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 1. Hareketlilik (Mobility) */}
+        <MetricCard
+          title="Fiziksel Hareketlilik"
+          metricKey="mobility_index"
+          icon={Activity}
+          currentValue={mobility.curr}
+          baselineValue={mobility.base}
+          unit="puan"
+          zScore={mobility.z}
+          deviationPercent={mobility.dev}
+          history={mobility.hist}
+          hasData={mobility.hasData}
+          unavailableReason={mobility.unavailableReason}
+          actionLabel="İzin Ver"
+          onActionClick={async () => {
+            const res = await healthService.requestHealthPermissions();
+            if (res.granted) {
+              await healthService.syncHealthBiomarkers();
+            } else if (res.error) {
+              alert(res.error);
+            }
+            
+            const store = useAppStore.getState();
+            const wasModalOpen = store.emergencyModalOpen;
+            await store.runAnalysisPipeline();
+            if (!wasModalOpen && store.emergencyModalOpen) {
+              store.setEmergencyModalOpen(false); // suppress immediate modal on manual grant
+            }
+          }}
+          description="İvmeölçer & fiziksel aktivite endeksi"
+        />
+
+        {/* 2. Yazım Dinamiği (Typing) */}
+        <MetricCard
+          title="Yazım Dinamiği & Akıcılık"
+          metricKey="typing_wpm"
+          icon={Keyboard}
+          currentValue={typing.curr}
+          baselineValue={typing.base}
+          unit="WPM"
+          zScore={typing.z}
+          deviationPercent={typing.dev}
+          history={typing.hist}
+          hasData={typing.hasData}
+          unavailableReason={typing.unavailableReason}
+          description={backspace.hasData ? `Tuş aralığı & hata oranı (%${backspace.curr})` : 'Uygulama içi tuş vuruş akıcılığı'}
+        />
+
+        {/* 3. Ekran Ritmi & Gece Kullanımı */}
+        <MetricCard
+          title="Sirkadiyen Ekran Ritmi"
+          metricKey="night_usage_minutes"
+          icon={Moon}
+          currentValue={night.curr}
+          baselineValue={night.base}
+          unit="dk (gece)"
+          zScore={night.z}
+          deviationPercent={night.dev}
+          history={night.hist}
+          hasData={night.hasData}
+          unavailableReason={night.unavailableReason}
+          description="02:00–04:00 gece dinlenme penceresi kullanımı"
+        />
+
+        {/* 4. Etkileşim Yoğunluğu (Touch) */}
+        <MetricCard
+          title="Etkileşim Yoğunluğu"
+          metricKey="touch_interaction_frequency"
+          icon={Smartphone}
+          currentValue={touch.curr}
+          baselineValue={touch.base}
+          unit="dokunma/dk"
+          zScore={touch.z}
+          deviationPercent={touch.dev}
+          history={touch.hist}
+          hasData={touch.hasData}
+          unavailableReason={touch.unavailableReason}
+          description="Kaydırma hızı ve ekran etkileşim sıklığı"
+        />
+      </div>
+
+      
+      </div>
 
       {/* Tetikleyici Analizi (Yeni) */}
       <TriggerAnalysisWidget />

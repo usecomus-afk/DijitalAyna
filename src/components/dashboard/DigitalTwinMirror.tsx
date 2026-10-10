@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { Sparkles, Calendar, Zap, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { Sparkles, Calendar, Zap, ShieldCheck, } from 'lucide-react';
 import { AnomalyResult } from '../../types/engine';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import mirrorIcon from '../../assets/digital_twin_mirror.png';
@@ -11,7 +11,7 @@ interface DigitalTwinMirrorProps {
 }
 
 export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies, sampleDays }) => {
-  const { userProfile, baselineDayCount, setEmergencyModalOpen } = useAppStore();
+  const { userProfile, baselineDayCount, } = useAppStore();
   const { mirrorText, moodPill } = useMentalTwinAvatar();
 
   const severeAnomalies = anomalies.filter((a) => a.isAnomaly);
@@ -79,13 +79,7 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
             <blockquote className="font-serif text-base sm:text-lg font-normal leading-relaxed text-comus-navy italic">
               "{mirrorText}"
             </blockquote>
-            <button
-              onClick={() => setEmergencyModalOpen(true)}
-              className="mt-4 text-xs text-comus-copper hover:text-comus-navy font-medium inline-flex items-center justify-center gap-1 transition-colors"
-            >
-              <span>Dijital Mental İkiz Analizini Gör</span>
-              <ArrowUpRight className="w-3 h-3" />
-            </button>
+            
           </div>
         </div>
 

@@ -3,28 +3,18 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { DigitalTwinMirror } from '../components/dashboard/DigitalTwinMirror';
-import { MetricCard } from '../components/dashboard/MetricCard';
+import { MentalTwinPanel } from '../components/avatar/MentalTwinPanel';
 import { PredictiveAlertModal } from '../components/alerts/PredictiveAlertModal';
 import { ProactivePredictionModal } from '../components/alerts/ProactivePredictionModal';
 import { checkProactivePrediction } from '../engine/proactiveAdvisor';
 import { Disclaimer } from '../components/common/Disclaimer';
 import {
-  Activity,
-  Keyboard,
-  Moon,
-  Smartphone,
-  RefreshCw,
-  CheckCircle2,
-  Battery,
-  Wifi,
 } from 'lucide-react';
 import { calculateZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
-import { healthService } from '../services/native/healthService';
 
 export const DashboardPage: React.FC = () => {
-  const { isAnalyzing, activePredictiveAlertDismissed, dismissPredictiveAlert, baselineDayCount, runAnalysisPipeline } = useAppStore();
-  const [evalToast, setEvalToast] = useState<string | null>(null);
+  const { activePredictiveAlertDismissed, dismissPredictiveAlert, baselineDayCount } = useAppStore();
   const [isProactiveModalOpen, setIsProactiveModalOpen] = useState(false);
 
   useEffect(() => {
@@ -40,7 +30,7 @@ export const DashboardPage: React.FC = () => {
   const predictiveAlerts = useLiveQuery(() => db.predictiveAlerts.where('dismissed').equals(0).toArray()) || [];
 
   // Group metrics by key and find latest date
-  const { historyByKey, latestMetricsByKey, anomalies, baselineMap } = useMemo(() => {
+  const { anomalies } = useMemo(() => {
     const bMap = new Map(baselines.map(b => [b.metricKey, b]));
     const hMap = new Map<string, { date: string; value: number }[]>();
     const lMap = new Map<string, number>();
@@ -98,95 +88,10 @@ export const DashboardPage: React.FC = () => {
 
   const activeAlert = predictiveAlerts.length > 0 && !activePredictiveAlertDismissed ? predictiveAlerts[0] : null;
 
-  // Helper to safely get metric info without mocking
-  const getMetricData = (key: any, unavailableReason = '') => {
-    const hasData = latestMetricsByKey.has(key);
-    const curr = hasData ? (latestMetricsByKey.get(key) ?? null) : null;
-    const base = baselineMap.get(key)?.ewmaMean ?? null;
-    const std = baselineMap.get(key)?.ewmaStd ?? 1;
-    const z = curr !== null && base !== null ? calculateZScore(curr, base, std) : null;
-    const dev = curr !== null && base !== null && base !== 0 ? Math.round(((curr - base) / base) * 100) : null;
-    const hist = (historyByKey.get(key) || []).slice(-14);
-    return { hasData, curr, base, z, dev, hist, unavailableReason };
-  };
 
-  const mobility = getMetricData('mobility_index', '[Veri Alınamıyor / İzin Bekleniyor]');
-  const typing = getMetricData('typing_wpm', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
-  const backspace = getMetricData('typing_backspace_rate', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
-  const night = getMetricData('night_usage_minutes', '[Kayıt Yok - Gece kullanımı yok]');
-  const touch = getMetricData('touch_interaction_frequency', '[Kayıt Yok - Etkileşim yok]');
-  const battery = getMetricData('battery_level', '[Veri Alınamıyor / İzin Bekleniyor]');
-
-  const handleManualEvaluate = async () => {
-    await runAnalysisPipeline();
-    setEvalToast('Cihaz sensörleri okundu, baz hattı ve klinik durum güncellendi!');
-    setTimeout(() => setEvalToast(null), 3500);
-  };
 
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
-      {/* Live Sensors & Real-Time Evaluation Control Bar */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-comus-sand-light/30 shadow-soft space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute opacity-75" />
-              <div className="w-3 h-3 rounded-full bg-emerald-600 relative" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-comus-navy flex items-center gap-1.5">
-                <span>Canlı Sensör Okuma & Fenotip Motoru Aktif</span>
-              </div>
-              <p className="text-[11px] text-comus-sand-dark mt-0.5">
-                Cihaz içi hareketlilik, yazım temposu ve oturum döngüleri arka planda izleniyor
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
-              onClick={handleManualEvaluate}
-              disabled={isAnalyzing}
-              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all disabled:opacity-75 cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
-              <span>{isAnalyzing ? 'Değerlendiriliyor...' : 'Şimdi Değerlendir'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Real-time Hardware Indicators */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-comus-sand-light/20 text-[11px]">
-          <div className="flex items-center gap-1.5 text-comus-navy/80">
-            <Activity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>Hareket: <strong>{mobility.hasData ? `${mobility.curr} puan` : 'İzin Bekleniyor'}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-comus-navy/80">
-            <Keyboard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Yazım: <strong>{typing.hasData ? `${typing.curr} WPM` : 'Yazım Yok'}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-comus-navy/80">
-            <Battery className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span>Pil: <strong>{battery.hasData ? `%${battery.curr}` : 'API Kısıtlı'}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-comus-navy/80">
-            <Wifi className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-            <span>Ağ: <strong>Çevrimiçi</strong></span>
-          </div>
-        </div>
-
-
-        {evalToast && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2 animate-fadeIn font-medium">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{evalToast}</span>
-          </div>
-        )}
-      </div>
-
       {/* Predictive Alert Banner (if active) */}
       {activeAlert && (
         <PredictiveAlertModal
@@ -207,88 +112,7 @@ export const DashboardPage: React.FC = () => {
         sampleDays={baselineDayCount}
       />
 
-      {/* 4 Core Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 1. Hareketlilik (Mobility) */}
-        <MetricCard
-          title="Fiziksel Hareketlilik"
-          metricKey="mobility_index"
-          icon={Activity}
-          currentValue={mobility.curr}
-          baselineValue={mobility.base}
-          unit="puan"
-          zScore={mobility.z}
-          deviationPercent={mobility.dev}
-          history={mobility.hist}
-          hasData={mobility.hasData}
-          unavailableReason={mobility.unavailableReason}
-          actionLabel="İzin Ver"
-          onActionClick={async () => {
-            const res = await healthService.requestHealthPermissions();
-            if (res.granted) {
-              await healthService.syncHealthBiomarkers();
-            } else if (res.error) {
-              alert(res.error);
-            }
-            
-            const store = useAppStore.getState();
-            const wasModalOpen = store.emergencyModalOpen;
-            await store.runAnalysisPipeline();
-            if (!wasModalOpen && store.emergencyModalOpen) {
-              store.setEmergencyModalOpen(false); // suppress immediate modal on manual grant
-            }
-          }}
-          description="İvmeölçer & fiziksel aktivite endeksi"
-        />
-
-        {/* 2. Yazım Dinamiği (Typing) */}
-        <MetricCard
-          title="Yazım Dinamiği & Akıcılık"
-          metricKey="typing_wpm"
-          icon={Keyboard}
-          currentValue={typing.curr}
-          baselineValue={typing.base}
-          unit="WPM"
-          zScore={typing.z}
-          deviationPercent={typing.dev}
-          history={typing.hist}
-          hasData={typing.hasData}
-          unavailableReason={typing.unavailableReason}
-          description={backspace.hasData ? `Tuş aralığı & hata oranı (%${backspace.curr})` : 'Uygulama içi tuş vuruş akıcılığı'}
-        />
-
-        {/* 3. Ekran Ritmi & Gece Kullanımı */}
-        <MetricCard
-          title="Sirkadiyen Ekran Ritmi"
-          metricKey="night_usage_minutes"
-          icon={Moon}
-          currentValue={night.curr}
-          baselineValue={night.base}
-          unit="dk (gece)"
-          zScore={night.z}
-          deviationPercent={night.dev}
-          history={night.hist}
-          hasData={night.hasData}
-          unavailableReason={night.unavailableReason}
-          description="02:00–04:00 gece dinlenme penceresi kullanımı"
-        />
-
-        {/* 4. Etkileşim Yoğunluğu (Touch) */}
-        <MetricCard
-          title="Etkileşim Yoğunluğu"
-          metricKey="touch_interaction_frequency"
-          icon={Smartphone}
-          currentValue={touch.curr}
-          baselineValue={touch.base}
-          unit="dokunma/dk"
-          zScore={touch.z}
-          deviationPercent={touch.dev}
-          history={touch.hist}
-          hasData={touch.hasData}
-          unavailableReason={touch.unavailableReason}
-          description="Kaydırma hızı ve ekran etkileşim sıklığı"
-        />
-      </div>
+      <MentalTwinPanel />
 
       {/* Micro Disclaimer */}
       <Disclaimer />

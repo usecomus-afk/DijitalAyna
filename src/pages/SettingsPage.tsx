@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
+import { calculateZScore } from '../engine/anomaly';
+import { AnomalyResult } from '../types/engine';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { AuthPanel } from '../components/auth/AuthPanel';
@@ -9,7 +13,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   CheckCircle,
-  Activity,
   Smartphone,
   Moon,
   BatteryCharging,
@@ -17,12 +20,11 @@ import {
   LogOut,
   Edit2,
   MapPin,
-  Keyboard,
   Cloud,
   CloudOff,
   RefreshCw,
   RotateCcw,
-  Sun,
+  Sun, Battery, CheckCircle2, Activity, Keyboard,
 } from 'lucide-react';
 
 // Impulse shield, HealthKit, ethics, notifications and legal sections live in
@@ -31,6 +33,9 @@ export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const {
     userProfile,
+    runAnalysisPipeline,
+    isAnalyzing,
+
     settings,
     setUserProfile,
     connectGoogleProfile,
@@ -41,6 +46,92 @@ export const SettingsPage: React.FC = () => {
     restoreFromCloudNow,
     wipeAllData,
   } = useAppStore();
+
+  const [evalToast, setEvalToast] = useState<string | null>(null);
+
+  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
+  const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
+
+  // Group metrics by key and find latest date
+  const { historyByKey, latestMetricsByKey, baselineMap } = useMemo(() => {
+    const bMap = new Map(baselines.map(b => [b.metricKey, b]));
+    const hMap = new Map<string, { date: string; value: number }[]>();
+    const lMap = new Map<string, number>();
+
+    let maxDate = '';
+
+    // Sort metrics by date
+    const sorted = [...dailyMetrics].sort((a, b) => a.date.localeCompare(b.date));
+
+    for (const m of sorted) {
+      if (m.date > maxDate) maxDate = m.date;
+      if (!hMap.has(m.metricKey)) {
+        hMap.set(m.metricKey, []);
+      }
+      hMap.get(m.metricKey)!.push({
+        date: m.date.slice(5),
+        value: m.value,
+      });
+      lMap.set(m.metricKey, m.value);
+    }
+
+    // Build anomalies for latest date
+    const anoms: AnomalyResult[] = [];
+    if (maxDate) {
+      const todays = sorted.filter(m => m.date === maxDate);
+      for (const t of todays) {
+        const base = bMap.get(t.metricKey);
+        if (base) {
+          const z = calculateZScore(t.value, base.ewmaMean, base.ewmaStd);
+          const dev = base.ewmaMean !== 0
+            ? Math.round(((t.value - base.ewmaMean) / base.ewmaMean) * 100)
+            : 0;
+          anoms.push({
+            metricKey: t.metricKey,
+            date: maxDate,
+            currentValue: t.value,
+            baselineMean: base.ewmaMean,
+            baselineStd: base.ewmaStd,
+            zScore: z,
+            isAnomaly: Math.abs(z) >= 2.0,
+            deviationPercent: dev,
+            direction: z > 0 ? 'above' : 'below',
+          });
+        }
+      }
+    }
+
+    return {
+      historyByKey: hMap,
+      latestMetricsByKey: lMap,
+      anomalies: anoms,
+      baselineMap: bMap,
+    };
+  }, [dailyMetrics, baselines]);
+
+  // Helper to safely get metric info without mocking
+  const getMetricData = (key: any, unavailableReason = '') => {
+    const hasData = latestMetricsByKey.has(key);
+    const curr = hasData ? (latestMetricsByKey.get(key) ?? null) : null;
+    const base = baselineMap.get(key)?.ewmaMean ?? null;
+    const std = baselineMap.get(key)?.ewmaStd ?? 1;
+    const z = curr !== null && base !== null ? calculateZScore(curr, base, std) : null;
+    const dev = curr !== null && base !== null && base !== 0 ? Math.round(((curr - base) / base) * 100) : null;
+    const hist = (historyByKey.get(key) || []).slice(-14);
+    return { hasData, curr, base, z, dev, hist, unavailableReason };
+  };
+
+  const mobility = getMetricData('mobility_index', '[Veri Alınamıyor / İzin Bekleniyor]');
+  const typing = getMetricData('typing_wpm', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
+
+
+  const battery = getMetricData('battery_level', '[Veri Al�nam�yor / �zin Bekleniyor]');
+
+  const handleManualEvaluate = async () => {
+    await runAnalysisPipeline();
+    setEvalToast('Cihaz sensörleri okundu, baz hattı ve klinik durum güncellendi!');
+    setTimeout(() => setEvalToast(null), 3500);
+  };
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(userProfile.name);
@@ -164,6 +255,70 @@ export const SettingsPage: React.FC = () => {
           <span>Tüm yerel veriler ve IndexedDB kayıtları başarıyla sıfırlandı.</span>
         </div>
       )}
+
+      {/* Live Sensors & Real-Time Evaluation Control Bar */}
+      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-comus-sand-light/30 shadow-soft space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute opacity-75" />
+              <div className="w-3 h-3 rounded-full bg-emerald-600 relative" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-comus-navy flex items-center gap-1.5">
+                <span>Canlı Sensör Okuma & Fenotip Motoru Aktif</span>
+              </div>
+              <p className="text-[11px] text-comus-sand-dark mt-0.5">
+                Cihaz içi hareketlilik, yazım temposu ve oturum döngüleri arka planda izleniyor
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={handleManualEvaluate}
+              disabled={isAnalyzing}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all disabled:opacity-75 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
+              <span>{isAnalyzing ? 'Değerlendiriliyor...' : 'Şimdi Değerlendir'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Real-time Hardware Indicators */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-comus-sand-light/20 text-[11px]">
+          <div className="flex items-center gap-1.5 text-comus-navy/80">
+            <Activity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Hareket: <strong>{mobility.hasData ? `${mobility.curr} puan` : 'İzin Bekleniyor'}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-comus-navy/80">
+            <Keyboard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <span>Yazım: <strong>{typing.hasData ? `${typing.curr} WPM` : 'Yazım Yok'}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-comus-navy/80">
+            <Battery className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Pil: <strong>{battery.hasData ? `%${battery.curr}` : 'API Kısıtlı'}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-comus-navy/80">
+            <Wifi className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <span>Ağ: <strong>Çevrimiçi</strong></span>
+          </div>
+        </div>
+
+
+        {evalToast && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2 animate-fadeIn font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{evalToast}</span>
+          </div>
+        )}
+      </div>
+
+      
 
       {/* 1. KULLANICI PROFİLİ & GOOGLE HESABI */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20">
