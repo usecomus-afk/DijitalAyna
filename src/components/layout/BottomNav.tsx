@@ -1,43 +1,28 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Sparkles, BookHeart, User, Sliders } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { Activity, Sparkles, HeartPulse, Menu } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
-  const unreadInsights = useLiveQuery(() => db.insights.where('dismissed').equals(0).count()) || 0;
-
+export const BottomNav: React.FC = () => {
   const navItems = [
     {
-      to: '/',
+      to: '/ayna',
       label: 'Ayna',
-      fullName: 'Dijital Mental İkizim',
       icon: Activity,
     },
     {
-      to: '/insights',
+      to: '/icgoru',
       label: 'İçgörü',
-      fullName: 'İçgörüler',
       icon: Sparkles,
-      badge: unreadInsights > 0 ? unreadInsights : undefined,
     },
     {
-      to: '/journal',
-      label: 'Günlük',
-      fullName: 'Ruh Hali & Günlük',
-      icon: BookHeart,
+      to: '/nasil-hissediyorsun',
+      label: 'Nasıl hissediyorsun?',
+      icon: HeartPulse,
     },
     {
-      to: '/profile',
-      label: 'Profil',
-      fullName: 'Kullanıcı Profili',
-      icon: User,
-    },
-    {
-      to: '/settings',
-      label: 'Ayarlar',
-      fullName: 'Cihaz Ayarları',
-      icon: Sliders,
+      to: '/menu',
+      label: 'Menü',
+      icon: Menu,
     },
   ];
 
@@ -46,12 +31,12 @@ export const Navbar: React.FC = () => {
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-comus-sand-light/30 shadow-[0_-4px_20px_rgba(30,58,95,0.04)]"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
     >
-      <div className="max-w-xl mx-auto grid grid-cols-5 h-16 items-center px-1">
+      <div className="max-w-xl mx-auto grid grid-cols-4 h-16 items-center px-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
-            title={item.fullName}
+            title={item.label}
             className={({ isActive }) =>
               `flex flex-col items-center justify-center h-full w-full py-1 rounded-2xl relative transition-colors duration-150 ${
                 isActive
@@ -74,11 +59,6 @@ export const Navbar: React.FC = () => {
                       }`}
                     />
                   </div>
-                  {item.badge && item.badge > 0 ? (
-                    <span className="absolute -top-1 -right-1 bg-comus-copper text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center shadow-sm">
-                      {item.badge}
-                    </span>
-                  ) : null}
                 </div>
                 <span className="text-[10.5px] tracking-tight leading-none mt-1 text-center truncate max-w-[90%]">
                   {item.label}
