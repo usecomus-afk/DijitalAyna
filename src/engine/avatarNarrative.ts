@@ -283,7 +283,7 @@ export function generateAvatarNarrative({
 
       if (!isEstablished) {
         dialogue = `Merhaba ${safeName}! Kişisel baz hattın oluşturulurken (${effectiveDays}/14 Gün) hissiyatın ve sensör verilerin dengeli bir akışta seyrediyor.`;
-        mirrorText = `Merhaba ${safeName}! Dijital Mental İİkizim şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
+        mirrorText = `Merhaba ${safeName}! Dijital Mental İkizim şu anda cihazındaki günlük yazım akıcılığı, hareketlilik ve ekran ritmi verilerinle kişisel baz hattını öğreniyor (${effectiveDays}/14 Gün).`;
       } else {
         dialogue = `Şu an dingin ve dengeli bir akıştayız ${safeName}. Sensör dinamiklerin standart kişisel baz hattınla uyumlu. Rutinine sakin adımlarla devam edebilirsin.`;
         mirrorText = `${safeName}, cihaz içi biyobelirteçlerin referans aralığında. Dijital ikizin stabil durumda.`;
@@ -344,3 +344,4 @@ export function generateAvatarNarrative({
     learningCardText,
   };
 }
+

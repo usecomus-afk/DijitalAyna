@@ -191,7 +191,7 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
                   "Şu an bilişsel kapasiten düşük görünüyor. Bu önemli kararı 2 saat sonraya veya yarına bırakmak ister misin-
                 </h4>
                 <p className="text-xs text-white/80 leading-relaxed">
-                  Yazım ritminizde %38 yavaşlama ve düzeltme oranında ani artış var. Stresli ve yorgun anlarda verilen tepkisel kararların önüne geçmek için Dijital Mental İİkizim bu kararı askıya almanızı öneriyor.
+                  Yazım ritminizde %38 yavaşlama ve düzeltme oranında ani artış var. Stresli ve yorgun anlarda verilen tepkisel kararların önüne geçmek için Dijital Mental İkizim bu kararı askıya almanızı öneriyor.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -347,3 +347,4 @@ export const CognitiveBrakeModal: React.FC<CognitiveBrakeModalProps> = ({ isOpen
     </div>
   );
 };
+

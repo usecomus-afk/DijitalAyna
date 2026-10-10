@@ -146,8 +146,11 @@ class HealthService {
 
       // Filter and calculate sleep durations
       // HKCategoryValueSleepAnalysisInBed = 0
-      // HKCategoryValueSleepAnalysisAsleep = 1 (or specific stages in newer iOS)
+      // HKCategoryValueSleepAnalysisAsleepUnspecified = 1
       // HKCategoryValueSleepAnalysisAwake = 2
+      // HKCategoryValueSleepAnalysisAsleepCore = 3
+      // HKCategoryValueSleepAnalysisAsleepDeep = 4
+      // HKCategoryValueSleepAnalysisAsleepREM = 5
       let firstSleepOnset: Date | null = null;
       let lastSleepOffset: Date | null = null;
 
@@ -156,7 +159,8 @@ class HealthService {
         const eDate = new Date(sample.endDate);
         const durationMinutes = (eDate.getTime() - sDate.getTime()) / (1000 * 60);
 
-        if (sample.value === 1) { // Asleep (or REM/Deep/Core which are >=1 in iOS 16+)
+        // 1, 3, 4, 5 are all asleep stages
+        if (sample.value === 1 || sample.value === 3 || sample.value === 4 || sample.value === 5) { 
           totalAsleepMinutes += durationMinutes;
           
           if (!firstSleepOnset || sDate < firstSleepOnset) {

@@ -1,15 +1,15 @@
-import avatarZorlu from '../assets/avatars/avatar-zorlu.jpg';
-import avatarDusuk from '../assets/avatars/avatar-dusuk.jpg';
-import avatarNormal from '../assets/avatars/avatar-normal.jpg';
-import avatarIyi from '../assets/avatars/avatar-iyi.jpg';
-import avatarHarika from '../assets/avatars/avatar-harika.jpg';
-import avatarMutsuz from '../assets/avatars/avatar-mutsuz.jpg';
-import avatarUzgun from '../assets/avatars/avatar-uzgun.jpg';
-import avatarKaygili from '../assets/avatars/avatar-kaygili.jpg';
-import avatarOfkeli from '../assets/avatars/avatar-ofkeli.jpg';
-import avatarUmutsuz from '../assets/avatars/avatar-umutsuz.jpg';
-import avatarMutlu from '../assets/avatars/avatar-mutlu.jpg';
-import avatarEnerjik from '../assets/avatars/avatar-enerjik.jpg';
+import avatarZorlu from '../assets/avatars/avatar-zorlu.png';
+import avatarDusuk from '../assets/avatars/avatar-dusuk.png';
+import avatarNormal from '../assets/avatars/avatar-normal.png';
+import avatarIyi from '../assets/avatars/avatar-iyi.png';
+import avatarHarika from '../assets/avatars/avatar-harika.png';
+import avatarMutsuz from '../assets/avatars/avatar-zorlu.png';
+import avatarUzgun from '../assets/avatars/avatar-dusuk.png';
+import avatarKaygili from '../assets/avatars/avatar-dusuk.png';
+import avatarOfkeli from '../assets/avatars/avatar-zorlu.png';
+import avatarUmutsuz from '../assets/avatars/avatar-zorlu.png';
+import avatarMutlu from '../assets/avatars/avatar-iyi.png';
+import avatarEnerjik from '../assets/avatars/avatar-harika.png';
 
 export const AVATAR_IMAGES = {
   zorlu: avatarZorlu,

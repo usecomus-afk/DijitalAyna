@@ -8,32 +8,32 @@ import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capa
 export const JournalEditPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryDate = new URLSearchParams(location.search).get('date');
-  const [date, setDate] = useState<string>(queryDate || new Date().toISOString().split('T')[0]);
+  const queryId = new URLSearchParams(location.search).get('id');
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [dreamNotes, setDreamNotes] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [entryId, setEntryId] = useState<number | undefined>();
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load existing entry for today
+  // Load existing entry if id is provided
   useEffect(() => {
     const loadEntry = async () => {
-      const entry = await db.journalEntries.where('date').equals(date).first();
+      if (!queryId) return;
+      const idNum = parseInt(queryId, 10);
+      if (isNaN(idNum)) return;
+      
+      const entry = await db.journalEntries.get(idNum);
       if (entry) {
         setEntryId(entry.id);
+        setDate(entry.date);
         setNotes(entry.notes || '');
         setDreamNotes(entry.dreamNotes || '');
         setImages(entry.imageUrls || []);
-      } else {
-        setEntryId(undefined);
-        setNotes('');
-        setDreamNotes('');
-        setImages([]);
       }
     };
     loadEntry();
-  }, [date]);
+  }, [queryId]);
 
   const handleSave = async () => {
     setIsSaving(true);

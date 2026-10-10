@@ -411,7 +411,7 @@ export async function importDataFromJson(
     (data.app !== 'Dijital Mental İkizim' &&
       data.app !== 'DijitalMentalIkizim' &&
       data.app !== 'MentalDijitalAyna' &&
-      data.app !== 'Dijital Mental İİkizim')
+      data.app !== 'Dijital Mental İkizim')
   ) {
     throw new Error('Geçersiz Dijital Mental İkizim yedek dosyası.');
   }
@@ -479,3 +479,4 @@ export async function importDataFromJson(
 
   return { success: true, restoredMetrics, restoredReports };
 }
+

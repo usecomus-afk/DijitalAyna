@@ -439,7 +439,7 @@ export const DoctorReportPage: React.FC = () => {
             </div>
 
             <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
-              <strong className="text-emerald-950 block mb-1">Dijital Mental İİkizim Çözümü: Nesnel Biyobelirteçler</strong>
+              <strong className="text-emerald-950 block mb-1">Dijital Mental İkizim Çözümü: Nesnel Biyobelirteçler</strong>
               <p className="text-emerald-900">
                 Pazartesi ve Çarşamba 03:00'e kadar süren ekran aktivitesi, 4 saatlik uyku ve yazım yavaşlamasını net verilerle sunar. Hekimin doğru tanı ve tedavi planı oluşturmasını hızlandırır.
               </p>
@@ -481,7 +481,7 @@ export const DoctorReportPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Mental İİkizim</span>
+              <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Mental İkizim</span>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper border border-comus-copper/30 px-2 py-0.5 rounded">
                 Davranışsal Fenotip, İlaç Talimatı & Doz Takip Raporu
               </span>
@@ -1284,3 +1284,4 @@ export const DoctorReportPage: React.FC = () => {
     </div>
   );
 };
+

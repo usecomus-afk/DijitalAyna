@@ -59,7 +59,7 @@ export const InstallPrompt: React.FC = () => {
         </div>
         <div className="min-w-0">
           <div className="text-xs sm:text-sm font-semibold truncate">
-            Dijital Mental İİkizim'yı Cihazına Yükle
+            Dijital Mental İkizim'yı Cihazına Yükle
           </div>
           <div className="text-[11px] text-white/80 truncate">
             {isIOS ? (
@@ -95,3 +95,4 @@ export const InstallPrompt: React.FC = () => {
     </div>
   );
 };
+

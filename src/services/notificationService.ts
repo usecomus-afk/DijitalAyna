@@ -111,7 +111,7 @@ class NotificationService {
           notifications: [
             {
               id: 9999,
-              title: 'Dijital Mental İİkizim Bildirim Sistemi 🔔',
+              title: 'Dijital Mental İkizim Bildirim Sistemi 🔔',
               body: 'iOS bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
               schedule: { at: new Date(Date.now() + 1000) },
               sound: 'beep.wav',
@@ -121,7 +121,7 @@ class NotificationService {
           ],
         });
       } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('Dijital Mental İİkizim Bildirim Sistemi 🔔', {
+        new Notification('Dijital Mental İkizim Bildirim Sistemi 🔔', {
           body: 'Bildirim ayarları başarıyla tamamlandı. Tüm uyarılar ve hatırlatıcılar aktif.',
           icon: '/logo.png',
         });
@@ -167,7 +167,7 @@ class NotificationService {
           notifications: [
             {
               id: 1001,
-              title: 'Günün İlk Dijital Mental İİkizim Yansıması 🪞',
+              title: 'Günün İlk Dijital Mental İkizim Yansıması 🪞',
               body: 'Güne nasıl başladınız? Anlık hissiyatınızı ve sabah enerjinizi kaydetmek için dokunun.',
               schedule: {
                 at: morning,
@@ -369,3 +369,4 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
+
