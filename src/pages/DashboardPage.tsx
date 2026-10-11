@@ -92,33 +92,8 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
-      {/* Predictive Alert Banner (if active) */}
-      {activeAlert && (
-        <PredictiveAlertModal
-          alert={activeAlert}
-          onClose={dismissPredictiveAlert}
-        />
-      )}
-
-      {/* Proactive Prediction Modal */}
-      <ProactivePredictionModal 
-        isOpen={isProactiveModalOpen}
-        onClose={() => setIsProactiveModalOpen(false)}
-      />
-
-      {/* Digital Twin Status Mirror */}
-      <DigitalTwinMirror
-        anomalies={anomalies}
-        sampleDays={baselineDayCount}
-      />
-
+      <DigitalTwinMirror anomalies={anomalies} sampleDays={baselineDayCount} />
       <MentalTwinPanel />
-
-      {/* Micro Disclaimer */}
-      <Disclaimer />
     </div>
   );
 };
-
-
-
