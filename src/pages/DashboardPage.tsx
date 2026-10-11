@@ -1,33 +1,18 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { DigitalTwinMirror } from '../components/dashboard/DigitalTwinMirror';
 import { MentalTwinPanel } from '../components/avatar/MentalTwinPanel';
-import { PredictiveAlertModal } from '../components/alerts/PredictiveAlertModal';
-import { ProactivePredictionModal } from '../components/alerts/ProactivePredictionModal';
-import { checkProactivePrediction } from '../engine/proactiveAdvisor';
-import { Disclaimer } from '../components/common/Disclaimer';
-import {
-} from 'lucide-react';
 import { calculateZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
 
 export const DashboardPage: React.FC = () => {
-  const { activePredictiveAlertDismissed, dismissPredictiveAlert, baselineDayCount } = useAppStore();
-  const [isProactiveModalOpen, setIsProactiveModalOpen] = useState(false);
-
-  useEffect(() => {
-    checkProactivePrediction().then(res => {
-      if (res) {
-        setIsProactiveModalOpen(true);
-      }
-    });
-  }, []);
+  const { baselineDayCount } = useAppStore();
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
-  const predictiveAlerts = useLiveQuery(() => db.predictiveAlerts.where('dismissed').equals(0).toArray()) || [];
+
 
   // Group metrics by key and find latest date
   const { anomalies } = useMemo(() => {
@@ -86,7 +71,7 @@ export const DashboardPage: React.FC = () => {
     };
   }, [dailyMetrics, baselines]);
 
-  const activeAlert = predictiveAlerts.length > 0 && !activePredictiveAlertDismissed ? predictiveAlerts[0] : null;
+
 
 
 
