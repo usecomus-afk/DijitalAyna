@@ -10,9 +10,9 @@ export const MenuHubPage: React.FC = () => {
 
   const menuItems = [
     { title: "Erken Farkındalık Sağlanan 9 Klinik Durum", icon: Activity, path: "/menu/clinical-conditions" },
-    { title: "Anksiyete & Depresyon Riski Anketi", icon: ClipboardList, path: "/menu/clinical-survey" },
+
     { title: "Dijital Biyobelirteçler Tablosu", icon: Fingerprint, path: "/menu/biomarker-bridge" },
-    { title: "Günlük", icon: BookHeart, path: "/menu/journal-history" },
+
     { title: "Doktorumla Paylaş", icon: Stethoscope, path: "/menu/doctor-share" },
     { title: "Günlük İlaç Kullanım Tablosu", icon: Pill, path: "/menu/medication-tracker" },
     { title: "Sayısal Göstergeler & EWMA", icon: ActivitySquare, path: "/menu/ewma-deviations" },
