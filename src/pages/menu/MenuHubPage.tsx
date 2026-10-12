@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Activity, ClipboardList, Fingerprint, BookHeart, Stethoscope, 
+  Activity, Fingerprint, Stethoscope, 
   Pill, ActivitySquare, ShieldCheck, FileText, Bell, Heart, Shield, Settings, ChevronRight 
 } from 'lucide-react';
 
