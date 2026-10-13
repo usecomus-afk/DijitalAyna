@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Sparkles, Menu } from 'lucide-react';
+import { Activity, Sparkles, HeartPulse, Menu } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const navItems = [
@@ -15,6 +15,11 @@ export const BottomNav: React.FC = () => {
       icon: Sparkles,
     },
     {
+      to: '/nasil-hissediyorsun',
+      label: 'Nasıl hissediyorsun?',
+      icon: HeartPulse,
+    },
+    {
       to: '/menu',
       label: 'Menü',
       icon: Menu,
@@ -26,7 +31,7 @@ export const BottomNav: React.FC = () => {
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-comus-sand-light/30 shadow-[0_-4px_20px_rgba(30,58,95,0.04)]"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
     >
-      <div className="max-w-xl mx-auto grid grid-cols-3 h-16 items-center px-1">
+      <div className="max-w-xl mx-auto grid grid-cols-4 h-16 items-center px-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
