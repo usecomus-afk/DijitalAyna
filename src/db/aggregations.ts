@@ -1,5 +1,13 @@
 import { db } from './index';
-import { MetricKey } from '../types/sensor';
+import { MetricKey, METRIC_DEFINITIONS } from '../types/sensor';
+
+const LEGACY_PAYLOAD_KEY_MAP: Record<string, MetricKey> = {
+  mobility_score: 'mobility_index',
+  tst_minutes: 'sleep_duration',
+  waso_minutes: 'sleep_waso',
+  sol_minutes: 'sleep_sol',
+  sleep_score: 'sleep_efficiency',
+};
 
 /**
  * Aggregate raw sensor events into dailyMetrics and cleanup events older than 7 days
@@ -24,14 +32,16 @@ export async function runDailyAggregationAndCleanup(): Promise<void> {
     }
 
     for (const [key, val] of Object.entries(event.payload)) {
-      const metricKey = key as MetricKey;
-      if (!dailyGroups[eventDate][metricKey]) {
-        dailyGroups[eventDate][metricKey] = [];
+      const normalizedKey = (LEGACY_PAYLOAD_KEY_MAP[key] || key) as MetricKey;
+      if (!METRIC_DEFINITIONS[normalizedKey]) continue;
+
+      if (!dailyGroups[eventDate][normalizedKey]) {
+        dailyGroups[eventDate][normalizedKey] = [];
       }
-      dailyGroups[eventDate][metricKey].push(val);
+      dailyGroups[eventDate][normalizedKey].push(val);
       
       // Circadian Disruption Proxy: 23:00 - 06:00, >70% brightness (700 lux)
-      if (metricKey === 'light_ambient_lux') {
+      if (normalizedKey === 'light_ambient_lux') {
         const isNight = hour >= 23 || hour < 6;
         if (isNight && val > 700) {
           if (!dailyGroups[eventDate]['night_light_violations']) {

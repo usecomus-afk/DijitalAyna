@@ -101,7 +101,6 @@ class SensorManager {
       touchSensor.flush(),
       typingSensor.flush(),
       keystrokeTracker.flush(),
-      this.isEnabled('motion') ? healthService.syncHealthBiomarkers() : Promise.resolve(),
       this.isEnabled('location') ? mobilityService.syncMobilityBiomarkers() : Promise.resolve(),
       this.isEnabled('battery') ? deviceBatteryService.recordTelemetrySample() : Promise.resolve(),
     ]);
@@ -110,6 +109,12 @@ class SensorManager {
     const today = new Date().toISOString().split('T')[0];
     const phenotypeFeatures = TelemetryPipeline.getInstance().aggregateAndFlush(today);
     await this.persistTelemetryFeatures(phenotypeFeatures);
+
+    // Sync Apple HealthKit (steps, sleep stages, heart rate, calories) after in-memory flush
+    // so authoritative HealthKit step & sleep metrics take precedence.
+    if (this.isEnabled('motion')) {
+      await healthService.syncHealthBiomarkers().catch(() => {});
+    }
   }
 
   /**

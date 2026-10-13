@@ -48,6 +48,7 @@ const CATEGORY_TITLES: Record<string, string> = {
   typing: 'Yazım',
   touch: 'Dokunma',
   session: 'Oturum ve Gece Kullanımı',
+  sleep: 'Uyku ve Sirkadiyen Ritim (Apple Sağlık)',
   light: 'Işık',
   battery: 'Pil',
   network: 'Ağ',

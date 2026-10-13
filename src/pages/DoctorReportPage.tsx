@@ -49,7 +49,19 @@ const DEFAULT_TIMES: Record<TimeSlot, string> = {
 
 export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDisplayStatus {
   if (hasData) return 'active';
-  if (key === 'mobility_index' || key === 'tremor_variance' || key === 'voice_pitch_variance' || key === 'voice_speech_rate' || key === 'camera_interaction_count') {
+  if (
+    key === 'mobility_index' ||
+    key === 'sleep_efficiency' ||
+    key === 'sleep_duration' ||
+    key === 'sleep_sol' ||
+    key === 'sleep_waso' ||
+    key === 'homestay_ratio' ||
+    key === 'mobility_radius' ||
+    key === 'tremor_variance' ||
+    key === 'voice_pitch_variance' ||
+    key === 'voice_speech_rate' ||
+    key === 'camera_interaction_count'
+  ) {
     return 'permission_required';
   }
   if (key === 'gaming_duration') {
@@ -65,6 +77,7 @@ function getUnavailableReason(key: MetricKey): string {
     case 'typing_iki':
     case 'typing_backspace_rate':
     case 'typing_pause_count':
+    case 'typing_hold_time':
       return 'Uygulama içi yazım kaydı bekleniyor';
     case 'touch_scroll_velocity':
     case 'touch_interaction_frequency':
@@ -76,6 +89,14 @@ function getUnavailableReason(key: MetricKey): string {
       return '02:00–04:00 gece penceresinde kullanım kaydı saptanmadı';
     case 'mobility_index':
       return 'Apple Sağlık (HealthKit) / Hareket izni bekleniyor';
+    case 'sleep_efficiency':
+    case 'sleep_duration':
+    case 'sleep_sol':
+    case 'sleep_waso':
+      return 'Apple Sağlık (HealthKit) uyku analizi izni veya uyku kaydı bekleniyor';
+    case 'homestay_ratio':
+    case 'mobility_radius':
+      return 'Konum (GPS) izni veya hareketlilik kaydı bekleniyor';
     case 'tremor_variance':
       return 'Cihaz Hareket (Motion) sensör izni bekleniyor';
     case 'camera_interaction_count':
@@ -145,7 +166,18 @@ export const DoctorReportPage: React.FC = () => {
   useEffect(() => sensorCapabilities.addListener((c) => setCapStatuses({ ...c })), []);
 
   const isPermissionGranted = (key: MetricKey): boolean => {
-    if (key === 'mobility_index') return capStatuses.health === 'granted';
+    if (
+      key === 'mobility_index' ||
+      key === 'sleep_efficiency' ||
+      key === 'sleep_duration' ||
+      key === 'sleep_sol' ||
+      key === 'sleep_waso'
+    ) {
+      return capStatuses.health === 'granted';
+    }
+    if (key === 'homestay_ratio' || key === 'mobility_radius') {
+      return capStatuses.geolocation === 'granted';
+    }
     if (key === 'tremor_variance') return capStatuses.motion === 'granted';
     if (key === 'voice_pitch_variance' || key === 'voice_speech_rate') return capStatuses.microphone === 'granted';
     if (key === 'camera_interaction_count') return capStatuses.camera === 'granted';
@@ -164,9 +196,17 @@ export const DoctorReportPage: React.FC = () => {
 
   const handleRequestPermission = async (key: MetricKey) => {
     try {
-      if (key === 'mobility_index') {
+      if (
+        key === 'mobility_index' ||
+        key === 'sleep_efficiency' ||
+        key === 'sleep_duration' ||
+        key === 'sleep_sol' ||
+        key === 'sleep_waso'
+      ) {
         const granted = await sensorCapabilities.requestHealthPermission();
         if (granted) await healthService.syncHealthBiomarkers();
+      } else if (key === 'homestay_ratio' || key === 'mobility_radius') {
+        await sensorCapabilities.requestGeolocationPermission();
       } else if (key === 'tremor_variance') {
         await sensorCapabilities.requestMotionPermission();
       } else if (key === 'voice_pitch_variance' || key === 'voice_speech_rate') {

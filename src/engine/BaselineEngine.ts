@@ -17,7 +17,10 @@ export const CLINICAL_PRIORS: Partial<Record<MetricKey, { priorMean: number; pri
   typing_iki: { priorMean: 240, priorStd: 50 },
   typing_backspace_rate: { priorMean: 12, priorStd: 6 },
   typing_pause_count: { priorMean: 3, priorStd: 2 },
+  typing_hold_time: { priorMean: 120, priorStd: 20 },
   mobility_index: { priorMean: 65, priorStd: 18 },
+  homestay_ratio: { priorMean: 0.6, priorStd: 0.2 },
+  mobility_radius: { priorMean: 5, priorStd: 2 },
   tremor_variance: { priorMean: 0.15, priorStd: 0.08 },
   screen_on_time: { priorMean: 180, priorStd: 50 },
   night_usage_minutes: { priorMean: 10, priorStd: 10 },
@@ -26,6 +29,10 @@ export const CLINICAL_PRIORS: Partial<Record<MetricKey, { priorMean: number; pri
   touch_interaction_frequency: { priorMean: 30, priorStd: 12 },
   voice_pitch_variance: { priorMean: 25, priorStd: 8 },
   voice_speech_rate: { priorMean: 130, priorStd: 25 },
+  sleep_efficiency: { priorMean: 85, priorStd: 10 },
+  sleep_duration: { priorMean: 420, priorStd: 60 },
+  sleep_sol: { priorMean: 20, priorStd: 10 },
+  sleep_waso: { priorMean: 30, priorStd: 15 },
 };
 
 export interface BaselineComputationResult {

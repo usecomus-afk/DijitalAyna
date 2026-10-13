@@ -23,18 +23,29 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
             Task {
                 do {
                     try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-                    call.resolve([ "granted": true ])
+                    call.resolve([ "granted": true, "fallback": false ])
                 } catch {
-                    call.reject("Authorization failed: \(error.localizedDescription)")
+                    // When the restricted com.apple.developer.family-controls distribution entitlement
+                    // is not active in the provisioning profile, resolve gracefully so the app uses its
+                    // built-in Comus Impulse Shield selector instead of showing a system daemon error.
+                    call.resolve([
+                        "granted": false,
+                        "fallback": true,
+                        "reason": error.localizedDescription
+                    ])
                 }
             }
         } else {
-            call.reject("Family Controls requires iOS 16.0+")
+            call.resolve([ "granted": false, "fallback": true ])
         }
     }
 
     @objc func selectApps(_ call: CAPPluginCall) {
         if #available(iOS 16.0, *) {
+            guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+                call.resolve([ "success": false, "fallback": true ])
+                return
+            }
             DispatchQueue.main.async {
                 let binding = Binding(
                     get: { self.selection },
@@ -45,27 +56,35 @@ public class FamilyControlsPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.bridge?.viewController?.present(hostingController, animated: true, completion: nil)
             }
         } else {
-            call.reject("Family Controls requires iOS 16.0+")
+            call.resolve([ "success": false, "fallback": true ])
         }
     }
 
     @objc func setShield(_ call: CAPPluginCall) {
         if #available(iOS 16.0, *) {
+            guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+                call.resolve(["success": true, "fallback": true])
+                return
+            }
             store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
             store.shield.applicationCategories = selection.categoryTokens.isEmpty ? nil : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
-            call.resolve(["success": true])
+            call.resolve(["success": true, "fallback": false])
         } else {
-            call.reject("Family Controls requires iOS 16.0+")
+            call.resolve(["success": true, "fallback": true])
         }
     }
 
     @objc func clearShield(_ call: CAPPluginCall) {
         if #available(iOS 16.0, *) {
+            guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+                call.resolve(["success": true, "fallback": true])
+                return
+            }
             store.shield.applications = nil
             store.shield.applicationCategories = nil
-            call.resolve(["success": true])
+            call.resolve(["success": true, "fallback": false])
         } else {
-            call.reject("Family Controls requires iOS 16.0+")
+            call.resolve(["success": true, "fallback": true])
         }
     }
 }

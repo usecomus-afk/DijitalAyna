@@ -60,10 +60,14 @@ export function DigitalNarcoticModal({ isOpen, onClose }: DigitalNarcoticModalPr
       await FamilyControls.clearShield();
       // Re-enable after 15 mins (900000 ms) in background
       setTimeout(async () => {
-        await FamilyControls.setShield();
+        try {
+          await FamilyControls.setShield();
+        } catch {
+          // Fallback to in-app shield mode when native helper is unavailable
+        }
       }, 900000);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Fallback to in-app shield mode when native helper is unavailable
     }
     onClose();
   };

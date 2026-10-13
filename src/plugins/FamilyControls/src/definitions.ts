@@ -1,6 +1,7 @@
 export interface FamilyControlsPlugin {
-  requestAuthorization(): Promise<{ granted: boolean }>;
-  selectApps(): Promise<{ success: boolean }>;
-  setShield(): Promise<{ success: boolean }>;
-  clearShield(): Promise<{ success: boolean }>;
+  requestAuthorization(): Promise<{ granted: boolean; fallback?: boolean; reason?: string }>;
+  selectApps(): Promise<{ success: boolean; fallback?: boolean }>;
+  setShield(): Promise<{ success: boolean; fallback?: boolean }>;
+  clearShield(): Promise<{ success: boolean; fallback?: boolean }>;
 }
+

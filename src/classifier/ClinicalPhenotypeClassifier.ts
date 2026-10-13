@@ -308,13 +308,15 @@ export class ClinicalPhenotypeClassifier {
     const zNight = zScores['night_usage_minutes'] ?? 0;
     const zBackspace = zScores['typing_backspace_rate'] ?? 0;
     const zTremor = zScores['tremor_variance'] ?? 0;
+    const zSleepEff = zScores['sleep_efficiency'] ?? 0;
 
     const compositeDelta =
       0.25 * zMobility +
       0.25 * zTyping -
       0.25 * zNight -
       0.15 * zBackspace -
-      0.1 * zTremor;
+      0.1 * zTremor +
+      0.15 * zSleepEff;
 
     const raw = 75 + compositeDelta * 14;
     return Math.max(5, Math.min(98, Math.round(raw)));
@@ -332,9 +334,15 @@ export class ClinicalPhenotypeClassifier {
     const rule = PHENOTYPE_RULES[ruleKey];
     if (!rule) return { status: 'normal' };
 
+    const normalizedRaw: Record<string, number | null | undefined> = {
+      ...rawValues,
+      sleepOnsetLatencyMinutes: rawValues['sleepOnsetLatencyMinutes'] ?? rawValues['sleep_sol'],
+      sleep_sol: rawValues['sleep_sol'] ?? rawValues['sleepOnsetLatencyMinutes'],
+    };
+
     const missingMetrics: string[] = [];
     for (const k of rule.requiredMetrics) {
-      if (rawValues[k] === undefined || rawValues[k] === null || Number.isNaN(rawValues[k])) {
+      if (normalizedRaw[k] === undefined || normalizedRaw[k] === null || Number.isNaN(normalizedRaw[k])) {
         missingMetrics.push(k);
       }
     }
@@ -356,8 +364,8 @@ export class ClinicalPhenotypeClassifier {
 
     switch (ruleKey) {
       case 'burnout': {
-        const holdMs = rawValues['meanHoldTimeMs']!;
-        const backspaceInc = rawValues['backspacePercentIncrease']!;
+        const holdMs = normalizedRaw['meanHoldTimeMs']!;
+        const backspaceInc = normalizedRaw['backspacePercentIncrease']!;
         const zHold = zScores['typing_hold_time'] ?? 0;
         const zBackspace = zScores['typing_backspace_rate'] ?? 0;
 
@@ -389,7 +397,7 @@ export class ClinicalPhenotypeClassifier {
       }
 
       case 'depressionIsolation': {
-        const homestayPct = rawValues['homestayPercentage']!;
+        const homestayPct = normalizedRaw['homestayPercentage']!;
         const zHomestay = zScores['homestay_ratio'] ?? 0;
         const zRadius = zScores['mobility_radius'] ?? 0;
         const zSol = zScores['sleep_sol'] ?? 0;
@@ -424,8 +432,8 @@ export class ClinicalPhenotypeClassifier {
       }
 
       case 'anxietySleep': {
-        const solMinutes = rawValues['sleep_sol']!;
-        const nocturnalUnlocks = rawValues['nocturnalScreen02to04Unlocks']!;
+        const solMinutes = normalizedRaw['sleepOnsetLatencyMinutes']!;
+        const nocturnalUnlocks = normalizedRaw['nocturnalScreen02to04Unlocks']!;
         const zNocturnal = zScores['night_usage_minutes'] ?? 0;
         const zSol = zScores['sleep_sol'] ?? 0;
 

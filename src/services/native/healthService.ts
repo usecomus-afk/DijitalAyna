@@ -22,6 +22,24 @@ export interface HealthPermissionResult {
   error?: string;
 }
 
+export interface HealthVitalsResult {
+  heartRateBpm: number | null;
+  activeCaloriesKcal: number | null;
+  source: 'native-sensor' | 'missing';
+}
+
+export interface HealthSummarySnapshot {
+  steps: number | null;
+  mobilityScore: number | null;
+  tstMinutes: number | null;
+  wasoMinutes: number | null;
+  solMinutes: number | null;
+  sleepEfficiency: number | null;
+  heartRateBpm: number | null;
+  activeCaloriesKcal: number | null;
+  syncedAt: number;
+}
+
 class HealthService {
   /**
    * Request Apple HealthKit read permissions for steps, heartRate, calories, and sleep
@@ -43,24 +61,35 @@ class HealthService {
         };
       }
 
-      // Request basic health data
-      const status = await Health.requestAuthorization({
-        read: ['steps', 'heartRate', 'calories'],
-        write: [],
-      });
+      // Request basic health data (steps, heartRate, calories)
+      let basicGranted = false;
+      try {
+        const status = await Health.requestAuthorization({
+          read: ['steps', 'heartRate', 'calories'],
+          write: [],
+        });
+        basicGranted = Boolean(
+          status.readAuthorized &&
+            (status.readAuthorized.includes('steps') ||
+              status.readAuthorized.includes('heartRate') ||
+              status.readAuthorized.includes('calories'))
+        );
+      } catch (e) {
+        console.warn('[HealthService] Basic HealthKit auth warning:', e);
+      }
 
-      // Request Sleep Analysis via custom plugin
+      // Request Sleep Analysis via custom ComusSleep plugin
       let sleepGranted = false;
       try {
         const sleepAuth = await ComusSleep.requestAuthorization();
-        sleepGranted = sleepAuth.granted;
+        sleepGranted = Boolean(sleepAuth.granted);
       } catch (e) {
-        console.warn('Sleep auth failed:', e);
+        console.warn('[HealthService] Sleep auth failed:', e);
       }
 
-      const granted = status.readAuthorized && status.readAuthorized.includes('steps');
+      const granted = Boolean(basicGranted || sleepGranted);
       return {
-        granted: Boolean(granted || sleepGranted),
+        granted,
         error: granted ? undefined : 'Apple Sağlık izni kullanıcı tarafından reddedildi.',
       };
     } catch (err: any) {
@@ -120,7 +149,65 @@ class HealthService {
   }
 
   /**
-   * Fetch yesterday's sleep stages: TST, WASO, and SOL in minutes
+   * Fetch today's average heart rate (BPM) and active calories burned (kcal) from Apple HealthKit
+   */
+  async getTodayVitals(): Promise<HealthVitalsResult> {
+    if (!Capacitor.isNativePlatform()) {
+      return { heartRateBpm: null, activeCaloriesKcal: null, source: 'missing' };
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const now = new Date();
+
+    let heartRateBpm: number | null = null;
+    let activeCaloriesKcal: number | null = null;
+
+    try {
+      const hrRes = await Health.readSamples({
+        dataType: 'heartRate',
+        startDate: startOfDay.toISOString(),
+        endDate: now.toISOString(),
+        limit: 500,
+      });
+      if (hrRes?.samples && hrRes.samples.length > 0) {
+        const validHr = hrRes.samples
+          .map((s: any) => Number(s.value))
+          .filter((v: number) => !Number.isNaN(v) && v > 30 && v < 240);
+        if (validHr.length > 0) {
+          heartRateBpm = Math.round(validHr.reduce((a: number, b: number) => a + b, 0) / validHr.length);
+        }
+      }
+    } catch (e) {
+      console.warn('[HealthService] getTodayVitals heartRate error:', e);
+    }
+
+    try {
+      const calRes = await Health.readSamples({
+        dataType: 'calories',
+        startDate: startOfDay.toISOString(),
+        endDate: now.toISOString(),
+        limit: 500,
+      });
+      if (calRes?.samples && calRes.samples.length > 0) {
+        const totalCal = calRes.samples.reduce((sum: number, s: any) => sum + (Number(s.value) || 0), 0);
+        if (totalCal > 0) {
+          activeCaloriesKcal = Math.round(totalCal);
+        }
+      }
+    } catch (e) {
+      console.warn('[HealthService] getTodayVitals calories error:', e);
+    }
+
+    return {
+      heartRateBpm,
+      activeCaloriesKcal,
+      source: heartRateBpm !== null || activeCaloriesKcal !== null ? 'native-sensor' : 'missing',
+    };
+  }
+
+  /**
+   * Fetch latest sleep stages: TST, WASO, and SOL in minutes (36-hour lookback window to capture full previous night)
    */
   async getYesterdaySleep(): Promise<HealthSleepResult> {
     if (!Capacitor.isNativePlatform()) {
@@ -129,84 +216,114 @@ class HealthService {
 
     try {
       const now = new Date();
-      // Look back 24 hours to capture the latest sleep session
-      const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      
+      // Look back 36 hours so evening checks still capture the full previous night's sleep onset
+      const start = new Date(now.getTime() - 36 * 60 * 60 * 1000);
+
       const result = await ComusSleep.getSleepData({
         startDate: start.toISOString(),
-        endDate: now.toISOString()
+        endDate: now.toISOString(),
       });
 
       if (!result || !result.samples || result.samples.length === 0) {
         return { tst: null, waso: null, sol: null, source: 'missing', error: 'No sleep data found' };
       }
 
-      let totalAsleepMinutes = 0;
-      let totalAwakeMinutesAfterOnset = 0;
+      // Sort chronologically by startDate
+      const sortedSamples = [...result.samples].sort(
+        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      );
 
-      // Filter and calculate sleep durations
-      // HKCategoryValueSleepAnalysisInBed = 0
-      // HKCategoryValueSleepAnalysisAsleepUnspecified = 1
-      // HKCategoryValueSleepAnalysisAwake = 2
-      // HKCategoryValueSleepAnalysisAsleepCore = 3
-      // HKCategoryValueSleepAnalysisAsleepDeep = 4
-      // HKCategoryValueSleepAnalysisAsleepREM = 5
+      // HKCategoryValueSleepAnalysis:
+      // 0 = InBed, 1 = AsleepUnspecified, 2 = Awake, 3 = AsleepCore, 4 = AsleepDeep, 5 = AsleepREM
+      const asleepIntervals: [number, number][] = [];
+      const awakeIntervals: [number, number][] = [];
       let firstSleepOnset: Date | null = null;
       let lastSleepOffset: Date | null = null;
       let firstInBed: Date | null = null;
 
-      for (const sample of result.samples) {
+      for (const sample of sortedSamples) {
         const sDate = new Date(sample.startDate);
         const eDate = new Date(sample.endDate);
-        const durationMinutes = (eDate.getTime() - sDate.getTime()) / (1000 * 60);
+        const sMs = sDate.getTime();
+        const eMs = eDate.getTime();
+        if (Number.isNaN(sMs) || Number.isNaN(eMs) || eMs <= sMs) continue;
 
-        if (sample.value === 0) { // InBed
+        if (sample.value === 0) {
           if (!firstInBed || sDate < firstInBed) {
             firstInBed = sDate;
           }
         }
 
-        // 1, 3, 4, 5 are all asleep stages
-        if (sample.value === 1 || sample.value === 3 || sample.value === 4 || sample.value === 5) { 
-          totalAsleepMinutes += durationMinutes;
-          
+        if (sample.value === 1 || sample.value === 3 || sample.value === 4 || sample.value === 5) {
+          asleepIntervals.push([sMs, eMs]);
           if (!firstSleepOnset || sDate < firstSleepOnset) {
             firstSleepOnset = sDate;
           }
           if (!lastSleepOffset || eDate > lastSleepOffset) {
             lastSleepOffset = eDate;
           }
+        } else if (sample.value === 2) {
+          awakeIntervals.push([sMs, eMs]);
         }
+      }
+
+      // Merge overlapping intervals (prevents double-counting when both iPhone and Apple Watch write samples)
+      const mergeIntervals = (intervals: [number, number][]): number => {
+        if (intervals.length === 0) return 0;
+        const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+        const merged: [number, number][] = [sorted[0]];
+        for (let i = 1; i < sorted.length; i++) {
+          const prev = merged[merged.length - 1];
+          const curr = sorted[i];
+          if (curr[0] <= prev[1]) {
+            prev[1] = Math.max(prev[1], curr[1]);
+          } else {
+            merged.push([...curr]);
+          }
+        }
+        return merged.reduce((sum, [s, e]) => sum + (e - s) / (1000 * 60), 0);
+      };
+
+      let totalAsleepMinutes = mergeIntervals(asleepIntervals);
+      // Fallback: if the user's device only recorded InBed (0) without stage breakdown
+      if (totalAsleepMinutes === 0) {
+        const inBedIntervals: [number, number][] = sortedSamples
+          .filter((s) => s.value === 0)
+          .map((s) => [new Date(s.startDate).getTime(), new Date(s.endDate).getTime()]);
+        totalAsleepMinutes = mergeIntervals(inBedIntervals);
+      }
+
+      if (totalAsleepMinutes <= 0) {
+        return { tst: null, waso: null, sol: null, source: 'missing', error: 'No asleep intervals found' };
       }
 
       // Calculate WASO (Wake After Sleep Onset)
+      let totalAwakeMinutesAfterOnset = 0;
       if (firstSleepOnset && lastSleepOffset) {
-        for (const sample of result.samples) {
-          const sDate = new Date(sample.startDate);
-          const eDate = new Date(sample.endDate);
-          const durationMinutes = (eDate.getTime() - sDate.getTime()) / (1000 * 60);
+        const onsetMs = firstSleepOnset.getTime();
+        const offsetMs = lastSleepOffset.getTime();
+        const clippedAwake = awakeIntervals
+          .filter(([s, e]) => e > onsetMs && s < offsetMs)
+          .map(([s, e]) => [Math.max(s, onsetMs), Math.min(e, offsetMs)] as [number, number]);
+        totalAwakeMinutesAfterOnset = mergeIntervals(clippedAwake);
+      }
 
-          if (sample.value === 2) { // Awake
-            // If awake period falls between first sleep onset and last sleep offset
-            if (sDate >= firstSleepOnset && eDate <= lastSleepOffset) {
-              totalAwakeMinutesAfterOnset += durationMinutes;
-            }
-          }
+      // Calculate SOL (Sleep Onset Latency)
+      let sol = 0;
+      if (firstInBed && firstSleepOnset && firstSleepOnset > firstInBed) {
+        const diffMin = (firstSleepOnset.getTime() - firstInBed.getTime()) / (1000 * 60);
+        // Cap within realistic single-session bounds (0 - 180 min)
+        if (diffMin <= 180) {
+          sol = diffMin;
         }
       }
 
-      let sol = null;
-      if (firstInBed && firstSleepOnset && firstSleepOnset > firstInBed) {
-        sol = (firstSleepOnset.getTime() - firstInBed.getTime()) / (1000 * 60);
-      }
-
       return {
-        tst: totalAsleepMinutes > 0 ? Math.round(totalAsleepMinutes) : null,
-        waso: totalAwakeMinutesAfterOnset > 0 ? Math.round(totalAwakeMinutesAfterOnset) : null,
-        sol: sol !== null ? Math.round(sol) : null,
-        source: 'native-sensor'
+        tst: Math.round(totalAsleepMinutes),
+        waso: Math.round(totalAwakeMinutesAfterOnset),
+        sol: Math.round(sol),
+        source: 'native-sensor',
       };
-
     } catch (err: any) {
       console.warn('[HealthService] getYesterdaySleep error:', err);
       return { tst: null, waso: null, sol: null, source: 'missing', error: err.message };
@@ -214,15 +331,23 @@ class HealthService {
   }
 
   /**
-   * Sync native HealthKit steps and sleep into daily metrics
+   * Sync native HealthKit steps, sleep, heart rate, and calories into daily metrics
    */
-  async syncHealthBiomarkers(): Promise<void> {
+  async syncHealthBiomarkers(): Promise<HealthSummarySnapshot> {
     const today = new Date().toISOString().split('T')[0];
-    
-    // Sync Steps
-    const stepsRes = await this.getTodaySteps();
+
+    const [stepsRes, sleepRes, vitalsRes] = await Promise.all([
+      this.getTodaySteps(),
+      this.getYesterdaySleep(),
+      this.getTodayVitals(),
+    ]);
+
+    let mobilityScore: number | null = null;
+    let sleepScore: number | null = null;
+
+    // 1. Sync Steps -> mobility_index
     if (stepsRes.value !== null && stepsRes.source === 'native-sensor') {
-      const mobilityScore = Math.min(100, Math.round((stepsRes.value / 10000) * 100));
+      mobilityScore = Math.min(100, Math.round((stepsRes.value / 10000) * 100));
 
       const existing = await db.dailyMetrics
         .where('[metricKey+date]')
@@ -247,8 +372,7 @@ class HealthService {
         type: 'motion',
         timestamp: Date.now(),
         payload: {
-          step_count: stepsRes.value,
-          mobility_score: mobilityScore,
+          mobility_index: mobilityScore,
         },
         provenance: {
           source: 'native-sensor',
@@ -258,22 +382,18 @@ class HealthService {
       });
     }
 
-    // Sync Sleep
-    const sleepRes = await this.getYesterdaySleep();
+    // 2. Sync Sleep -> sleep_efficiency, sleep_duration, sleep_waso, sleep_sol
     if (sleepRes.tst !== null && sleepRes.source === 'native-sensor') {
-      // Base ideal sleep: 480 mins (8 hours). Score 0-100.
-      let sleepScore = Math.min(100, Math.round((sleepRes.tst / 480) * 100));
-      
-      // Penalize for heavy WASO (Wake After Sleep Onset > 60 mins)
-      if (sleepRes.waso && sleepRes.waso > 60) {
-        sleepScore = Math.max(0, sleepScore - Math.round(sleepRes.waso / 10));
-      }
+      const totalInBed = sleepRes.tst + (sleepRes.waso || 0) + (sleepRes.sol || 0);
+      const rawEfficiency = totalInBed > 0 ? (sleepRes.tst / totalInBed) * 100 : 85;
+      const durationFactor = Math.min(100, (sleepRes.tst / 450) * 100);
+      sleepScore = Math.min(100, Math.max(0, Math.round(0.6 * rawEfficiency + 0.4 * durationFactor)));
 
-      const metricsToSave = [
+      const metricsToSave: { key: 'sleep_efficiency' | 'sleep_duration' | 'sleep_waso' | 'sleep_sol'; val: number }[] = [
         { key: 'sleep_efficiency', val: sleepScore },
         { key: 'sleep_duration', val: sleepRes.tst },
-        ...(sleepRes.waso !== null ? [{ key: 'sleep_waso', val: sleepRes.waso }] : []),
-        ...(sleepRes.sol !== null ? [{ key: 'sleep_sol', val: sleepRes.sol }] : [])
+        ...(sleepRes.waso !== null ? [{ key: 'sleep_waso' as const, val: sleepRes.waso }] : []),
+        ...(sleepRes.sol !== null ? [{ key: 'sleep_sol' as const, val: sleepRes.sol }] : []),
       ];
 
       for (const m of metricsToSave) {
@@ -284,13 +404,13 @@ class HealthService {
 
         if (existing && existing.id) {
           await db.dailyMetrics.update(existing.id, {
-            value: m.key === 'sleep_efficiency' ? m.val : Math.max(existing.value, m.val),
+            value: m.val,
             sampleCount: (existing.sampleCount || 1) + 1,
           });
         } else {
           await db.dailyMetrics.add({
             date: today,
-            metricKey: m.key as any,
+            metricKey: m.key,
             value: m.val,
             sampleCount: 1,
           });
@@ -301,10 +421,10 @@ class HealthService {
         type: 'sleep',
         timestamp: Date.now(),
         payload: {
-          tst_minutes: sleepRes.tst || 0,
-          waso_minutes: sleepRes.waso || 0,
-          sol_minutes: sleepRes.sol || 0,
-          sleep_score: sleepScore
+          sleep_duration: sleepRes.tst,
+          sleep_waso: sleepRes.waso ?? 0,
+          sleep_sol: sleepRes.sol ?? 0,
+          sleep_efficiency: sleepScore,
         },
         provenance: {
           source: 'native-sensor',
@@ -313,7 +433,26 @@ class HealthService {
         },
       });
     }
+
+    const summary: HealthSummarySnapshot = {
+      steps: stepsRes.value,
+      mobilityScore,
+      tstMinutes: sleepRes.tst,
+      wasoMinutes: sleepRes.waso,
+      solMinutes: sleepRes.sol,
+      sleepEfficiency: sleepScore,
+      heartRateBpm: vitalsRes.heartRateBpm,
+      activeCaloriesKcal: vitalsRes.activeCaloriesKcal,
+      syncedAt: Date.now(),
+    };
+
+    try {
+      await db.settings.put({ key: 'healthkit_last_summary', value: summary });
+    } catch {}
+
+    return summary;
   }
 }
 
 export const healthService = new HealthService();
+
