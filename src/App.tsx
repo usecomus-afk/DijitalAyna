@@ -13,7 +13,7 @@ import { TriggersPage } from './pages/TriggersPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { DoctorReportPage } from './pages/DoctorReportPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { JournalPage } from './pages/JournalPage';
+
 import { JournalEditPage } from './pages/JournalEditPage';
 import { AssessmentPage } from './pages/AssessmentPage';
 
@@ -52,7 +52,7 @@ export const App: React.FC = () => {
         const type = extra.type;
         
         if (type === 'morning_checkin' || type === 'evening_reflection' || type === 'inspiration_morning' || type === 'inspiration_noon' || type === 'inspiration_evening') {
-          window.location.hash = '#/nasil-hissediyorsun';
+          window.location.hash = '#/ayna';
         } else if (type === 'predictive_alert') {
           window.location.hash = '#/icgoru';
         } else {
@@ -147,7 +147,7 @@ export const App: React.FC = () => {
                 <Route path="/" element={<Navigate to="/ayna" replace />} />
                 <Route path="/ayna" element={<DashboardPage />} />
                 <Route path="/icgoru" element={<InsightsPage />} />
-                <Route path="/nasil-hissediyorsun" element={<JournalPage />} />
+
                 <Route path="/menu" element={<MenuHubPage />} />
 
                 {/* Legacy / Direct Routes */}

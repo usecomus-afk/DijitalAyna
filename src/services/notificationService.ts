@@ -147,21 +147,7 @@ class NotificationService {
         // Cancel existing reminders first
         await LocalNotifications.cancel({ notifications: [{ id: 1001 }, { id: 1002 }] }).catch(() => {});
 
-        const now = new Date();
 
-        // 1. Morning check-in (09:00)
-        const morning = new Date(now);
-        morning.setHours(9, 0, 0, 0);
-        if (morning.getTime() <= now.getTime()) {
-          morning.setDate(morning.getDate() + 1);
-        }
-
-        // 2. Evening check-in (21:00)
-        const evening = new Date(now);
-        evening.setHours(21, 0, 0, 0);
-        if (evening.getTime() <= now.getTime()) {
-          evening.setDate(evening.getDate() + 1);
-        }
 
         await LocalNotifications.schedule({
           notifications: [
@@ -170,9 +156,8 @@ class NotificationService {
               title: 'Günün İlk Dijital Mental İkizim Yansıması 🪞',
               body: 'Güne nasıl başladınız? Anlık hissiyatınızı ve sabah enerjinizi kaydetmek için dokunun.',
               schedule: {
-                at: morning,
                 repeats: true,
-                every: 'day',
+                on: { hour: 9, minute: 0 },
               },
               sound: 'beep.wav',
               channelId: 'dijital_mental_iİkizim_reminders',
@@ -183,9 +168,8 @@ class NotificationService {
               title: 'Günün Davranışsal Özeti ✨',
               body: 'Bugünkü bilişsel ve fiziksel baz hattınız hesaplandı. Günlük ritminizi inceleyin.',
               schedule: {
-                at: evening,
                 repeats: true,
-                every: 'day',
+                on: { hour: 21, minute: 0 },
               },
               sound: 'beep.wav',
               channelId: 'dijital_mental_iİkizim_reminders',
@@ -270,22 +254,18 @@ class NotificationService {
 
         if (frequency === 0) return;
 
-        const now = new Date();
+
         const notifications: any[] = [];
 
         const getRandomQuote = (quotes: string[]) => quotes[Math.floor(Math.random() * quotes.length)];
 
         // 1. Morning check-in (09:00)
         if (frequency >= 1) {
-          const morning = new Date(now);
-          morning.setHours(9, 0, 0, 0);
-          if (morning.getTime() <= now.getTime()) morning.setDate(morning.getDate() + 1);
-
           notifications.push({
             id: 2001,
             title: 'Huzur ve İlham 🌅',
             body: getRandomQuote(mindfulnessQuotes.morning),
-            schedule: { at: morning, repeats: true, every: 'day' },
+            schedule: { repeats: true, on: { hour: 9, minute: 0 } },
             sound: 'beep.wav',
             channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_morning' },
@@ -294,15 +274,11 @@ class NotificationService {
 
         // 2. Noon check-in (14:00)
         if (frequency >= 3) {
-          const noon = new Date(now);
-          noon.setHours(14, 0, 0, 0);
-          if (noon.getTime() <= now.getTime()) noon.setDate(noon.getDate() + 1);
-
           notifications.push({
             id: 2002,
             title: 'Kısa Bir Mola 🌿',
             body: getRandomQuote(mindfulnessQuotes.noon),
-            schedule: { at: noon, repeats: true, every: 'day' },
+            schedule: { repeats: true, on: { hour: 14, minute: 0 } },
             sound: 'beep.wav',
             channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_noon' },
@@ -311,15 +287,11 @@ class NotificationService {
 
         // 3. Evening check-in (21:30)
         if (frequency >= 2) {
-          const evening = new Date(now);
-          evening.setHours(21, 30, 0, 0);
-          if (evening.getTime() <= now.getTime()) evening.setDate(evening.getDate() + 1);
-
           notifications.push({
             id: 2003,
             title: 'Günü Geride Bırakırken 🌙',
             body: getRandomQuote(mindfulnessQuotes.evening),
-            schedule: { at: evening, repeats: true, every: 'day' },
+            schedule: { repeats: true, on: { hour: 21, minute: 30 } },
             sound: 'beep.wav',
             channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_evening' },
@@ -344,12 +316,6 @@ class NotificationService {
         if (parts.length !== 2) return;
         const hours = parseInt(parts[0], 10);
         const minutes = parseInt(parts[1], 10);
-        const now = new Date();
-        const at = new Date(now);
-        at.setHours(hours, minutes, 0, 0);
-        if (at.getTime() <= now.getTime()) {
-          at.setDate(at.getDate() + 1);
-        }
 
         await LocalNotifications.schedule({
           notifications: [
@@ -357,7 +323,7 @@ class NotificationService {
               id: 30000 + medId * 10 + hours,
               title: 'İlaç Vakti 💊',
               body: `${name} ilacınızı alma saatiniz geldi.`,
-              schedule: { at, repeats: true, every: 'day' },
+              schedule: { repeats: true, on: { hour: hours, minute: minutes } },
               sound: 'beep.wav',
               channelId: 'dijital_mental_iİkizim_reminders',
             }
