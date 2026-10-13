@@ -63,6 +63,22 @@ export const App: React.FC = () => {
 
     const processAuthUrl = async (urlStr: string) => {
       if (
+        urlStr.startsWith('dijitalmentalikizim://shield') ||
+        urlStr.startsWith('dijitalmentalikizim://impulse-shield')
+      ) {
+        try {
+          sessionStorage.setItem('comus_trigger_shield_now', '1');
+        } catch (_) {}
+        window.location.hash = '#/menu/impulse-shield';
+        window.dispatchEvent(
+          new CustomEvent('comus:trigger-impulse-shield', {
+            detail: { label: 'Dürtü Kalkanı' },
+          })
+        );
+        return;
+      }
+
+      if (
         urlStr.startsWith('dijitalmentalikizim://auth-callback') ||
         urlStr.startsWith('dijitalmentalikizim://google-auth') ||
         urlStr.startsWith('dijitalmentalikizim://apple-auth') ||
@@ -102,8 +118,28 @@ export const App: React.FC = () => {
       processAuthUrl(event.url);
     });
 
+    const stateSub = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) return;
+      try {
+        const shieldActive = localStorage.getItem('comus_impulse_shield_active') === 'true';
+        if (!shieldActive) return;
+        const unlockUntil = parseInt(localStorage.getItem('comus_impulse_shield_unlock_until') || '0', 10);
+        if (unlockUntil > Date.now()) return;
+        const hour = new Date().getHours();
+        // Automatically trigger breathing shield during fragile night hours (00:00 - 06:00)
+        if (hour >= 0 && hour < 6) {
+          window.dispatchEvent(
+            new CustomEvent('comus:trigger-impulse-shield', {
+              detail: { label: 'Gece Kırılganlık Kalkanı' },
+            })
+          );
+        }
+      } catch (_) {}
+    });
+
     return () => {
       sub.then((h) => h.remove()).catch(() => {});
+      stateSub.then((h) => h.remove()).catch(() => {});
     };
   }, [initialize]);
 
