@@ -22,9 +22,9 @@ platform :ios do
       UI.message("Bundle id #{bundle_id} already registered")
     end
 
-    # Enable capabilities required by App.entitlements (HealthKit, Sign in with Apple, Family Controls)
+    # Enable capabilities required by App.entitlements (HealthKit, Sign in with Apple)
     bundle = Spaceship::ConnectAPI::BundleId.find(bundle_id)
-    ["HEALTHKIT", "APPLE_ID_AUTH", "FAMILY_CONTROLS"].each do |capability|
+    ["HEALTHKIT", "APPLE_ID_AUTH"].each do |capability|
       begin
         bundle.create_capability(capability)
         UI.message("Enabled capability #{capability}")
@@ -41,22 +41,6 @@ platform :ios do
       app_identifier: "com.dijitalmentalikizim.app",
       username: "fastlane"
     )
-
-    profile_path = ENV["sigh_com.dijitalmentalikizim.app_appstore_profile-path"]
-    entitlements_path = File.exist?("ios/App/App/App.entitlements") ? "ios/App/App/App.entitlements" : "../ios/App/App/App.entitlements"
-    if profile_path && File.exist?(profile_path) && File.exist?(entitlements_path)
-      profile_raw = File.binread(profile_path)
-      if profile_raw.include?("com.apple.developer.family-controls")
-        UI.success("Provisioning profile includes com.apple.developer.family-controls! Enabling in App.entitlements.")
-        ent_content = File.read(entitlements_path)
-        unless ent_content.include?("com.apple.developer.family-controls")
-          ent_content = ent_content.sub("</dict>", "\t<key>com.apple.developer.family-controls</key>\n\t<true/>\n</dict>")
-          File.write(entitlements_path, ent_content)
-        end
-      else
-        UI.important("Provisioning profile does NOT include com.apple.developer.family-controls (requires Apple Distribution entitlement approval). Building with safe entitlements.")
-      end
-    end
 
     update_project_team(
       path: "ios/App/App.xcodeproj",
