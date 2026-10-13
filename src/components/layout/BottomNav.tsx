@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Sparkles, HeartPulse, Menu } from 'lucide-react';
+import { Activity, Sparkles, Wind, HeartPulse, Menu } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const navItems = [
@@ -13,6 +13,11 @@ export const BottomNav: React.FC = () => {
       to: '/icgoru',
       label: 'İçgörü',
       icon: Sparkles,
+    },
+    {
+      to: '/nefes-egzersizi',
+      label: 'Nefes Egzersizi',
+      icon: Wind,
     },
     {
       to: '/nasil-hissediyorsun',
@@ -31,7 +36,7 @@ export const BottomNav: React.FC = () => {
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-comus-sand-light/30 shadow-[0_-4px_20px_rgba(30,58,95,0.04)]"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}
     >
-      <div className="max-w-xl mx-auto grid grid-cols-4 h-16 items-center px-1">
+      <div className="max-w-xl mx-auto grid grid-cols-5 h-16 items-center px-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -60,7 +65,7 @@ export const BottomNav: React.FC = () => {
                     />
                   </div>
                 </div>
-                <span className="text-[10.5px] tracking-tight leading-none mt-1 text-center truncate max-w-[90%]">
+                <span className="text-[10px] tracking-tight leading-none mt-1 text-center truncate max-w-[95%]">
                   {item.label}
                 </span>
               </div>
@@ -71,3 +76,4 @@ export const BottomNav: React.FC = () => {
     </nav>
   );
 };
+

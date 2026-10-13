@@ -16,6 +16,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { JournalPage } from './pages/JournalPage';
 import { JournalEditPage } from './pages/JournalEditPage';
 import { AssessmentPage } from './pages/AssessmentPage';
+import { BreathingExercisePage } from './pages/BreathingExercisePage';
 
 // Menu Pages
 import { MenuHubPage } from './pages/menu/MenuHubPage';
@@ -183,6 +184,7 @@ export const App: React.FC = () => {
                 <Route path="/" element={<Navigate to="/ayna" replace />} />
                 <Route path="/ayna" element={<DashboardPage />} />
                 <Route path="/icgoru" element={<InsightsPage />} />
+                <Route path="/nefes-egzersizi" element={<BreathingExercisePage />} />
                 <Route path="/nasil-hissediyorsun" element={<JournalPage />} />
                 <Route path="/menu" element={<MenuHubPage />} />
 
