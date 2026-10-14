@@ -3,7 +3,7 @@ import { AlertCircle, ArrowRight, ShieldCheck, Sparkles, PlayCircle } from 'luci
 import { useAppStore } from '../store/useAppStore';
 
 const VALID_BETA_CODES = [
-  'BETA26',
+  'DUTY1618',
   'DEMO26',
   'ANIL01'
 ];
@@ -107,8 +107,8 @@ export const BetaAccessGate: React.FC<BetaAccessGateProps> = ({ children }) => {
                   setInputCode(e.target.value.toUpperCase());
                   if (errorMessage) setErrorMessage('');
                 }}
-                maxLength={6}
-                placeholder="Örn: BETA26"
+                maxLength={12}
+                placeholder="Örn: DUTY1618"
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck="false"
