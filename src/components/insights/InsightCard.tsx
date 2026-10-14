@@ -13,7 +13,7 @@ interface InsightCardProps {
 export const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
   const { baselineDayCount } = useAppStore();
   const isLearning = baselineDayCount < 14;
-  const [evidenceOpen, setEvidenceOpen] = useState(true);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [feedback, setFeedback] = useState<'helpful' | 'not_helpful' | undefined>(insight.feedback);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
