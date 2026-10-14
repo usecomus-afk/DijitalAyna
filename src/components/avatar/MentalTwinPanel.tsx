@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
+import { useViewportScrollLock } from '../../hooks/useViewportScrollLock';
 import { getSynthesisCopy } from '../../engine/dailyState';
 import { getDistinctSuggestedAction } from '../../engine/awarenessSynthesis';
 import { shareContent } from '../../services/shareService';
@@ -23,6 +24,10 @@ export const MentalTwinPanel: React.FC = () => {
   const { userProfile } = useAppStore();
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
+
+  // Lock vertical scrolling until "İncele" is clicked
+  useViewportScrollLock(!isDetailsExpanded);
+
   const {
     avatarSrc,
     affectiveIndex,
@@ -66,139 +71,40 @@ export const MentalTwinPanel: React.FC = () => {
   };
 
   return (
-    <div className="animate-fadeIn">
-      <div className="bg-white rounded-3xl w-full p-5 sm:p-7 shadow-soft-lg border-2 border-comus-copper/30 relative overflow-hidden">
+    <div className={`animate-fadeIn ${isDetailsExpanded ? 'pb-16' : ''}`}>
+      <div className="bg-white rounded-3xl w-full p-4 sm:p-6 shadow-soft-lg border-2 border-comus-copper/30 relative overflow-hidden">
         {/* Ambient Mood Glow Background */}
         <div
           className={`absolute inset-0 bg-gradient-to-br ${auraGradient} opacity-60 pointer-events-none transition-all duration-700`}
         />
 
         {/* Header */}
-        <div className="relative z-10 flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
-              <Sparkles className="w-5 h-5" />
+        <div className="relative z-10 flex items-center justify-between gap-2.5 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper block">
                 Kişisel Zihin Yansıması
               </span>
-              <h3 className="font-serif font-bold text-lg sm:text-xl text-comus-navy leading-tight">
+              <h3 className="font-serif font-bold text-base sm:text-xl text-comus-navy leading-tight truncate">
                 {userProfile.name}’in Dijital Mental İkizi
               </h3>
             </div>
           </div>
 
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border shrink-0 ${badgeClass}`}>
+          <span className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold border shrink-0 ${badgeClass}`}>
             {modalTitle}
           </span>
         </div>
 
-        {/* Blinking Critical Threshold Early Awareness Warning Banner */}
-        {earlyAwarenessAlerts.length > 0 && (
-          <div
-            data-testid="early-awareness-blinking-warning"
-            className="relative z-10 mb-4 rounded-2xl border-2 border-rose-500/80 bg-rose-50/95 p-4 shadow-md transition-all"
-          >
-            <div className="flex items-center justify-between gap-2 mb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-3 w-3 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
-                </span>
-                <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
-                  Erken Farkındalık & Kritik Eşik Uyarısı
-                </span>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
-                {earlyAwarenessAlerts.length} Potansiyel Sinyal
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {earlyAwarenessAlerts.map((alert, idx) => {
-                const cleanedBody = (alert.notificationBody || '').replace(
-                  /\s*Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir\.?/gi,
-                  ''
-                );
-                const distinctAction = getDistinctSuggestedAction(alert.id, {
-                  variantIndex: idx,
-                });
-                return (
-                  <div
-                    key={alert.id}
-                    className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1.5"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
-                        {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
-                      </h4>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
-                        {alert.insightType === 'anxietySleep'
-                          ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
-                          : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
-                      </span>
-                    </div>
-
-                    {alert.statisticalSummary && (
-                      <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2.5 py-1 rounded-lg border border-rose-100">
-                        📊 Biyobelirteç İstatistiği: {alert.statisticalSummary}
-                      </div>
-                    )}
-
-                    <p className="text-[11px] text-comus-navy leading-relaxed">
-                      {cleanedBody}
-                    </p>
-
-                    <div className="p-2.5 rounded-xl bg-comus-copper-subtle/35 border border-comus-copper/20 text-[11px] text-comus-navy">
-                      <span className="font-bold text-comus-copper-dark inline-flex items-center gap-1 mr-1">
-                        <Compass className="w-3 h-3 text-comus-copper inline" />
-                        Özel Öneri:
-                      </span>
-                      <span>{distinctAction}</span>
-                    </div>
-
-                    {alert.explainableEvidences && alert.explainableEvidences.length > 0 && (
-                      <ul className="space-y-1 pt-1 border-t border-rose-100 text-[10px] text-comus-sand-dark list-disc list-inside">
-                        {alert.explainableEvidences.map((ev, i) => (
-                          <li key={i}>{ev}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-2.5 pt-2 border-t border-rose-200/60 text-[10px] text-rose-900/80 italic font-medium">
-              * Bu uyarı kesin bir tıbbi teşhis değildir; biyobelirteç istatistiklerinize dayalı olarak &ldquo;potansiyel&rdquo; ve &ldquo;olabilir&rdquo; kapsamında erken farkındalık sağlamak amacıyla sunulmuştur.
-            </div>
-          </div>
-        )}
-
-        {/* Single-Day Probabilistic Phenotype Signal Banner (when not yet multi-day critical) */}
-        {hasSingleDayPhenotypeSignal && (
-          <div className="relative z-10 mb-4 rounded-2xl border border-amber-400/80 bg-amber-50/90 p-3.5 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600" />
-              </span>
-              <span className="text-[11px] font-bold text-amber-900 animate-pulse">
-                Erken Farkındalık Öngörüsü: {phenoLabel}
-              </span>
-            </div>
-            <p className="text-[11px] text-amber-950/90 leading-relaxed">
-              {clinicalInsight}
-            </p>
-          </div>
-        )}
-
         {/* Avatar Display Arena (Custom 3D Avatar Image) */}
-        <div className={`relative z-10 rounded-3xl p-6 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}>
+        <div
+          className={`relative z-10 rounded-3xl p-4 sm:p-5 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}
+        >
           {/* 3D Rendered Avatar Card */}
-          <div className="relative w-44 h-44 sm:w-52 sm:h-52 mb-3 flex items-center justify-center">
+          <div className="relative w-32 h-32 sm:w-44 sm:h-44 mb-2.5 flex items-center justify-center">
             {/* Glowing Aura Ring */}
             <div
               className="absolute inset-0 rounded-3xl blur-2xl opacity-60 transition-all duration-700 animate-pulse"
@@ -214,7 +120,7 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           {/* Subtitle & Affective Balance Gauge */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2">
             <span className="text-xs font-semibold text-comus-navy">{modalSubtitle}</span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/80 border border-comus-sand-light/30 text-comus-sand-dark font-bold">
               {energyText}
@@ -222,16 +128,16 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           {/* Twin Speech Bubble */}
-          <div className="relative bg-white/95 rounded-2xl p-3.5 sm:p-4 border border-comus-sand-light/30 shadow-soft text-left mt-1 w-full max-w-lg">
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-t border-l border-comus-sand-light/30" />
-            <p className="text-xs sm:text-sm text-comus-navy leading-relaxed italic font-serif">
+          <div className="relative bg-white/95 rounded-2xl p-3 sm:p-3.5 border border-comus-sand-light/30 shadow-soft text-left mt-0.5 w-full max-w-lg">
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rotate-45 border-t border-l border-comus-sand-light/30" />
+            <p className="text-xs sm:text-sm text-comus-navy leading-snug italic font-serif">
               "{dialogue}"
             </p>
           </div>
         </div>
 
         {/* İncele Toggle Button */}
-        <div className="relative z-10 mt-4 flex justify-center">
+        <div className="relative z-10 mt-3.5 flex justify-center">
           <button
             type="button"
             data-testid="mental-twin-examine-button"
@@ -249,6 +155,107 @@ export const MentalTwinPanel: React.FC = () => {
 
         {isDetailsExpanded && (
           <div className="relative z-10 mt-4 space-y-3 animate-fadeIn">
+            {/* Blinking Critical Threshold Early Awareness Warning Banner */}
+            {earlyAwarenessAlerts.length > 0 && (
+              <div
+                data-testid="early-awareness-blinking-warning"
+                className="rounded-2xl border-2 border-rose-500/80 bg-rose-50/95 p-4 shadow-md transition-all"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
+                    </span>
+                    <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
+                      Erken Farkındalık & Kritik Eşik Uyarısı
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
+                    {earlyAwarenessAlerts.length} Potansiyel Sinyal
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {earlyAwarenessAlerts.map((alert, idx) => {
+                    const cleanedBody = (alert.notificationBody || '').replace(
+                      /\s*Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir\.?/gi,
+                      ''
+                    );
+                    const distinctAction = getDistinctSuggestedAction(alert.id, {
+                      variantIndex: idx,
+                    });
+                    return (
+                      <div
+                        key={alert.id}
+                        className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1.5"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
+                            {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
+                            {alert.insightType === 'anxietySleep'
+                              ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                              : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
+                          </span>
+                        </div>
+
+                        {alert.statisticalSummary && (
+                          <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2.5 py-1 rounded-lg border border-rose-100">
+                            📊 Biyobelirteç İstatistiği: {alert.statisticalSummary}
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-comus-navy leading-relaxed">
+                          {cleanedBody}
+                        </p>
+
+                        <div className="p-2.5 rounded-xl bg-comus-copper-subtle/35 border border-comus-copper/20 text-[11px] text-comus-navy">
+                          <span className="font-bold text-comus-copper-dark inline-flex items-center gap-1 mr-1">
+                            <Compass className="w-3 h-3 text-comus-copper inline" />
+                            Özel Öneri:
+                          </span>
+                          <span>{distinctAction}</span>
+                        </div>
+
+                        {alert.explainableEvidences && alert.explainableEvidences.length > 0 && (
+                          <ul className="space-y-1 pt-1 border-t border-rose-100 text-[10px] text-comus-sand-dark list-disc list-inside">
+                            {alert.explainableEvidences.map((ev, i) => (
+                              <li key={i}>{ev}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-2.5 pt-2 border-t border-rose-200/60 text-[10px] text-rose-900/80 italic font-medium">
+                  * Bu uyarı kesin bir tıbbi teşhis değildir; biyobelirteç istatistiklerinize dayalı olarak &ldquo;potansiyel&rdquo; ve &ldquo;olabilir&rdquo; kapsamında erken farkındalık sağlamak amacıyla sunulmuştur.
+                </div>
+              </div>
+            )}
+
+            {/* Single-Day Probabilistic Phenotype Signal Banner */}
+            {hasSingleDayPhenotypeSignal && (
+              <div className="rounded-2xl border border-amber-400/80 bg-amber-50/90 p-3.5 shadow-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600" />
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-900 animate-pulse">
+                    Erken Farkındalık Öngörüsü: {phenoLabel}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-950/90 leading-relaxed">
+                  {clinicalInsight}
+                </p>
+              </div>
+            )}
+
             {/* Real-time Automated Phenotype & Biometric Synthesis Card */}
             <div className="p-4 rounded-2xl bg-comus-surface border border-comus-sand-light/30 space-y-2.5">
               <div className="flex items-center justify-between">

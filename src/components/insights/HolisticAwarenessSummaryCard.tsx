@@ -30,18 +30,18 @@ export const HolisticAwarenessSummaryCard: React.FC<HolisticAwarenessSummaryCard
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-soft border border-comus-copper/25 space-y-4 transition-all">
+    <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-soft border border-comus-copper/25 space-y-3.5 transition-all">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
-            <Compass className="w-5 h-5" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
+            <Compass className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-comus-copper-dark block">
               {summary.heading}
             </span>
-            <span className="text-xs text-comus-sand-dark font-medium">
+            <span className="text-[11px] sm:text-xs text-comus-sand-dark font-medium block truncate">
               {summary.subtitle}
             </span>
           </div>
@@ -50,7 +50,7 @@ export const HolisticAwarenessSummaryCard: React.FC<HolisticAwarenessSummaryCard
         <button
           type="button"
           onClick={handleShare}
-          className="flex items-center gap-1.5 text-xs text-comus-navy bg-comus-surface hover:bg-comus-sand-subtle px-3 py-1.5 rounded-xl border border-comus-sand-light/40 transition-colors cursor-pointer font-medium"
+          className="flex items-center gap-1.5 text-xs text-comus-navy bg-comus-surface hover:bg-comus-sand-subtle px-2.5 py-1.5 rounded-xl border border-comus-sand-light/40 transition-colors cursor-pointer font-medium shrink-0"
           title="Bu farkındalık özetini paylaş"
         >
           <Share2 className="w-3.5 h-3.5 text-comus-copper" />
@@ -66,24 +66,28 @@ export const HolisticAwarenessSummaryCard: React.FC<HolisticAwarenessSummaryCard
       )}
 
       {/* Holistic Summary Paragraph */}
-      <div className="p-4 rounded-2xl bg-comus-copper-subtle/35 border border-comus-copper/20">
-        <p className="text-sm sm:text-base text-comus-navy leading-relaxed font-medium">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-comus-copper-subtle/35 border border-comus-copper/20">
+        <p className="text-xs sm:text-sm text-comus-navy leading-relaxed font-medium">
           {summary.summaryText}
         </p>
       </div>
 
-      {/* Concise Synthesized Pillars */}
+      {/* Concise 2x2 Pillar Preview (compact so the whole card fits on one screen) */}
       {summary.pillars.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+        <div className="grid grid-cols-2 gap-2">
           {summary.pillars.map((pillar, idx) => (
             <div
               key={idx}
-              className="p-3 rounded-2xl bg-comus-surface border border-comus-sand-light/30 flex items-start gap-2.5"
+              className="p-2.5 rounded-2xl bg-comus-surface border border-comus-sand-light/30 flex items-start gap-2"
             >
-              <Sparkles className="w-4 h-4 text-comus-copper shrink-0 mt-0.5" />
-              <div className="text-xs">
-                <div className="font-bold text-comus-navy">{pillar.label}</div>
-                <p className="text-comus-sand-dark leading-relaxed mt-0.5">
+              <Sparkles className="w-3.5 h-3.5 text-comus-copper shrink-0 mt-0.5" />
+              <div className="text-[11px] min-w-0">
+                <div className="font-bold text-comus-navy truncate">{pillar.label}</div>
+                <p
+                  className={`text-comus-sand-dark leading-snug mt-0.5 ${
+                    isExpanded ? '' : 'line-clamp-2'
+                  }`}
+                >
                   {pillar.detail}
                 </p>
               </div>
@@ -98,7 +102,7 @@ export const HolisticAwarenessSummaryCard: React.FC<HolisticAwarenessSummaryCard
           type="button"
           onClick={onToggleExpand}
           aria-expanded={isExpanded}
-          className="w-full sm:w-auto min-w-[200px] px-6 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft flex items-center justify-center gap-2 transition-all cursor-pointer"
+          className="w-full sm:w-auto min-w-[180px] px-5 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs font-semibold shadow-soft flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
           <span>{isExpanded ? collapseLabel : expandLabel}</span>
           {isExpanded ? (

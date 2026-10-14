@@ -184,7 +184,7 @@ export const App: React.FC = () => {
             <Header />
 
             {/* Main Content Area */}
-            <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-5 sm:px-6 pb-28 sm:pb-32">
+            <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-3 sm:px-6 pb-20 sm:pb-24">
               <Routes>
                 {/* Main Navigation Routes */}
                 <Route path="/" element={<Navigate to="/ayna" replace />} />

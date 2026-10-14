@@ -11,6 +11,7 @@ import { healthService } from '../services/native/healthService';
 import { Disclaimer } from '../components/common/Disclaimer';
 import { Sparkles, CheckCircle2, Activity, Keyboard, Moon, Smartphone } from 'lucide-react';
 import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
+import { useViewportScrollLock } from '../hooks/useViewportScrollLock';
 import {
   deduplicateAndEnrichInsights,
   synthesizeHolisticAwarenessSummary,
@@ -21,6 +22,10 @@ export const InsightsPage: React.FC = () => {
   const { baselineDayCount, userProfile } = useAppStore();
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+
+  // Lock vertical scrolling until "İncele" is clicked
+  useViewportScrollLock(!isDetailsExpanded);
+
   const insights = useLiveQuery(() => db.insights.toArray()) || [];
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
@@ -157,24 +162,7 @@ export const InsightsPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 pb-20 animate-fadeIn">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <h1 className="font-serif font-bold text-2xl text-comus-navy">
-              İçgörüler Akışı
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-comus-sand-dark mt-1">
-            Kişisel baz hattınızdan saptanan davranışsal değişimler ve bütüncül farkındalık önerisi
-          </p>
-        </div>
-      </div>
-
+    <div className={`space-y-4 animate-fadeIn ${isDetailsExpanded ? 'pb-20' : ''}`}>
       {/* Holistic "KÜÇÜK BİR FARKINDALIK ÖNERİSİ" Summary + "İncele" Button */}
       <HolisticAwarenessSummaryCard
         summary={holisticSummary}
