@@ -1,68 +1,41 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import {
   Calendar,
-  ShieldCheck,
   Share2,
   Check,
-  Pill,
-  ClipboardList,
-  Info,
-  CheckCircle2,
-  Clock,
-  Plus,
-  Trash2,
   X,
-  Download,
+  Copy,
   FileText,
 } from 'lucide-react';
 import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
-import {
-  analyzeMedicationImpact,
-  formatMedicationDosage,
-  formatMedicationSchedule,
-} from '../engine/medicationAnalytics';
+import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
 import {
   PinnedInsight,
   generateRealReportAwarenessNotes,
-  DOCTOR_REPORT_TEMPLATE_ID,
-  buildCanonicalDoctorReportTemplate,
-  CanonicalDoctorReportInput,
+  buildDoctorReportText,
+  ReportMetricStat,
 } from '../services/reportBuilder';
-import { shareDoctorReportPdf } from '../services/shareService';
+import { copyTextToClipboard } from '../services/shareService';
 import { BaselineEngine } from '../engine/BaselineEngine';
 import { sensorCapabilities } from '../sensors/capabilities';
-import { sensorManager } from '../sensors/SensorManager';
-import { healthService } from '../services/native/healthService';
 import { DoctorShareWizard } from '../components/doctor/DoctorShareWizard';
-import { MedicationImpactChart } from '../components/charts/MedicationImpactChart';
-import { TimeSlot, Medication } from '../types/medication';
-import { notificationService } from '../services/notificationService';
 
-export type MetricDisplayStatus = 'active' | 'permission_required' | 'unsupported' | 'waiting_data' | 'self_report_required';
+export type MetricDisplayStatus =
+  | 'active'
+  | 'permission_required'
+  | 'unsupported'
+  | 'waiting_data'
+  | 'self_report_required';
 
 /** Excluded from the EWMA Baseline Deviation Table per clinical report specification */
-export const EXCLUDED_EWMA_REPORT_KEYS: MetricKey[] = ['gaming_duration', 'camera_interaction_count'];
-
-const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
-  morning: '🌅 Sabah',
-  noon: '☀️ Öğle',
-  evening: '🌇 Akşam',
-  night: '🌙 Gece/Yatarken',
-  as_needed: '⚡ İhtiyaç Halinde'
-};
-
-const DEFAULT_TIMES: Record<TimeSlot, string> = {
-  morning: '09:00',
-  noon: '13:00',
-  evening: '19:00',
-  night: '23:00',
-  as_needed: ''
-};
+export const EXCLUDED_EWMA_REPORT_KEYS: MetricKey[] = [
+  'gaming_duration',
+  'camera_interaction_count',
+];
 
 export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDisplayStatus {
   if (hasData) return 'active';
@@ -84,7 +57,10 @@ export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDis
   if (key === 'gaming_duration') {
     return 'self_report_required';
   }
-  if ((key === 'battery_level' || key === 'is_charging') && sensorCapabilities.getCapability('battery') === 'unsupported') {
+  if (
+    (key === 'battery_level' || key === 'is_charging') &&
+    sensorCapabilities.getCapability('battery') === 'unsupported'
+  ) {
     return 'unsupported';
   }
   if (key === 'light_ambient_lux' && sensorCapabilities.getCapability('light') === 'unsupported') {
@@ -153,31 +129,16 @@ export const DoctorReportPage: React.FC = () => {
   const { userProfile, baselineDayCount } = useAppStore();
   const [selectedRange, setSelectedRange] = useState<7 | 14 | 30>(14);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const showEmbeddedReportSheet = false;
-
-  // Medication modal state
-  const [isAddMedModalOpen, setIsAddMedModalOpen] = useState(false);
-  const [medName, setMedName] = useState('');
-  const [medDosage, setMedDosage] = useState<string>('10');
-  const [medTimeSlots, setMedTimeSlots] = useState<TimeSlot[]>([]);
-  const [medCustomTimesMap, setMedCustomTimesMap] = useState<Record<string, string>>({
-    morning: '09:00', noon: '13:00', evening: '19:00', night: '23:00', as_needed: ''
-  });
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [medStartDate, setMedStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [medNotes, setMedNotes] = useState('');
-  const [medError, setMedError] = useState<string | null>(null);
-
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [isShareWizardOpen, setIsShareWizardOpen] = useState(false);
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) ?? EMPTY_ARRAY;
   const baselines = useLiveQuery(() => db.baselines.toArray()) ?? EMPTY_ARRAY;
   const insights = useLiveQuery(() => db.insights.toArray()) ?? EMPTY_ARRAY;
   const medications = useLiveQuery(() => db.medications.toArray()) ?? EMPTY_ARRAY;
-  const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) ?? EMPTY_ARRAY;
   const moods = useLiveQuery(() => db.moodReports.toArray()) ?? EMPTY_ARRAY;
-  const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) ?? EMPTY_ARRAY;
+  const surveys =
+    useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) ??
+    EMPTY_ARRAY;
   const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
   const pinnedInsights = useMemo<PinnedInsight[]>(
     () => (Array.isArray(pinnedItem?.value) ? pinnedItem.value : EMPTY_ARRAY),
@@ -191,86 +152,13 @@ export const DoctorReportPage: React.FC = () => {
     });
   };
 
-  const sampleDays = useMemo(() => new Set(dailyMetrics.map((m) => m.date)).size, [dailyMetrics]);
+  const sampleDays = useMemo(
+    () => new Set(dailyMetrics.map((m) => m.date)).size,
+    [dailyMetrics]
+  );
   const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
-  const isLearning = effectiveDayCount < 14;
 
-  const [capStatuses, setCapStatuses] = useState(() => sensorCapabilities.getAllCapabilities());
-  useEffect(() => {
-    const syncActiveSensors = async () => {
-      try {
-        await sensorManager.evaluateNow();
-      } catch {
-        // Ignore transient evaluation errors
-      }
-    };
-    syncActiveSensors();
-    return sensorCapabilities.addListener((c) => setCapStatuses({ ...c }));
-  }, []);
-
-  const isPermissionGranted = (key: MetricKey): boolean => {
-    if (
-      key === 'mobility_index' ||
-      key === 'sleep_efficiency' ||
-      key === 'sleep_duration' ||
-      key === 'sleep_sol' ||
-      key === 'sleep_waso'
-    ) {
-      return capStatuses.health === 'granted';
-    }
-    if (key === 'homestay_ratio' || key === 'mobility_radius') {
-      return capStatuses.geolocation === 'granted';
-    }
-    if (key === 'tremor_variance') return capStatuses.motion === 'granted';
-    if (key === 'voice_pitch_variance' || key === 'voice_speech_rate') return capStatuses.microphone === 'granted';
-    if (key === 'camera_interaction_count') return capStatuses.camera === 'granted';
-    return false;
-  };
-
-  const unavailableText = (st: { key: MetricKey; status: MetricDisplayStatus; unavailableReason: string }): string => {
-    if (st.status === 'waiting_data') {
-      if (st.key.startsWith('typing_')) {
-        return 'Sensör Aktif, İzin Gerekmez. Klavye ritim sensörü dinlemededir; uygulama içinde metin girişi yapıldığında gerçek zamanlı hesaplanır.';
-      }
-      if (st.key.startsWith('touch_')) {
-        return 'Sensör Aktif, İzin Gerekmez. Dokunma ve kaydırma etkileşiminiz gerçekleştiğinde otomatik hesaplanır.';
-      }
-      return 'Sensör Aktif, İzin Gerekmez. Bu sensör aktiftir. Kişisel bazal çizginizin hesaplanabilmesi için günlük kullanım verileri toplanmaktadır.';
-    }
-    if (st.status === 'permission_required' && isPermissionGranted(st.key)) {
-      return 'İzin verildi. Veri, kullanımınıza göre birikmeye başlayacak.';
-    }
-    return st.unavailableReason;
-  };
-
-  const handleRequestPermission = async (key: MetricKey) => {
-    try {
-      if (
-        key === 'mobility_index' ||
-        key === 'sleep_efficiency' ||
-        key === 'sleep_duration' ||
-        key === 'sleep_sol' ||
-        key === 'sleep_waso'
-      ) {
-        const granted = await sensorCapabilities.requestHealthPermission();
-        if (granted) await healthService.syncHealthBiomarkers();
-      } else if (key === 'homestay_ratio' || key === 'mobility_radius') {
-        await sensorCapabilities.requestGeolocationPermission();
-      } else if (key === 'tremor_variance') {
-        await sensorCapabilities.requestMotionPermission();
-      } else if (key === 'voice_pitch_variance' || key === 'voice_speech_rate') {
-        await sensorCapabilities.requestMicrophonePermission();
-      } else if (key === 'camera_interaction_count') {
-        await sensorCapabilities.requestCameraPermission();
-      }
-      await sensorManager.flushAndCollectAll();
-      await sensorManager.evaluateNow();
-    } catch (e) {
-      console.warn('[DoctorReport] Permission request error:', e);
-    }
-  };
-
-  // Compute summary stats for the report - all indicators (excluding gaming_duration & camera_interaction_count) with strict Zero-Mock transparency
+  // Compute summary stats for the report in a fast single pass
   const reportStats = useMemo(() => {
     const realBaselineMap = new Map(
       baselines.filter((b) => (b.sampleCount ?? 0) > 0).map((b) => [b.metricKey, b])
@@ -280,21 +168,29 @@ export const DoctorReportPage: React.FC = () => {
     cutoffDate.setDate(cutoffDate.getDate() - selectedRange);
     const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
-    const periodMetrics = dailyMetrics.filter((m) => m.date >= cutoffStr);
+    const periodByKey = new Map<MetricKey, number[]>();
+    const allByKey = new Map<MetricKey, { date: string; value: number }[]>();
 
-    const stats: {
-      key: MetricKey;
-      label: string;
-      unit: string;
-      category: string;
-      hasData: boolean;
-      baselineMean: number | null;
-      periodAvg: number | null;
-      deviationPercent: number | null;
-      zScore: number | null;
-      status: MetricDisplayStatus;
-      unavailableReason: string;
-    }[] = [];
+    for (const m of dailyMetrics) {
+      if (m.date >= cutoffStr) {
+        let arr = periodByKey.get(m.metricKey);
+        if (!arr) {
+          arr = [];
+          periodByKey.set(m.metricKey, arr);
+        }
+        arr.push(m.value);
+      }
+      if (!realBaselineMap.has(m.metricKey)) {
+        let allArr = allByKey.get(m.metricKey);
+        if (!allArr) {
+          allArr = [];
+          allByKey.set(m.metricKey, allArr);
+        }
+        allArr.push({ date: m.date, value: m.value });
+      }
+    }
+
+    const stats: (ReportMetricStat & { status: MetricDisplayStatus })[] = [];
 
     const allKeys = (Object.keys(METRIC_DEFINITIONS) as MetricKey[]).filter(
       (k) => !EXCLUDED_EWMA_REPORT_KEYS.includes(k)
@@ -303,28 +199,29 @@ export const DoctorReportPage: React.FC = () => {
     for (const key of allKeys) {
       const def = METRIC_DEFINITIONS[key];
       const base = realBaselineMap.get(key);
-
-      const values = periodMetrics
-        .filter((m) => m.metricKey === key)
-        .map((m) => m.value);
-
+      const values = periodByKey.get(key) ?? EMPTY_ARRAY;
       const hasData = values.length > 0;
       const statusType = getMetricStatusType(key, hasData);
 
       if (hasData) {
-        const allKeyValues = dailyMetrics
-          .filter((m) => m.metricKey === key)
-          .sort((a, b) => a.date.localeCompare(b.date))
-          .map((m) => m.value);
-        const computedBase = BaselineEngine.computeBaseline(allKeyValues, key);
-        const ewmaMean = base ? base.ewmaMean : computedBase.mean;
-        const ewmaStd = base ? base.ewmaStd : computedBase.shrunkStd;
+        let ewmaMean: number;
+        let ewmaStd: number;
+        if (base) {
+          ewmaMean = base.ewmaMean;
+          ewmaStd = base.ewmaStd;
+        } else {
+          const allKeyValues = (allByKey.get(key) ?? EMPTY_ARRAY)
+            .slice()
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map((m) => m.value);
+          const computedBase = BaselineEngine.computeBaseline(allKeyValues, key);
+          ewmaMean = computedBase.mean;
+          ewmaStd = computedBase.shrunkStd;
+        }
 
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
         const dev =
-          ewmaMean !== 0
-            ? Math.round(((avg - ewmaMean) / ewmaMean) * 100)
-            : 0;
+          ewmaMean !== 0 ? Math.round(((avg - ewmaMean) / ewmaMean) * 100) : 0;
         const z = calculateZScore(avg, ewmaMean, ewmaStd);
 
         stats.push({
@@ -341,7 +238,6 @@ export const DoctorReportPage: React.FC = () => {
           unavailableReason: '',
         });
       } else {
-        // Zero-Mock Transparency: NEVER fabricate or fallback to default numbers!
         stats.push({
           key,
           label: def.label,
@@ -361,193 +257,110 @@ export const DoctorReportPage: React.FC = () => {
     return stats;
   }, [dailyMetrics, baselines, selectedRange]);
 
-  const activeCount = useMemo(() => reportStats.filter(s => s.hasData).length, [reportStats]);
+  const activeCount = useMemo(
+    () => reportStats.filter((s) => s.hasData).length,
+    [reportStats]
+  );
   const unavailableCount = reportStats.length - activeCount;
 
-  // Compute medication impact reports
-  const medImpactReports = useMemo(() => {
-    return medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods));
-  }, [medications, dailyMetrics, baselines, moods]);
-
-  // Compute real-data-driven awareness notes
-  const awarenessNotes = useMemo(() => {
-    return generateRealReportAwarenessNotes({
-      stats: reportStats,
-      insights,
-      moods,
-      surveys,
-      medImpactReports,
-      effectiveDayCount,
-      rangeDays: selectedRange,
-    });
-  }, [reportStats, insights, moods, surveys, medImpactReports, effectiveDayCount, selectedRange]);
-
-  const toggleTakeDose = async (medId: number) => {
-    const existing = todaysLogs.find((l) => l.medicationId === medId);
-    if (existing && existing.id) {
-      await db.medicationLogs.delete(existing.id);
-    } else {
-      await db.medicationLogs.add({
-        medicationId: medId,
-        date: todayStr,
-        timestamp: Date.now(),
-        taken: true,
-      });
-    }
-  };
-
-  const handleDeleteMedication = async (medId: number) => {
-    if (window.confirm('Bu ilacı takip listenizden silmek istediğinize emin misiniz?')) {
-      await db.medications.delete(medId);
-      const logs = await db.medicationLogs.where('medicationId').equals(medId).toArray();
-      for (const log of logs) {
-        if (log.id) await db.medicationLogs.delete(log.id);
-      }
-    }
-  };
-
-  const handleToggleTimeSlot = (slot: TimeSlot) => {
-    if (medTimeSlots.includes(slot)) {
-      setMedTimeSlots(medTimeSlots.filter(s => s !== slot));
-    } else {
-      setMedTimeSlots([...medTimeSlots, slot]);
-    }
-  };
-
-  const scheduleNotifications = (med: Medication) => {
-    med.customTimes?.forEach((time, index) => {
-      if (time && time.length === 5 && med.id) {
-        notificationService.scheduleMedicationReminder(med.id + index, med.name, time);
-      }
-    });
-  };
-
-  const handleSaveNewMedication = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!medName.trim()) {
-      setMedError('Lütfen ilaç adını giriniz.');
-      return;
-    }
-    
-    if (medTimeSlots.length === 0) {
-      setMedError('Lütfen en az bir kullanım zamanı seçiniz.');
-      return;
-    }
-
-    const customTimes = medTimeSlots.map(slot => medCustomTimesMap[slot] || DEFAULT_TIMES[slot]);
-
-    const medData = {
-      name: medName.trim(),
-      dosage: medDosage,
-      timeSlots: medTimeSlots,
-      customTimes: customTimes,
-      startDate: medStartDate || todayStr,
-      notes: medNotes.trim() || 'Hekim tedavi protokolü',
-      createdAt: Date.now(),
-    };
-
-    const newId = await db.medications.add(medData);
-    
-    if (typeof newId === 'number') {
-      scheduleNotifications({ ...medData, id: newId } as Medication);
-    }
-
-    setMedName('');
-    setMedDosage('10');
-    setMedTimeSlots([]);
-    setMedCustomTimesMap(DEFAULT_TIMES);
-    setShowTimePicker(false);
-    setMedNotes('');
-    setMedError(null);
-    setIsAddMedModalOpen(false);
-  };
-
-  const [isShareWizardOpen, setIsShareWizardOpen] = useState(false);
-
-  const canonicalInput = useMemo<CanonicalDoctorReportInput>(
-    () => ({
-      patientName: userProfile.name || 'Danışan',
-      patientEmail: userProfile.email,
-      rangeDays: selectedRange,
-      generatedAt: new Date(),
-      effectiveDayCount,
-      baselineStatus:
-        effectiveDayCount >= 14
-          ? `${effectiveDayCount} günlük kişisel EWMA baz hattı tamamlandı`
-          : `Baz hattı öğrenme sürecinde (${effectiveDayCount}/14 gün)`,
-      stats: reportStats,
-      medications,
-      todaysLogs,
-      medImpactReports,
-      moods,
-      surveys,
-      awarenessNotes,
-      pinnedInsights,
-      insights,
-    }),
-    [
-      userProfile.name,
-      userProfile.email,
-      selectedRange,
-      effectiveDayCount,
-      reportStats,
-      medications,
-      todaysLogs,
-      medImpactReports,
-      moods,
-      surveys,
-      awarenessNotes,
-      pinnedInsights,
-      insights,
-    ]
+  const medImpactReports = useMemo(
+    () => medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods)),
+    [medications, dailyMetrics, baselines, moods]
   );
 
-  const canonicalModel = useMemo(
-    () => buildCanonicalDoctorReportTemplate(canonicalInput),
-    [canonicalInput]
+  const awarenessNotes = useMemo(
+    () =>
+      generateRealReportAwarenessNotes({
+        stats: reportStats,
+        insights,
+        moods,
+        surveys,
+        medImpactReports,
+        effectiveDayCount,
+        rangeDays: selectedRange,
+      }),
+    [
+      reportStats,
+      insights,
+      moods,
+      surveys,
+      medImpactReports,
+      effectiveDayCount,
+      selectedRange,
+    ]
   );
 
   const handleShareReport = () => {
     setIsShareWizardOpen(true);
   };
 
-  const handleDownloadStandardPdf = async () => {
-    if (isDownloadingPdf) return;
-    setIsDownloadingPdf(true);
-    try {
-      const res = await shareDoctorReportPdf(canonicalInput, 'download');
-      setShareFeedback(res.message);
-      setTimeout(() => setShareFeedback(null), 5000);
-    } finally {
-      setIsDownloadingPdf(false);
-    }
+  const handleCopyReportSummary = async () => {
+    const baselineStatus =
+      effectiveDayCount >= 14
+        ? `${effectiveDayCount} günlük kişisel EWMA baz hattı tamamlandı`
+        : `Baz hattı öğrenme sürecinde (${effectiveDayCount}/14 gün)`;
+
+    const clinicalNotesText = awarenessNotes
+      .map(
+        (n) =>
+          `• ${n.title}: ${n.body}${
+            n.sources && n.sources.length > 0 ? `\n  Kaynak: ${n.sources.join('; ')}` : ''
+          }`
+      )
+      .join('\n');
+
+    const latestSurvey = surveys.length > 0 ? surveys[0] : undefined;
+    const text = buildDoctorReportText({
+      patientName: userProfile.name || 'Danışan',
+      rangeDays: selectedRange,
+      generatedAt: new Date(),
+      baselineStatus,
+      stats: reportStats,
+      medImpactReports,
+      pinnedInsights,
+      clinicalNotes: clinicalNotesText,
+      clinicalSurveyScores: latestSurvey
+        ? {
+            gad7Score: latestSurvey.gad7Score,
+            gad7Risk: latestSurvey.gad7Risk,
+            phq9Score: latestSurvey.phq9Score,
+            phq9Risk: latestSurvey.phq9Risk,
+            date: latestSurvey.date,
+          }
+        : undefined,
+    });
+
+    await copyTextToClipboard(text);
+    setShareFeedback(
+      'Klinik hekim raporu panoya kopyalandı! Doktorunuza mesaj veya e-posta olarak gönderebilirsiniz.'
+    );
+    setTimeout(() => setShareFeedback(null), 5000);
   };
 
   return (
     <div className="space-y-6 pb-6 animate-fadeIn">
-      {/* Controls Bar (Hidden during Print) */}
+      {/* Controls Bar */}
       <div className="no-print space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-comus-navy/10 text-comus-navy text-[10.5px] font-mono font-bold mb-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-comus-navy/10 text-comus-navy text-[10.5px] font-semibold mb-1">
               <FileText className="w-3 h-3 text-comus-copper" />
-              <span>Standart Rapor Şablonu: {DOCTOR_REPORT_TEMPLATE_ID}</span>
+              <span>Yapılandırılmış Klinik Hekim &amp; Terapist Raporu</span>
             </div>
             <p className="text-xs sm:text-sm text-comus-sand-dark">
-              Ruh sağlığı hekiminizle ve terapistinizle her paylaşımda aynı standart PDF şablonuyla paylaşabileceğiniz karşılaştırmalı biyometrik göstergeler, ilaç protokolü ve doz takip raporu
+              Ruh sağlığı hekiminizle ve terapistinizle mesaj, e-posta veya klinik görüşme sırasında paylaşabileceğiniz karşılaştırmalı biyometrik göstergeler, ilaç protokolü ve doz takip özeti
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
-              disabled={isDownloadingPdf}
-              onClick={handleDownloadStandardPdf}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft transition-all cursor-pointer disabled:opacity-50"
-              title="Standart şablonlu A4 PDF raporunu hemen indir"
+              onClick={handleCopyReportSummary}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft transition-all cursor-pointer"
+              title="Klinik rapor özetini panoya kopyala"
             >
-              <Download className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Standart PDF İndir</span>
+              <Copy className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">Raporu Kopyala</span>
             </button>
             <button
               type="button"
@@ -555,7 +368,7 @@ export const DoctorReportPage: React.FC = () => {
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer"
             >
               <Share2 className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Doktorumla Paylaş (PDF)</span>
+              <span className="whitespace-nowrap">Doktorumla Paylaş</span>
             </button>
           </div>
         </div>
@@ -566,12 +379,19 @@ export const DoctorReportPage: React.FC = () => {
               Rapora Eklenen İçgörüler ({pinnedInsights.length})
             </div>
             {pinnedInsights.map((p) => (
-              <div key={p.addedAt} className="flex items-start justify-between gap-3 bg-comus-surface rounded-2xl p-3">
+              <div
+                key={p.addedAt}
+                className="flex items-start justify-between gap-3 bg-comus-surface rounded-2xl p-3"
+              >
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-comus-navy">{p.title}</div>
-                  <p className="text-[11px] text-comus-sand-dark leading-relaxed mt-0.5">{p.body}</p>
+                  <p className="text-[11px] text-comus-sand-dark leading-relaxed mt-0.5">
+                    {p.body}
+                  </p>
                   {p.sources && p.sources.length > 0 && (
-                    <p className="text-[10.5px] italic text-comus-sand-dark mt-1">Kaynak: {p.sources.join('; ')}</p>
+                    <p className="text-[10.5px] italic text-comus-sand-dark mt-1">
+                      Kaynak: {p.sources.join('; ')}
+                    </p>
                   )}
                 </div>
                 <button
@@ -613,14 +433,18 @@ export const DoctorReportPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs leading-relaxed">
             <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-2xl">
-              <strong className="text-rose-950 block mb-1">Öznel Soru: "Geçen hafta nasıldın?"</strong>
+              <strong className="text-rose-950 block mb-1">
+                Öznel Soru: "Geçen hafta nasıldın?"
+              </strong>
               <p className="text-rose-900">
                 Hasta o anki ruh haline göre hatalı veya eksik yanıt verebilir. "Çok az uyudum" veya "hep gergindim" öznel ve hatırlama yanlılığına açık bir beyandır.
               </p>
             </div>
 
             <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
-              <strong className="text-emerald-950 block mb-1">Dijital Mental İkizim Çözümü: Nesnel Biyobelirteçler</strong>
+              <strong className="text-emerald-950 block mb-1">
+                Dijital Mental İkizim Çözümü: Nesnel Biyobelirteçler
+              </strong>
               <p className="text-emerald-900">
                 Pazartesi ve Çarşamba 03:00'e kadar süren ekran aktivitesi, 4 saatlik uyku ve yazım yavaşlamasını net verilerle sunar. Hekimin doğru tanı ve tedavi planı oluşturmasını hızlandırır.
               </p>
@@ -639,7 +463,7 @@ export const DoctorReportPage: React.FC = () => {
               <button
                 type="button"
                 key={days}
-                onClick={() => setSelectedRange(days as any)}
+                onClick={() => setSelectedRange(days as 7 | 14 | 30)}
                 className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
                   selectedRange === days
                     ? 'bg-comus-navy text-white shadow-sm'
@@ -652,1021 +476,12 @@ export const DoctorReportPage: React.FC = () => {
           </div>
           <div className="text-[11px] text-teal-800 bg-teal-50 px-3 py-1 rounded-xl border border-teal-200 flex items-center gap-1.5 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{activeCount} / {reportStats.length} Gösterge Aktif ({unavailableCount} Gösterge İçin İzin veya Etkileşim Bekleniyor)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Printable Report Sheet Document (Hidden on DoctorReportPage per user specification) */}
-      {showEmbeddedReportSheet && (
-      <div className="bg-white rounded-3xl p-5 sm:p-9 border border-comus-sand-light/30 shadow-soft-lg print:border-none print:shadow-none print:p-0 space-y-7">
-        {/* Report Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Mental İkizim</span>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper border border-comus-copper/30 px-2 py-0.5 rounded">
-                Davranışsal Fenotip, İlaç Talimatı &amp; Doz Takip Raporu
-              </span>
-              <span className="text-[10px] font-mono font-bold bg-comus-navy text-white px-2 py-0.5 rounded">
-                Şablon: {DOCTOR_REPORT_TEMPLATE_ID}
-              </span>
-            </div>
-            <p className="text-xs text-comus-sand-dark">
-              Dijital Fenotipleme (Torous et al.) &amp; EWMA İstatistiksel Baz Hattı Analiz Çıktısı
-            </p>
-          </div>
-
-          <div className="text-left sm:text-right text-xs text-comus-sand-dark space-y-0.5">
-            <div><strong>Rapor Tarihi:</strong> {new Date().toLocaleDateString('tr-TR')}</div>
-            <div><strong>Danışan / Kullanıcı:</strong> {userProfile.name}</div>
-            {userProfile.email && <div><strong>E-posta:</strong> {userProfile.email}</div>}
-            <div><strong>İncelenen Pencere:</strong> Son {selectedRange} Gün ({activeCount}/{reportStats.length} Gösterge Aktif)</div>
-          </div>
-        </div>
-
-        {/* 1. Summary Narrative & Executive KPI Comparison Cards */}
-        <div className="space-y-4">
-          <div className="p-4 sm:p-5 rounded-2xl bg-comus-surface border border-comus-sand-light/20 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy flex items-center gap-1.5">
-              <Info className="w-4 h-4 text-comus-copper" />
-              <span>1. Yönetici Özeti, Hızlı Kıyaslama Kartları &amp; Hekim Okuma Rehberi</span>
-            </h4>
-            <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed">
-              {canonicalModel.executiveSummary.narrative}
-            </p>
-
-            {/* 4 Comparative KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
-              {canonicalModel.kpiCards.map((card) => (
-                <div
-                  key={card.id}
-                  className="p-3 rounded-xl bg-white border border-comus-sand-light/40 shadow-xs space-y-1"
-                >
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-comus-sand-dark">
-                    {card.title}
-                  </div>
-                  <div className="text-sm font-bold text-comus-navy">{card.primaryValue}</div>
-                  <div className="text-[10.5px] font-semibold text-comus-copper">{card.comparisonLabel}</div>
-                  <p className="text-[10.5px] text-comus-sand-dark leading-snug">{card.explanation}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Clinician Quick Reading Guide */}
-            <div className="p-3 rounded-xl bg-white/80 border border-comus-sand-light/30 text-[11px] text-comus-sand-dark space-y-1">
-              <div className="font-bold text-comus-navy">Hekim İçin Karşılaştırma ve Yorumlama Rehberi:</div>
-              <ul className="list-disc pl-4 space-y-0.5">
-                {canonicalModel.executiveSummary.clinicianReadingGuide.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Notable Deviations Quick Comparison Table */}
-          {canonicalModel.notableComparisons.length > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
-                  Öne Çıkan Biyobelirteç Sapmaları — Kişisel EWMA Baz vs Dönem Ortalaması ({canonicalModel.notableComparisons.length} Gösterge)
-                </h5>
-                <span className="text-[10.5px] font-semibold text-amber-900 bg-white px-2.5 py-0.5 rounded-full border border-amber-200">
-                  Eşik: |Z| &ge; 1.5&sigma; veya |Değişim| &ge; %20
-                </span>
-              </div>
-              <div className="rounded-xl border border-amber-200/80 bg-white overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-amber-100/60 text-comus-navy font-semibold border-b border-amber-200/70">
-                      <th className="p-2.5">Biyobelirteç &amp; Kategori</th>
-                      <th className="p-2.5 text-right">Kişisel EWMA Baz</th>
-                      <th className="p-2.5 text-right">Dönem Ort. ({selectedRange}G)</th>
-                      <th className="p-2.5 text-right">Değişim (%)</th>
-                      <th className="p-2.5 text-right">Z-Skoru</th>
-                      <th className="p-2.5">Klinik Açıklama &amp; Kaynak</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-amber-100 text-[11px]">
-                    {canonicalModel.notableComparisons.map((row) => (
-                      <tr key={row.key} className={row.severityLevel === 'high' ? 'bg-rose-50/40' : ''}>
-                        <td className="p-2.5 font-semibold text-comus-navy">
-                          <div>{row.label}</div>
-                          <div className="text-[10px] font-normal text-comus-sand-dark">{row.categoryLabel}</div>
-                        </td>
-                        <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark whitespace-nowrap">
-                          {row.baselineText}
-                        </td>
-                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-comus-navy whitespace-nowrap">
-                          {row.periodAvgText}
-                        </td>
-                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-amber-800 whitespace-nowrap">
-                          {row.deviationText}
-                        </td>
-                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-rose-700 whitespace-nowrap">
-                          {row.zScoreText}
-                        </td>
-                        <td className="p-2.5 text-comus-sand-dark">
-                          <span className="font-semibold text-comus-navy">{row.directionLabel}: </span>
-                          {row.clinicalInterpretation} <span className="text-[10px] italic">{row.citationsText}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 2. Medication Usage Instructions (İlaç Kullanım Talimatı) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/60 border border-teal-200/90 space-y-3">
-          <div className="flex items-center gap-2 border-b border-teal-200/60 pb-2">
-            <div className="w-7 h-7 rounded-xl bg-teal-700 text-white flex items-center justify-center text-xs font-bold">
-              <Pill className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-teal-950">
-                2. İlaç Kullanım Talimatı & Klinik Protokol İlkeleri
-              </h4>
-              <span className="text-[11px] text-teal-800">
-                Psikiyatri ve nöroloji tedavi güvenliği için danışanın uyması gereken temel kurallar
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-white/90 rounded-xl border border-teal-200/60 space-y-1">
-              <div className="font-bold text-teal-950 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-teal-700" />
-                <span>1. Dozaj & Zaman Disiplini</span>
-              </div>
-              <p className="text-teal-900/90 leading-relaxed text-[11.5px]">
-                İlaçlarınızı her gün hekiminiz tarafından belirlenen <strong>aynı saat diliminde</strong> alınız. Unutulan bir dozu telafi etmek amacıyla kesinlikle <strong>çift doz almayınız</strong>.
-              </p>
-            </div>
-
-            <div className="p-3 bg-white/90 rounded-xl border border-teal-200/60 space-y-1">
-              <div className="font-bold text-teal-950 flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-teal-700" />
-                <span>2. Açlık/Tokluk & Sıvı Tüketimi</span>
-              </div>
-              <p className="text-teal-900/90 leading-relaxed text-[11.5px]">
-                Mide hassasiyetini önlemek ve biyoyararlanımı artırmak için ilaçları <strong>tok karnına ve 1 tam bardak su ile</strong> yutunuz. Çay, kahve veya greyfurt suyu ile almayınız.
-              </p>
-            </div>
-
-            <div className="p-3 bg-white/90 rounded-xl border border-teal-200/60 space-y-1">
-              <div className="font-bold text-teal-950 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-                <span>3. Tedaviyi Aniden Kesmeme</span>
-              </div>
-              <p className="text-teal-900/90 leading-relaxed text-[11.5px]">
-                Kendinizi iyi hissetseniz dahi hekiminize danışmadan ilacı aniden kesmeyiniz veya doz azaltmayınız. Doz değişiklikleri yalnızca hekim kontrolünde kademeli yapılmalıdır.
-              </p>
-            </div>
-
-            <div className="p-3 bg-white/90 rounded-xl border border-teal-200/60 space-y-1">
-              <div className="font-bold text-teal-950 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-                <span>4. Sirkadiyen Uyum & Etkileşim</span>
-              </div>
-              <p className="text-teal-900/90 leading-relaxed text-[11.5px]">
-                Sedatif etkili ilaçları gece dinlenme penceresinden 30-45 dk önce alınız. Alkol kullanımından kaçınınız; kafein miktarını sınırlayınız.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Daily Medication Schedule & Tracking Table */}
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-comus-copper" />
-              <span>3. Günlük İlaç Kullanım Tablosu & Takip Çizelgesi</span>
-            </h4>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-comus-sand-dark">
-                Bugün: {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })}
-              </span>
-              <button
-                onClick={() => setIsAddMedModalOpen(true)}
-                className="no-print inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-soft transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Yeni İlaç Ekle</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile View: Responsive Cards (No Horizontal Scroll) */}
-          <div className="block sm:hidden space-y-2.5">
-            {medications.length > 0 ? (
-              medications.map((med) => {
-                const isTakenToday = todaysLogs.some((l) => l.medicationId === med.id);
-                return (
-                  <div
-                    key={med.id}
-                    className={`p-3.5 rounded-2xl border transition-all ${
-                      isTakenToday
-                        ? 'bg-teal-50/40 border-teal-200'
-                        : 'bg-white border-comus-sand-light/30 shadow-soft'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-teal-100/80 text-teal-800 flex items-center justify-center">
-                          <Pill className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-xs text-comus-navy flex items-center gap-1.5">
-                            <span>{med.name}</span>
-                            <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100 text-teal-900 rounded font-bold">
-                              {formatMedicationDosage(med.dosage)}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-comus-sand-dark">
-                            Başlama Tarihi: {med.startDate}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => med.id && toggleTakeDose(med.id)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer ${
-                            isTakenToday
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-amber-50 text-amber-800 border border-amber-300'
-                          }`}
-                        >
-                          {isTakenToday ? (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Alındı</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Bekliyor</span>
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => med.id && handleDeleteMedication(med.id)}
-                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors no-print cursor-pointer"
-                          title="İlacı Sil"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-comus-sand-light/20 text-[11px] space-y-1">
-                      <div className="text-comus-navy font-medium">
-                        {formatMedicationSchedule(med)}
-                        {' • '}Tok karnına, bol su ile
-                      </div>
-                      <p className="text-[10.5px] text-comus-sand-dark italic">
-                        {med.notes || 'Duygudurum ve sirkadiyen ritim regülasyonu'}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="p-5 text-center rounded-2xl bg-comus-surface border border-comus-sand-light/30">
-                <p className="text-xs text-comus-sand-dark">
-                  Henüz kayıtlı ilaç bulunmuyor. Takip listenize ilaç eklemek için yukarıdaki <strong className="text-teal-900">"Yeni İlaç Ekle"</strong> butonunu kullanabilirsiniz.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop & Print Table */}
-          <div className="hidden sm:block rounded-2xl border border-comus-sand-light/30 overflow-hidden">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-comus-sand-subtle text-comus-navy font-semibold border-b border-comus-sand-light/30">
-                  <th className="p-3">İlaç Adı & Dozajı</th>
-                  <th className="p-3">Kullanım Zamanı & Vakti</th>
-                  <th className="p-3">Alım Şekli & Koşulu</th>
-                  <th className="p-3">Terapötik Amaç / Hekim Talimatı</th>
-                  <th className="p-3 text-center">Bugünkü Durum</th>
-                  <th className="p-3 text-center no-print">İşlem</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-comus-sand-light/20 text-[11.5px]">
-                {medications.length > 0 ? (
-                  medications.map((med) => {
-                    const isTakenToday = todaysLogs.some((l) => l.medicationId === med.id);
-                    return (
-                      <tr key={med.id} className={isTakenToday ? 'bg-teal-50/40' : 'hover:bg-comus-surface/50'}>
-                        <td className="p-3 font-semibold text-comus-navy">
-                          <div className="flex items-center gap-1.5">
-                            <Pill className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-                            <span>{med.name}</span>
-                            <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100/80 text-teal-900 rounded font-bold">
-                              {formatMedicationDosage(med.dosage)}
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-comus-sand-dark mt-0.5">
-                            Başlama Tarihi: {med.startDate}
-                          </div>
-                        </td>
-                        <td className="p-3 text-comus-navy font-medium">
-                          {formatMedicationSchedule(med)}
-                        </td>
-                        <td className="p-3 text-comus-sand-dark">
-                          Tok karnına, bol su ile
-                        </td>
-                        <td className="p-3 text-comus-navy">
-                          {med.notes || 'Duygudurum ve sirkadiyen ritim regülasyonu'}
-                        </td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => med.id && toggleTakeDose(med.id)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer ${
-                              isTakenToday
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
-                            }`}
-                            title="Tıklayarak durumu değiştirin"
-                          >
-                            {isTakenToday ? (
-                              <>
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Alındı</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-3.5 h-3.5 text-amber-600" />
-                                <span>Bekliyor</span>
-                              </>
-                            )}
-                          </button>
-                        </td>
-                        <td className="p-3 text-center no-print">
-                          <button
-                            onClick={() => med.id && handleDeleteMedication(med.id)}
-                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="İlacı Sil"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-xs text-comus-sand-dark">
-                      <p>Henüz kayıtlı ilaç bulunmuyor. Takip listenize ilaç eklemek için yukarıdaki <strong className="text-teal-900">"Yeni İlaç Ekle"</strong> butonunu kullanabilirsiniz.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 4. İlaç Etki & Zaman Serisi Bindirme Analizi ve 1, 3, 6 Aylık Karşılaştırmalı Dijital Biyobelirteçler Tablosu (Zorunlu Paylaşım Bölümü) */}
-        <div className="space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-2">
-            <Pill className="w-4 h-4 text-teal-700" />
             <span>
-              4. İlaç Etki & Zaman Serisi Bindirme Analizi ve 1, 3, 6 Aylık Karşılaştırmalı Dijital Biyobelirteçler Tablosu
+              {activeCount} / {reportStats.length} Gösterge Aktif ({unavailableCount} Gösterge İçin İzin veya Etkileşim Bekleniyor)
             </span>
-          </h4>
-
-          {medications.length > 0 ? (
-            <>
-              {/* Embedded Time Series Overlay Chart */}
-              <MedicationImpactChart
-                medications={medications}
-                metrics={dailyMetrics}
-                baselines={baselines}
-                moods={moods}
-              />
-
-              {medImpactReports.map((ir, idx) => (
-                <div key={idx} className="p-4 rounded-2xl bg-teal-50/50 border border-teal-200/80 shadow-soft space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-serif font-bold text-sm text-teal-950">
-                        {ir.medication.name} ({ir.formattedDosage})
-                      </span>
-                      <span className="text-[11px] text-teal-900 font-semibold">
-                        • Başlama Tarihi (T0): {ir.medication.startDate} • Kullanım Zamanı: {ir.formattedSchedule} • Dozaj: {ir.formattedDosage}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/80 border border-teal-200 text-teal-900">
-                        Öncesi Kayıt: 1A ({ir.pre1MonthSampleDays}g) / 3A ({ir.pre3MonthsSampleDays}g) / 6A ({ir.pre6MonthsSampleDays}g) • Sonrası: {ir.postSampleDays ?? 0}g
-                      </span>
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900">
-                        {ir.daysActive}. Günlük Tedavi Seyri
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-teal-900 leading-relaxed font-medium">
-                    {ir.timeSeriesOverlaySummary}
-                  </p>
-
-                  <p className="text-xs text-teal-950/90 leading-relaxed">
-                    {ir.overallSummary}
-                  </p>
-
-                  {(ir.affectiveStateBefore !== null || ir.affectiveStateAfter !== null) && (
-                    <div className="text-[11px] text-teal-900 bg-white/70 border border-teal-200/60 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-semibold">Öznel Duygudurum Ortalaması (Gerçek Ruh Hali Kayıtları):</span>
-                      <span className="font-mono font-bold">
-                        İlaç Öncesi: {ir.affectiveStateBefore !== null ? `${ir.affectiveStateBefore}/100` : 'Kayıt yok (—)'} → İlaç Başladıktan Sonra: {ir.affectiveStateAfter !== null ? `${ir.affectiveStateAfter}/100` : 'Kayıt yok (—)'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Mobile Responsive Multi-Period (1m / 3m / 6m) Delta Display */}
-                  <div className="block sm:hidden space-y-2">
-                    {ir.multiPeriodTable.map((row) => (
-                      <div key={row.metricKey} className="p-2.5 rounded-xl bg-white border border-teal-200/50 text-xs space-y-1">
-                        <div className="flex items-center justify-between font-semibold text-comus-navy">
-                          <span>{row.label} ({row.unit})</span>
-                          <span
-                            className={`font-mono font-bold text-[11px] ${
-                              row.direction === 'improved'
-                                ? 'text-emerald-700'
-                                : row.direction === 'declined'
-                                ? 'text-rose-700'
-                                : 'text-comus-navy'
-                            }`}
-                          >
-                            Sonrası: {row.postOverall.avg !== null ? `${row.postOverall.avg} ${row.unit}` : 'Kayıt yok'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-1.5 text-[10.5px] text-comus-sand-dark bg-teal-50/40 p-2 rounded-lg">
-                          <div>
-                            <div className="font-bold text-teal-900">Öncesi 1 Ay</div>
-                            <div>{row.pre1Month.avg !== null ? `${row.pre1Month.avg} (${row.pre1Month.sampleCount}g)` : '—'}</div>
-                            <div className="font-mono font-bold text-teal-800">
-                              Δ: {row.pre1Month.changePercent !== null ? `${row.pre1Month.changePercent > 0 ? '+' : ''}${row.pre1Month.changePercent}%` : '—'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="font-bold text-teal-900">Öncesi 3 Ay</div>
-                            <div>{row.pre3Months.avg !== null ? `${row.pre3Months.avg} (${row.pre3Months.sampleCount}g)` : '—'}</div>
-                            <div className="font-mono font-bold text-teal-800">
-                              Δ: {row.pre3Months.changePercent !== null ? `${row.pre3Months.changePercent > 0 ? '+' : ''}${row.pre3Months.changePercent}%` : '—'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="font-bold text-teal-900">Öncesi 6 Ay</div>
-                            <div>{row.pre6Months.avg !== null ? `${row.pre6Months.avg} (${row.pre6Months.sampleCount}g)` : '—'}</div>
-                            <div className="font-mono font-bold text-teal-800">
-                              Δ: {row.pre6Months.changePercent !== null ? `${row.pre6Months.changePercent > 0 ? '+' : ''}${row.pre6Months.changePercent}%` : '—'}
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-[10.5px] text-comus-navy/80">{row.interpretation}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Desktop & Print 1m / 3m / 6m Comparative Digital Biomarkers Table */}
-                  <div className="hidden sm:block rounded-xl border border-teal-200/60 bg-white overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-teal-100/50 text-teal-950 font-semibold border-b border-teal-200/60">
-                          <th className="p-2.5">Dijital Biyobelirteç</th>
-                          <th className="p-2.5 text-right">Öncesi Son 1 Ay (30G)</th>
-                          <th className="p-2.5 text-right">Öncesi Son 3 Ay (90G)</th>
-                          <th className="p-2.5 text-right">Öncesi Son 6 Ay (180G)</th>
-                          <th className="p-2.5 text-right">İlaç Sonrası (1A / 3A / 6A & Genel)</th>
-                          <th className="p-2.5 text-right">Değişim (Delta % 1A / 3A / 6A)</th>
-                          <th className="p-2.5">Klinik Yansıma</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-teal-100 text-[11px]">
-                        {ir.multiPeriodTable.map((row) => {
-                          const fmtPct = (v: number | null) =>
-                            v !== null ? `${v > 0 ? '+' : ''}${v}%` : '—';
-                          return (
-                            <tr key={row.metricKey}>
-                              <td className="p-2.5 font-medium text-comus-navy">
-                                {row.label} <span className="text-[10px] text-comus-sand-dark">({row.unit})</span>
-                              </td>
-                              <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
-                                {row.pre1Month.avg !== null
-                                  ? `${row.pre1Month.avg} ${row.unit} (${row.pre1Month.sampleCount}g)`
-                                  : 'Kayıt yok (—)'}
-                              </td>
-                              <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
-                                {row.pre3Months.avg !== null
-                                  ? `${row.pre3Months.avg} ${row.unit} (${row.pre3Months.sampleCount}g)`
-                                  : 'Kayıt yok (—)'}
-                              </td>
-                              <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
-                                {row.pre6Months.avg !== null
-                                  ? `${row.pre6Months.avg} ${row.unit} (${row.pre6Months.sampleCount}g)`
-                                  : 'Kayıt yok (—)'}
-                              </td>
-                              <td className="p-2.5 text-right font-mono tabular-nums font-semibold text-comus-navy">
-                                {row.postOverall.avg !== null ? (
-                                  <div>
-                                    <div>{row.postOverall.avg} {row.unit} ({row.postOverall.sampleCount}g)</div>
-                                    <div className="text-[10px] font-normal text-comus-sand-dark">
-                                      1A: {row.post1Month.avg ?? '—'} | 3A: {row.post3Months.avg ?? '—'} | 6A: {row.post6Months.avg ?? '—'}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  'Kayıt yok (—)'
-                                )}
-                              </td>
-                              <td className="p-2.5 text-right font-mono tabular-nums font-bold">
-                                <span
-                                  className={
-                                    row.direction === 'improved'
-                                      ? 'text-emerald-700'
-                                      : row.direction === 'declined'
-                                      ? 'text-rose-700'
-                                      : 'text-comus-navy'
-                                  }
-                                >
-                                  1A: {fmtPct(row.pre1Month.changePercent)} | 3A: {fmtPct(row.pre3Months.changePercent)} | 6A: {fmtPct(row.pre6Months.changePercent)}
-                                </span>
-                              </td>
-                              <td className="p-2.5 text-comus-sand-dark">{row.interpretation}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
-            </>
-          ) : (
-            <div className="p-4 rounded-2xl bg-teal-50/40 border border-teal-200/70 text-xs text-teal-900">
-              Sistemde henüz aktif kayıtlı ilaç protokolü bulunmamaktadır. Yukarıdaki <strong>"Yeni İlaç Ekle"</strong> butonundan ilaç başlama tarihi, kullanım zamanı ve dozaj bilgisi eklendiğinde; ilaç öncesi son 1 ay, 3 ay, 6 ay ve ilaç sonrası karşılaştırmalı Dijital Biyobelirteçler Tablosu ile Zaman Serisi Bindirme Analizi bu alanda otomatik olarak paylaşılır.
-            </div>
-          )}
-        </div>
-
-        {/* 5. Complete Metrics Table (All Indicators with Strict Zero-Mock Transparency) */}
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
-              5. Sayısal Göstergeler & EWMA Baz Hattı Sapma Tablosu ({reportStats.length} Gösterge)
-            </h4>
-            <span className="text-[11px] text-comus-sand-dark font-medium">
-              <strong className="text-emerald-700 font-bold">{activeCount}</strong> / {reportStats.length} Gösterge Aktif • <span className="text-amber-800 font-bold">{unavailableCount}</span> İzin/Etkileşim Bekleniyor
-            </span>
-          </div>
-
-          {/* MOBILE VIEW: Clean Cards - No Horizontal Scrolling Required */}
-          <div className="block sm:hidden space-y-2">
-            {reportStats.map((st) => {
-              const isAnomaly = st.hasData && st.zScore !== null && Math.abs(st.zScore) >= 2.0;
-              return (
-                <div
-                  key={st.key}
-                  className={`p-3 rounded-2xl border transition-all ${
-                    !st.hasData
-                      ? 'bg-stone-50/60 border-stone-200/80'
-                      : isAnomaly
-                      ? 'bg-rose-50/50 border-rose-200'
-                      : 'bg-white border-comus-sand-light/30 shadow-soft'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex-1">
-                      <div className="font-semibold text-xs text-comus-navy">{st.label}</div>
-                      <div className="text-[10px] text-comus-sand-dark capitalize">{st.category} sensörü</div>
-                      {!st.hasData && (
-                        <p className="text-[10px] text-stone-500 italic mt-0.5">{unavailableText(st)}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        st.hasData
-                          ? isAnomaly
-                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          : st.status === 'permission_required'
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
-                          : st.status === 'self_report_required'
-                          ? 'bg-purple-100 text-purple-900 border border-purple-300 font-bold'
-                          : st.status === 'unsupported'
-                          ? 'bg-stone-100 text-stone-600 border border-stone-200'
-                          : 'bg-stone-100 text-stone-600 border border-stone-200'
-                      }`}>
-                        {st.hasData
-                          ? isAnomaly ? 'Sapma Var' : (st.key === 'light_ambient_lux' ? 'Aktif / Vekil Donanım' : 'Aktif / Native')
-                          : st.status === 'permission_required'
-                          ? (isPermissionGranted(st.key) ? '🟢 Aktif / İzin Verildi' : 'İzin Bekleniyor')
-                          : st.status === 'self_report_required'
-                          ? 'Öz-Bildirim Gerekli'
-                          : st.status === 'unsupported'
-                          ? 'Cihaz/Tarayıcı Kısıtı'
-                          : st.key.startsWith('typing_')
-                          ? 'Klavye Girişi Bekleniyor'
-                          : st.key.startsWith('touch_')
-                          ? 'Dokunma Bekleniyor'
-                          : isLearning ? `Öğrenme Sürecinde (${effectiveDayCount}/14 Gün)` : 'Veri Bekleniyor'}
-                      </span>
-                      {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
-                        <button
-                          onClick={() => handleRequestPermission(st.key)}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
-                        >
-                          {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : 'İzin Ver'}
-                        </button>
-                      )}
-                      {!st.hasData && st.status === 'self_report_required' && (
-                        <NavLink
-                          to="/journal"
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-comus-copper text-white hover:bg-comus-copper-dark active:scale-95 transition-all shadow-xs inline-flex items-center gap-1"
-                        >
-                          Günlük'te Doldur
-                        </NavLink>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-comus-sand-light/20 text-center">
-                    <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
-                      <span className="text-[9px] text-comus-sand-dark block">Kişisel Baz</span>
-                      <strong className="font-mono text-[11px] text-comus-navy font-semibold">
-                        {st.hasData && st.baselineMean !== null ? `${st.baselineMean} ${st.unit}` : '—'}
-                      </strong>
-                    </div>
-
-                    <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
-                      <span className="text-[9px] text-comus-sand-dark block">Dönem Ort.</span>
-                      <strong className="font-mono text-[11px] text-comus-navy font-semibold">
-                        {st.hasData && st.periodAvg !== null ? `${st.periodAvg} ${st.unit}` : '—'}
-                      </strong>
-                    </div>
-
-                    <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
-                      <span className="text-[9px] text-comus-sand-dark block">Değişim</span>
-                      <strong className={`font-mono text-[11px] font-bold ${
-                        !st.hasData
-                          ? 'text-stone-400'
-                          : (st.deviationPercent || 0) > 0
-                          ? 'text-amber-700'
-                          : (st.deviationPercent || 0) < 0
-                          ? 'text-indigo-700'
-                          : 'text-comus-sand-dark'
-                      }`}>
-                        {st.hasData && st.deviationPercent !== null
-                          ? `${st.deviationPercent > 0 ? '+' : ''}${st.deviationPercent}%`
-                          : '—'}
-                      </strong>
-                    </div>
-
-                    <div className="bg-comus-surface p-1.5 rounded-xl border border-comus-sand-light/20">
-                      <span className="text-[9px] text-comus-sand-dark block">Z-Skoru</span>
-                      <strong className={`font-mono text-[11px] font-bold ${
-                        !st.hasData
-                          ? 'text-stone-400'
-                          : isAnomaly
-                          ? 'text-rose-600'
-                          : 'text-comus-sand-dark'
-                      }`}>
-                        {st.hasData && st.zScore !== null
-                          ? `${st.zScore > 0 ? '+' : ''}${st.zScore}`
-                          : '—'}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* DESKTOP & PRINT VIEW: Full Table */}
-          <div className="hidden sm:block rounded-2xl border border-comus-sand-light/30 overflow-hidden">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-comus-sand-subtle text-comus-navy font-semibold border-b border-comus-sand-light/30">
-                  <th className="p-3 w-[34%]">Gösterge / Biyobelirteç</th>
-                  <th className="p-3 text-right w-[14%]">Kişisel Baz</th>
-                  <th className="p-3 text-right w-[15%]">Dönem Ort.</th>
-                  <th className="p-3 text-right w-[11%]">Değişim</th>
-                  <th className="p-3 text-right w-[9%]">Z-Skoru</th>
-                  <th className="p-3 text-center w-[17%]">Durum</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-comus-sand-light/20">
-                {reportStats.map((st) => {
-                  const isAnomaly = st.hasData && st.zScore !== null && Math.abs(st.zScore) >= 2.0;
-                  return (
-                    <tr key={st.key} className={!st.hasData ? 'bg-stone-50/40 text-stone-500' : isAnomaly ? 'bg-rose-50/40' : 'hover:bg-comus-surface/50'}>
-                      <td className="p-3 font-medium text-comus-navy">
-                        <div className="font-semibold">{st.label}</div>
-                        <div className="text-[10px] text-comus-sand-dark capitalize">{st.category} sensörü</div>
-                        {!st.hasData && (
-                          <div className="text-[10px] text-stone-500 italic mt-0.5">{unavailableText(st)}</div>
-                        )}
-                      </td>
-                      <td className="p-3 text-right font-mono tabular-nums text-comus-sand-dark whitespace-nowrap">
-                        {st.hasData && st.baselineMean !== null ? `${st.baselineMean} ${st.unit}` : '—'}
-                      </td>
-                      <td className="p-3 text-right font-mono tabular-nums font-semibold text-comus-navy whitespace-nowrap">
-                        {st.hasData && st.periodAvg !== null ? `${st.periodAvg} ${st.unit}` : '—'}
-                      </td>
-                      <td className="p-3 text-right font-mono tabular-nums font-medium whitespace-nowrap">
-                        {st.hasData && st.deviationPercent !== null ? (
-                          <span className={st.deviationPercent > 0 ? 'text-amber-700' : st.deviationPercent < 0 ? 'text-indigo-700' : 'text-comus-sand-dark'}>
-                            {st.deviationPercent > 0 ? `+${st.deviationPercent}%` : `${st.deviationPercent}%`}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="p-3 text-right font-mono tabular-nums font-bold whitespace-nowrap">
-                        {st.hasData && st.zScore !== null ? (
-                          <span className={isAnomaly ? 'text-rose-600' : 'text-comus-sand-dark'}>
-                            {st.zScore > 0 ? `+${st.zScore}` : st.zScore}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center justify-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            st.hasData
-                              ? isAnomaly
-                                ? 'bg-rose-100 text-rose-800'
-                                : 'bg-emerald-100 text-emerald-800'
-                              : st.status === 'permission_required'
-                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                              : st.status === 'self_report_required'
-                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
-                              : st.status === 'unsupported'
-                              ? 'bg-stone-100 text-stone-600 border border-stone-200'
-                              : 'bg-stone-100 text-stone-600 border border-stone-200'
-                          }`}>
-                            {st.hasData
-                              ? isAnomaly ? 'Sapma Var' : (st.key === 'light_ambient_lux' ? 'Aktif / Vekil Donanım' : 'Aktif / Native')
-                              : st.status === 'permission_required'
-                              ? (isPermissionGranted(st.key) ? '🟢 Aktif / İzin Verildi' : 'İzin Bekleniyor')
-                              : st.status === 'self_report_required'
-                              ? 'Öz-Bildirim Gerekli'
-                              : st.status === 'unsupported'
-                              ? 'Cihaz/Tarayıcı Kısıtı'
-                              : st.key.startsWith('typing_')
-                              ? 'Klavye Girişi Bekleniyor'
-                              : st.key.startsWith('touch_')
-                              ? 'Dokunma Bekleniyor'
-                              : isLearning ? `Öğrenme Sürecinde (${effectiveDayCount}/14 Gün)` : 'Veri Bekleniyor'}
-                          </span>
-                          {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
-                            <button
-                              onClick={() => handleRequestPermission(st.key)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
-                            >
-                              {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : 'İzin Ver'}
-                            </button>
-                          )}
-                          {!st.hasData && st.status === 'self_report_required' && (
-                            <NavLink
-                              to="/journal"
-                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-comus-copper text-white hover:bg-comus-copper-dark active:scale-95 transition-all shadow-xs inline-flex items-center gap-1"
-                            >
-                              Günlük'te Doldur
-                            </NavLink>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 6. System-Generated Awareness Notes (Real Data Driven) */}
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
-              6. Sistem Tarafından Üretilen Farkındalık Notları
-            </h4>
-            <span className="text-[10.5px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
-              Gerçek Telemetri &amp; Öz-Bildirim Verilerine Dayalı ({awarenessNotes.length} Not)
-            </span>
-          </div>
-          <div className="space-y-2.5">
-            {awarenessNotes.map((note) => {
-              const badgeStyles =
-                note.severity === 'warning'
-                  ? 'bg-rose-50/70 border-rose-200 text-rose-950'
-                  : note.severity === 'attention'
-                  ? 'bg-amber-50/70 border-amber-200 text-amber-950'
-                  : 'bg-comus-surface border-comus-sand-light/30 text-comus-navy';
-              const tagLabel =
-                note.category === 'phenotype'
-                  ? 'Fenotip & Erken Farkındalık'
-                  : note.category === 'telemetry'
-                  ? 'Sensör & EWMA Telemetri'
-                  : note.category === 'mood'
-                  ? 'Öz-Bildirim Duygudurum'
-                  : note.category === 'survey'
-                  ? 'Klinik Tarama Ölçeği'
-                  : 'İlaç & Tedavi Yanıtı';
-
-              return (
-                <div key={note.id} className={`p-3.5 rounded-2xl border text-xs space-y-1 ${badgeStyles}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="font-bold text-comus-navy">{note.title}</div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/80 border border-comus-sand-light/40 text-comus-sand-dark">
-                      {tagLabel}
-                    </span>
-                  </div>
-                  <div className="text-comus-sand-dark leading-relaxed">{note.body}</div>
-                  {note.sources && note.sources.length > 0 && (
-                    <div className="text-[10px] italic text-stone-500 pt-0.5">
-                      Bilimsel Dayanak: {note.sources.join('; ')}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Legal & Medical Notice */}
-        <div className="pt-4 border-t border-comus-sand-light/30 text-[11px] text-comus-sand-dark leading-relaxed flex items-start gap-2">
-          <ShieldCheck className="w-4 h-4 text-comus-navy/70 shrink-0 mt-0.5" />
-          <div>
-            <strong>Yasal Uyarı:</strong> Bu rapor bir tanı belgesi değildir. Kullanıcının cihaz kullanım alışkanlıklarına, sensör biyobelirteçlerine ve beyan ettiği ilaç takvimine ilişkin istatistiksel göstergeleri içerir. Teşhis, tedavi ve reçete düzenleme süreçleri yalnızca yetkili uzman hekimler tarafından yürütülür.
           </div>
         </div>
       </div>
-      )}
-
-      {/* Add Medication Modal */}
-      {isAddMedModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-comus-navy/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-soft-lg border border-teal-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-comus-sand-light/30 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center">
-                  <Pill className="w-4 h-4" />
-                </div>
-                <h3 className="font-serif font-bold text-base text-comus-navy">
-                  Yeni İlaç ve Reçete Ekle
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsAddMedModalOpen(false)}
-                className="p-1 rounded-lg text-comus-sand-dark hover:text-comus-navy transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveNewMedication} className="space-y-3.5 text-xs">
-              {medError && (
-                <div className="p-2.5 rounded-xl bg-rose-50 text-rose-800 border border-rose-200">
-                  {medError}
-                </div>
-              )}
-
-              <div>
-                <label className="font-semibold text-comus-navy block mb-1">
-                  İlaç Adı *
-                </label>
-                <input
-                  type="text"
-                  value={medName}
-                  onChange={(e) => setMedName(e.target.value)}
-                  placeholder="Örn: Concerta, Lustral, Cipralex..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-comus-surface border border-comus-sand-light/40 text-comus-navy focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-comus-navy block mb-1">
-                    Dozaj (mg)
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={medDosage}
-                    onChange={(e) => setMedDosage(e.target.value)}
-                    placeholder="10"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-comus-surface border border-comus-sand-light/40 text-comus-navy focus:outline-none focus:ring-2 focus:ring-teal-600 font-mono"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-semibold text-comus-navy block mb-2">
-                  Kullanım Zamanı / Vakti (Çoklu Seçilebilir):
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {(Object.keys(TIME_SLOT_LABELS) as TimeSlot[]).map(slot => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => handleToggleTimeSlot(slot)}
-                      className={`px-3 py-2 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
-                        medTimeSlots.includes(slot)
-                          ? 'bg-comus-navy text-white border-transparent'
-                          : 'bg-comus-surface text-comus-sand-dark border border-comus-sand-light/40 hover:border-comus-copper/50'
-                      }`}
-                    >
-                      {TIME_SLOT_LABELS[slot]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {medTimeSlots.filter(s => s !== 'as_needed').length > 0 && (
-                <div className="bg-white rounded-xl border border-comus-sand-light/40 overflow-hidden mt-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowTimePicker(!showTimePicker)}
-                    className="w-full flex items-center justify-between p-3 text-xs font-semibold text-comus-navy hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-comus-copper" />
-                      <span>Özel Saat Ayarla & Hatırlatıcı Kur (Opsiyonel)</span>
-                    </div>
-                  </button>
-                  
-                  {showTimePicker && (
-                    <div className="p-3 border-t border-comus-sand-light/40 bg-slate-50/50 grid grid-cols-2 gap-3">
-                      {medTimeSlots.filter(s => s !== 'as_needed').map(slot => (
-                        <div key={slot} className="flex flex-col gap-1">
-                          <span className="text-[10px] font-semibold text-comus-sand-dark uppercase">
-                            {TIME_SLOT_LABELS[slot]}
-                          </span>
-                          <input
-                            type="time"
-                            value={medCustomTimesMap[slot]}
-                            onChange={(e) => setMedCustomTimesMap({...medCustomTimesMap, [slot]: e.target.value})}
-                            className="w-full text-xs p-2 rounded-lg bg-white border border-comus-sand-light/40 focus:outline-none focus:ring-2 focus:ring-teal-600 font-mono"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <div>
-                <label className="font-semibold text-comus-navy block mb-1">
-                  Başlangıç Tarihi
-                </label>
-                <input
-                  type="date"
-                  value={medStartDate}
-                  onChange={(e) => setMedStartDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-comus-surface border border-comus-sand-light/40 text-comus-navy focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-comus-navy block mb-1">
-                  Terapötik Amaç / Hekim Talimatı
-                </label>
-                <textarea
-                  rows={2}
-                  value={medNotes}
-                  onChange={(e) => setMedNotes(e.target.value)}
-                  placeholder="Örn: Sabah tok karnına, odaklanma ve dikkat regülasyonu..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-comus-surface border border-comus-sand-light/40 text-comus-navy focus:outline-none focus:ring-2 focus:ring-teal-600"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-comus-sand-light/30">
-                <button
-                  type="button"
-                  onClick={() => setIsAddMedModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-comus-sand-dark hover:bg-comus-sand-light/20 transition-colors cursor-pointer"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-semibold transition-colors cursor-pointer shadow-soft"
-                >
-                  İlacı Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Doctor Share Wizard Modal */}
       {isShareWizardOpen && (
@@ -1675,9 +490,14 @@ export const DoctorReportPage: React.FC = () => {
           onClose={() => setIsShareWizardOpen(false)}
           stats={reportStats}
           rangeDays={selectedRange}
+          medImpactReports={medImpactReports}
+          moods={moods}
+          surveys={surveys}
+          awarenessNotes={awarenessNotes}
+          pinnedInsights={pinnedInsights}
+          effectiveDayCount={effectiveDayCount}
         />
       )}
     </div>
   );
 };
-

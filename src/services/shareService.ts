@@ -114,14 +114,81 @@ export function printCanonicalDoctorReportHtml(htmlDocument: string): boolean {
 }
 
 /**
- * Universal Share Service with @capacitor/share, Web Share API (including PDF File sharing),
- * automatic PDF download, and bulletproof Clipboard fallback.
+ * Copies text to clipboard using navigator.clipboard with hidden textarea fallback.
+ */
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (clipErr) {
+      console.warn('[ShareService] navigator.clipboard failed, attempting fallback textarea:', clipErr);
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '-9999px';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return copied;
+    } catch (fallbackErr) {
+      console.error('[ShareService] Clipboard fallback textarea failed:', fallbackErr);
+    }
+  }
+  return false;
+}
+
+/**
+ * Universal Share Service with @capacitor/share, Web Share API,
+ * and bulletproof Clipboard fallback.
  */
 export async function shareContent(options: ShareOptions): Promise<ShareResult> {
   const { title, text, url, files } = options;
 
-  // 1. If PDF/File attachments are provided, prioritize Web Share API Level 2 with files
-  if (files && files.length > 0 && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+  // 1. On Native Capacitor (iOS & Android), ALWAYS use native @capacitor/share with text directly
+  // (never pass in-memory File blobs to WKWebView navigator.share on capacitor://localhost, which can lock iOS WebView)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await Share.share({
+        title,
+        text,
+        ...(url ? { url } : {}),
+        dialogTitle: title,
+      });
+      return {
+        success: true,
+        method: 'native',
+        message: 'Klinik rapor başarıyla paylaşıldı.',
+      };
+    } catch (err: any) {
+      if (err?.message?.includes('canceled') || err?.name === 'AbortError') {
+        return {
+          success: false,
+          method: 'native',
+          message: 'Paylaşım iptal edildi.',
+        };
+      }
+      console.warn('[ShareService] Capacitor Share error, trying clipboard fallback:', err);
+    }
+  }
+
+  // 2. On Web Browsers (non-native): If File attachments are provided, try Web Share API Level 2
+  if (
+    !Capacitor.isNativePlatform() &&
+    files &&
+    files.length > 0 &&
+    typeof navigator !== 'undefined' &&
+    typeof navigator.share === 'function'
+  ) {
     try {
       const canShareFiles =
         typeof navigator.canShare === 'function' ? navigator.canShare({ files }) : true;
@@ -145,60 +212,11 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
           message: 'Paylaşım iptal edildi.',
         };
       }
-      // On iOS WKWebView, sharing files + text simultaneously can fail on some targets; retry with files only
-      try {
-        await navigator.share({
-          title,
-          files,
-        });
-        return {
-          success: true,
-          method: 'native',
-          message: `Standart şablonlu PDF raporu (${files[0].name}) başarıyla paylaşıldı.`,
-        };
-      } catch (retryErr: any) {
-        if (retryErr?.name === 'AbortError' || retryErr?.message?.includes('canceled')) {
-          return {
-            success: false,
-            method: 'native',
-            message: 'Paylaşım iptal edildi.',
-          };
-        }
-        console.warn('[ShareService] Web file share failed, falling back to native share:', retryErr);
-      }
+      console.warn('[ShareService] Web file share failed, falling back to text share:', err);
     }
   }
 
-  // 2. Try Capacitor Native Share (iOS & Android)
-  if (Capacitor.isNativePlatform()) {
-    try {
-      const canShare = await Share.canShare();
-      if (canShare.value) {
-        await Share.share({
-          title,
-          text,
-          ...(url ? { url } : {}),
-          dialogTitle: title,
-        });
-        return {
-          success: true,
-          method: 'native',
-          message: 'Klinik rapor başarıyla paylaşıldı.',
-        };
-      }
-    } catch (err: any) {
-      if (err?.message?.includes('canceled') || err?.name === 'AbortError') {
-        return {
-          success: false,
-          method: 'native',
-          message: 'Paylaşım iptal edildi.',
-        };
-      }
-      console.warn('[ShareService] Capacitor Share error, trying web share/clipboard:', err);
-    }
-  }
-
-  // 3. Try Web Share API (Mobile Safari, Chrome Mobile, Chrome Desktop)
+  // 3. Try Web Share API with plain text (Mobile Safari, Chrome Mobile, Chrome Desktop)
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       const safeFallbackUrl =
@@ -235,36 +253,9 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
     downloadedPdf = triggerBrowserPdfDownload(files[0], files[0].name);
   }
 
-  // 5. Fallback: Copy to Clipboard (Dual Strategy: navigator.clipboard + hidden textarea)
+  // 5. Fallback: Copy to Clipboard
   const fullText = `${title}\n\n${text}${url ? `\n\n${url}` : ''}`;
-  let copied = false;
-
-  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-    try {
-      await navigator.clipboard.writeText(fullText);
-      copied = true;
-    } catch (clipErr) {
-      console.warn('[ShareService] navigator.clipboard failed, attempting fallback textarea:', clipErr);
-    }
-  }
-
-  if (!copied && typeof document !== 'undefined') {
-    try {
-      const textArea = document.createElement('textarea');
-      textArea.value = fullText;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-9999px';
-      textArea.style.top = '-9999px';
-      textArea.setAttribute('readonly', '');
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      copied = document.execCommand('copy');
-      document.body.removeChild(textArea);
-    } catch (fallbackErr) {
-      console.error('[ShareService] Clipboard fallback textarea failed:', fallbackErr);
-    }
-  }
+  await copyTextToClipboard(fullText);
 
   if (downloadedPdf && files && files.length > 0) {
     return {

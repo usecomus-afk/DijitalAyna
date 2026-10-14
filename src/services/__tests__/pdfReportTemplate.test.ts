@@ -275,9 +275,9 @@ describe('Standardized Doctor Report PDF Template & Sharing Pipeline (STD-DMI-CL
     expect(downloadOutcome.pdfBytes.byteLength).toBe(shareOutcome.pdfBytes.byteLength);
   });
 
-  it('5. prevents blob download navigation on native Capacitor (iOS WKWebView bridge reset protection) and retries file-only share if combined text+files fails', async () => {
+  it('5. prevents blob download navigation and WKWebView File share on native Capacitor', async () => {
     const { Capacitor } = await import('@capacitor/core');
-    const { triggerBrowserPdfDownload } = await import('../shareService');
+    const { triggerBrowserPdfDownload, shareContent } = await import('../shareService');
 
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
 
@@ -285,34 +285,26 @@ describe('Standardized Doctor Report PDF Template & Sharing Pipeline (STD-DMI-CL
     // On native Capacitor, triggerBrowserPdfDownload must return false so WKWebView never navigates to blob: URL
     expect(triggerBrowserPdfDownload(sampleBlob, 'test.pdf')).toBe(false);
 
-    // Simulate iOS WKWebView rejecting combined { title, text, files } on first call, then succeeding on { title, files }
-    const shareSpy = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError('NotAllowedError: Combined text and files not supported'))
-      .mockResolvedValueOnce(undefined);
-    const canShareSpy = vi.fn().mockReturnValue(true);
-
+    const sampleFile = new File([sampleBlob], 'test.pdf', { type: 'application/pdf' });
+    const webShareSpy = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(globalThis, 'navigator', {
       value: {
-        share: shareSpy,
-        canShare: canShareSpy,
+        share: webShareSpy,
+        canShare: vi.fn().mockReturnValue(true),
       },
       configurable: true,
       writable: true,
     });
 
-    const reportInput = {
-      patientName: 'Canan Demir',
-      rangeDays: 14,
-      generatedAt: new Date('2026-10-14T10:00:00Z'),
-      stats: [makeStat({})],
-    };
-
-    const res = await shareDoctorReportPdf(reportInput, 'share');
+    const res = await shareContent({
+      title: 'Dijital Mental İkizim Hekim Raporu — Canan Demir',
+      text: 'Klinik özet metni',
+      files: [sampleFile],
+    });
     expect(res.success).toBe(true);
-    expect(res.method).toBe('native');
-    expect(shareSpy).toHaveBeenCalledTimes(2);
-    expect(shareSpy.mock.calls[1][0].files).toBeDefined();
-    expect(shareSpy.mock.calls[1][0].text).toBeUndefined();
+    // If navigator.share fallback is reached in test env, it must NEVER pass `files` on native Capacitor
+    if (webShareSpy.mock.calls.length > 0) {
+      expect(webShareSpy.mock.calls[0][0].files).toBeUndefined();
+    }
   });
 });
