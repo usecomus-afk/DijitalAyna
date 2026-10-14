@@ -133,6 +133,35 @@ export const BreathingExercisePage: React.FC = () => {
     }, 50);
   };
 
+  // Lock vertical page scrolling while BreathingExercisePage is mounted
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.overscrollBehavior = 'none';
+
+    const preventTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+    document.addEventListener('touchmove', preventTouchMove, { passive: false });
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      document.removeEventListener('touchmove', preventTouchMove);
+    };
+  }, []);
+
   const handleReset = () => {
     setIsRunning(false);
     setPhase('inhale');
@@ -164,7 +193,13 @@ export const BreathingExercisePage: React.FC = () => {
       : 'Ağzından yavaşça nefes vererek tüm gerginliği bırak';
 
   return (
-    <div className="space-y-5 pb-24 animate-fadeIn">
+    <div
+      className="fixed left-0 right-0 z-30 max-w-4xl mx-auto px-4 sm:px-6 flex flex-col gap-3 overflow-hidden touch-none select-none animate-fadeIn"
+      style={{
+        top: 'calc(max(env(safe-area-inset-top, 24px), 24px) + 56px)',
+        bottom: 'calc(max(env(safe-area-inset-bottom, 12px), 12px) + 68px)',
+      }}
+    >
       {/* Inline Keyframes for Zero-Gravity Floating & Organic Morphing */}
       <style>{`
         @keyframes zeroGravityFloat {
@@ -198,7 +233,7 @@ export const BreathingExercisePage: React.FC = () => {
       `}</style>
 
       {/* Top Pattern Selector */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 shrink-0">
         {BREATHING_PATTERNS.map((pat) => {
           const active = pat.id === selectedPattern.id;
           return (
@@ -226,7 +261,7 @@ export const BreathingExercisePage: React.FC = () => {
       </div>
 
       {/* Main Zero-Gravity Breathing Chamber */}
-      <div className="relative rounded-[2.25rem] bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#0f172a] p-6 sm:p-8 min-h-[450px] flex flex-col items-center justify-between overflow-hidden shadow-2xl border border-indigo-500/20">
+      <div className="relative flex-1 min-h-0 rounded-[2.25rem] bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#0f172a] p-5 sm:p-7 flex flex-col items-center justify-between overflow-hidden shadow-2xl border border-indigo-500/20">
         {/* Ambient Deep Space Background Glows */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-indigo-500/15 blur-3xl" />
@@ -234,19 +269,19 @@ export const BreathingExercisePage: React.FC = () => {
         </div>
 
         {/* Top Status Pill */}
-        <div className="relative z-10 w-full flex items-center justify-between text-xs text-indigo-200/80">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-            <Wind className="w-3.5 h-3.5 text-teal-300" />
-            <span>{selectedPattern.subtitle}</span>
+        <div className="relative z-10 w-full flex items-center justify-between gap-2 text-xs text-indigo-200/80 shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
+            <Wind className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+            <span className="leading-tight">{selectedPattern.subtitle}</span>
           </span>
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 font-medium">
-            <Sparkles className="w-3 h-3 text-amber-300" />
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 font-medium shrink-0">
+            <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
             <span>{completedCycles} Döngü</span>
           </span>
         </div>
 
         {/* Center Zero-Gravity Floating Sphere */}
-        <div className="relative z-10 my-8 flex flex-col items-center justify-center h-64 w-64">
+        <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center w-64">
           {/* Continuous Zero-Gravity Vertical Float Container */}
           <div className="zero-gravity-float relative flex items-center justify-center w-full h-full">
             {/* Scaling Sphere & Aura Layers */}
