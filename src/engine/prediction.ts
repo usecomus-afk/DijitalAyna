@@ -123,15 +123,15 @@ export function evaluatePredictivePatterns(anomalies: AnomalyResult[]): Predicti
   if (burnoutSim >= 0.70) {
     alerts.push({
       createdAt: Date.now(),
-      patternName: 'Zihinsel Yorgunluk ve Tükenmişlik Öncüsü',
+      patternName: 'Potansiyel Zihinsel Yorgunluk ve Tükenmişlik (Burnout) Olasılığı',
       riskLevel: burnoutSim >= 0.85 ? 'high' : 'elevated',
       similarityScore: burnoutSim,
       leadDays: 3,
-      title: 'Önümüzdeki Günler İçin Enerji & Dinlenme Öngörüsü',
+      title: 'Erken Farkındalık: Potansiyel Tükenmişlik (Burnout) Olasılığı',
       explanation:
-        'Son 4 gündür biriken gece ekran kullanımı ve yazım akıcılığındaki yavaşlama, geçmişte benzer dönemlerde enerjinin belirgin şekilde düştüğü öncü örüntüyle %' +
+        'Biyobelirteç istatistiklerinize göre gece ekran kullanımı ve yazım akıcılığındaki yavaşlama, potansiyel bir duygusal tükenmişlik (burnout) öncü örüntüsüyle %' +
         Math.round(burnoutSim * 100) +
-        ' oranında benzeşiyor.',
+        ' istatistiksel benzerlik gösteriyor olabilir (Kesin tıbbi teşhis değildir; erken farkındalık amaçlıdır).',
       recommendedAction:
         'Önümüzdeki 48 saat için takviminde esneklik yaratmayı ve bu gece 23:30 sonrası ekran kullanımını sınırlamayı planlamak ister misin?',
       actionPlanned: false,
@@ -150,15 +150,15 @@ export function evaluatePredictivePatterns(anomalies: AnomalyResult[]): Predicti
   if (withdrawalSim >= 0.70) {
     alerts.push({
       createdAt: Date.now(),
-      patternName: 'Sosyal İçe Çekilme ve Hareketsizlik Öncüsü',
+      patternName: 'Potansiyel Sosyal İçe Çekilme ve Hareketsizlik Olasılığı',
       riskLevel: withdrawalSim >= 0.85 ? 'high' : 'elevated',
       similarityScore: withdrawalSim,
       leadDays: 2,
-      title: 'Sosyal Bağlantı & Hareketlilik Hatırlatması',
+      title: 'Erken Farkındalık: Potansiyel Sosyal İzolasyon Olasılığı',
       explanation:
-        'Fiziksel hareketlilik endeksinde ve cihaz içi iletişim sıklığında gözlenen keskin düşüş, izole olma eğilimi gösteren davranışsal öncülerle %' +
+        'Biyobelirteç istatistiklerinize göre fiziksel hareketlilik endeksinde ve cihaz içi etkileşim sıklığında gözlenen düşüş, potansiyel bir sosyal içe çekilme örüntüsüyle %' +
         Math.round(withdrawalSim * 100) +
-        ' eşleşiyor.',
+        ' oranında eşleşiyor olabilir (Kesin tıbbi teşhis değildir; erken farkındalık amaçlıdır).',
       recommendedAction:
         'Bugün sevdiğin bir yakınını 5 dakikalığına sesli aramak veya açık havada kısa bir yürüyüş planlamak nasıl hissettirir?',
       actionPlanned: false,

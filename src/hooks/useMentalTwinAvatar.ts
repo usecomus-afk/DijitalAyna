@@ -12,6 +12,7 @@ import {
   generateAvatarNarrative,
 } from '../engine/avatarNarrative';
 import { resolveDailyState, DailyState } from '../engine/dailyState';
+import { ClinicalInsightAlert } from '../types/phenotyping';
 
 export interface MentalTwinAvatarState {
   score: 1 | 2 | 3 | 4 | 5;
@@ -25,6 +26,7 @@ export interface MentalTwinAvatarState {
   phenoState: string;
   phenoLabel: string;
   clinicalInsight: string;
+  earlyAwarenessAlerts: ClinicalInsightAlert[];
   colorClass: string;
   mirrorText: string;
   moodPill: { text: string; color: string };
@@ -165,6 +167,12 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       ? narrative.learningCardText
       : phenoInference.clinicalInsight;
 
+    const earlyAwarenessAlerts = ClinicalPhenotypeClassifier.evaluateLongitudinalClinicalAlerts(
+      dailyMetrics,
+      baselines,
+      moodReports
+    );
+
     const avatarSrc = getAvatarByScore(derivedScore);
 
     return {
@@ -178,6 +186,7 @@ export function useMentalTwinAvatar(): MentalTwinAvatarState {
       phenoState: phenoInference.state,
       phenoLabel: phenoInference.label,
       clinicalInsight: finalClinicalInsight,
+      earlyAwarenessAlerts,
       colorClass: narrative.colorClass,
       mirrorText: narrative.mirrorText,
       moodPill: narrative.moodPill,

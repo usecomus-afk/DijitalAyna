@@ -125,13 +125,19 @@ export interface ClinicalInsightAlert {
     | 'gamingAvoidance'
     | 'appearanceSensitivityCamera';
   title: string;
+  potentialStateLabel?: string;
   personalizedDeviationStatement: string;
   explainableEvidences: string[];
   ethicalDisclaimer: string;
   severity: 'low' | 'medium' | 'high';
   timestamp: number;
   contributingMetrics: Record<string, number>;
+  notificationTitle?: string;
   notificationBody: string;
+  consecutiveDays?: number;
+  requiredDays?: number;
+  isCriticalThresholdReached?: boolean;
+  statisticalSummary?: string;
   isAddedToDoctorReport?: boolean;
 }
 

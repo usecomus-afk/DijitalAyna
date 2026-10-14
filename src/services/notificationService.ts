@@ -217,6 +217,64 @@ class NotificationService {
   }
 
   /**
+   * Dispatches a non-diagnostic, probabilistic Early Awareness notification when one of the
+   * 9 Clinical Conditions reaches its multi-day critical threshold.
+   * Deduplicated per day per condition ID to avoid repeated notifications on the same day.
+   */
+  async sendClinicalEarlyAwarenessAlert(alert: {
+    id: string;
+    title: string;
+    notificationTitle?: string;
+    notificationBody: string;
+    statisticalSummary?: string;
+  }): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const dedupKey = `comus_early_alert_${today}_${alert.id}`;
+      if (typeof localStorage !== 'undefined' && localStorage.getItem(dedupKey) === 'sent') {
+        return false;
+      }
+
+      const perm = await this.checkPermissions();
+      if (perm !== 'granted') return false;
+
+      const title =
+        alert.notificationTitle ||
+        `Erken Farkındalık: Potansiyel ${alert.title} Olasılığı`;
+      const body = alert.notificationBody;
+
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Math.random() * 5000) + 12000,
+              title: `⚠️ ${title}`,
+              body,
+              schedule: { at: new Date(Date.now() + 600) },
+              sound: 'beep.wav',
+              channelId: 'dijital_mental_iİkizim_alerts',
+              extra: { type: 'clinical_early_awareness', alertId: alert.id },
+            },
+          ],
+        });
+      } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(`⚠️ ${title}`, {
+          body,
+          icon: '/logo.png',
+        });
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(dedupKey, 'sent');
+      }
+      return true;
+    } catch (err) {
+      console.warn('[NotificationService] sendClinicalEarlyAwarenessAlert error:', err);
+      return false;
+    }
+  }
+
+  /**
    * Cancels all scheduled notifications
    */
   async cancelAll(): Promise<void> {

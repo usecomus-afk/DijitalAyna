@@ -69,14 +69,32 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   } catch {}
   const isLearning = sampleDays < 14;
 
-  // 2. Detect anomalies for the latest date
+  // 2. Detect anomalies for the latest date & evaluate longitudinal 9 clinical conditions
   const anomalies = await detectAnomaliesForDay(latestDate);
   const biomarkers = synthesizeBiomarkers(anomalies);
   const alerts = evaluatePredictivePatterns(anomalies);
 
+  let allMetrics: any[] = [];
+  let allBaselines: any[] = [];
+  let recentMoods: any[] = [];
+  try {
+    allMetrics = await db.dailyMetrics.toArray();
+  } catch {}
+  try {
+    allBaselines = await db.baselines.toArray();
+  } catch {}
+  try {
+    recentMoods = await db.moodReports.orderBy('date').reverse().limit(5).toArray();
+  } catch {}
+
+  const longitudinalClinicalAlerts = ClinicalPhenotypeClassifier.evaluateLongitudinalClinicalAlerts(
+    allMetrics,
+    allBaselines,
+    recentMoods
+  );
+
   // 3. Automated crisis evaluation connected to daily aggregation & recent EMA mood reports
   try {
-    const recentMoods = await db.moodReports.orderBy('date').reverse().limit(5).toArray();
     if (!isLearning) {
       checkAndTriggerCrisisIfNeeded(anomalies, recentMoods);
       checkVulnerableWindowForShield(anomalies);
@@ -121,9 +139,44 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   }
 
   const generatedInsights: Insight[] = [];
+  const addedBiomarkerTypes = new Set<string>();
+
+  // First, include any longitudinal multi-day critical threshold alerts (9 Clinical Conditions)
+  for (const clinAlert of longitudinalClinicalAlerts) {
+    const ruleKey = Object.keys(PHENOTYPE_RULES).find(k => PHENOTYPE_RULES[k].id === clinAlert.id);
+    const rule = ruleKey ? PHENOTYPE_RULES[ruleKey] : null;
+    const validMetrics = rule
+      ? [...rule.requiredMetrics, ...rule.requiredZMetrics].filter(m => METRIC_DEFINITIONS[m as MetricKey])
+      : [];
+    const evidencePromises = validMetrics.map(metric => buildEvidence(metric as MetricKey));
+    const resolvedEvidence = await Promise.all(evidencePromises);
+    const evidenceList = resolvedEvidence.filter(Boolean) as EvidenceItem[];
+
+    generatedInsights.push({
+      createdAt: Date.now(),
+      date: latestDate,
+      severity: clinAlert.severity,
+      biomarkerType: clinAlert.id,
+      badgeLabel: `Kritik Eşik • ${clinAlert.consecutiveDays || clinAlert.requiredDays || 3} Gün`,
+      title: clinAlert.potentialStateLabel || `Potansiyel ${clinAlert.title} Olasılığı`,
+      body: `${clinAlert.personalizedDeviationStatement}${clinAlert.statisticalSummary ? ` (${clinAlert.statisticalSummary})` : ''}`,
+      suggestedAction: clinAlert.ethicalDisclaimer,
+      evidence: evidenceList,
+      dismissed: false,
+      provisional: !isFinalized,
+      finalized: isFinalized,
+    });
+    addedBiomarkerTypes.add(clinAlert.id);
+
+    // Send early awareness notification for critical threshold
+    notificationService.sendClinicalEarlyAwarenessAlert(clinAlert).catch(() => {});
+  }
 
   for (const bio of biomarkers) {
+    if (addedBiomarkerTypes.has(bio.type)) continue;
+
     if (bio.type === 'healthy_balance') {
+      if (generatedInsights.length > 0) continue; // Do not add healthy_balance if a clinical alert is active
       const mobEv = await buildEvidence('mobility_index');
       const wpmEv = await buildEvidence('typing_wpm');
       const evidenceList = [mobEv, wpmEv].filter(Boolean) as EvidenceItem[];
@@ -161,7 +214,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
           date: latestDate,
           severity: rule.severity,
           biomarkerType: bio.type,
-          title: rule.title,
+          title: `Potansiyel ${rule.title} Olasılığı`,
           body: rule.personalizedDeviationStatement,
           suggestedAction: rule.ethicalDisclaimer,
           evidence: evidenceList,

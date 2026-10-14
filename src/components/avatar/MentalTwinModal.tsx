@@ -10,6 +10,7 @@ import {
   Zap,
   ShieldCheck,
   Cpu,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const MentalTwinModal: React.FC = () => {
@@ -20,6 +21,7 @@ export const MentalTwinModal: React.FC = () => {
     hasIndex,
     phenoLabel,
     clinicalInsight,
+    earlyAwarenessAlerts,
     sensorStatus,
     modalTitle,
     modalSubtitle,
@@ -71,6 +73,52 @@ export const MentalTwinModal: React.FC = () => {
           </span>
         </div>
 
+        {/* Blinking Critical Threshold Early Awareness Warning Banner */}
+        {earlyAwarenessAlerts.length > 0 && (
+          <div className="relative z-10 mb-4 rounded-2xl border-2 border-rose-500/80 bg-rose-50/95 p-4 shadow-md">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
+                </span>
+                <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
+                  Erken Farkındalık & Kritik Eşik Uyarısı
+                </span>
+              </div>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
+                {earlyAwarenessAlerts.length} Potansiyel Sinyal
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {earlyAwarenessAlerts.map((alert) => (
+                <div key={alert.id} className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
+                      {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
+                    </h4>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
+                      {alert.insightType === 'anxietySleep'
+                        ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                        : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
+                    </span>
+                  </div>
+                  {alert.statisticalSummary && (
+                    <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2 py-1 rounded border border-rose-100">
+                      📊 {alert.statisticalSummary}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-comus-navy leading-relaxed">
+                    {alert.notificationBody}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Avatar Display Arena (Custom 3D Avatar Image) */}
         <div className={`relative z-10 rounded-3xl p-6 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}>
           {/* 3D Rendered Avatar Card */}
@@ -119,7 +167,7 @@ export const MentalTwinModal: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-comus-sand-dark leading-relaxed">
-            {hasIndex ? getSynthesisCopy(affectiveIndex).text : clinicalInsight}
+            {earlyAwarenessAlerts.length > 0 ? clinicalInsight : hasIndex ? getSynthesisCopy(affectiveIndex).text : clinicalInsight}
           </p>
 
           <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
@@ -128,7 +176,7 @@ export const MentalTwinModal: React.FC = () => {
               <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
             </span>
             <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
-              {hasIndex ? getSynthesisCopy(affectiveIndex).badge : phenoLabel}
+              {earlyAwarenessAlerts.length > 0 ? phenoLabel : hasIndex ? getSynthesisCopy(affectiveIndex).badge : phenoLabel}
             </span>
           </div>
         </div>

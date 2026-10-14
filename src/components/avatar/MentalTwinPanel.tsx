@@ -3,12 +3,13 @@ import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import { getSynthesisCopy } from '../../engine/dailyState';
 import {
-    Sparkles,
+  Sparkles,
   Keyboard,
   Moon,
   Zap,
   ShieldCheck,
   Cpu,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const MentalTwinPanel: React.FC = () => {
@@ -17,8 +18,10 @@ export const MentalTwinPanel: React.FC = () => {
     avatarSrc,
     affectiveIndex,
     hasIndex,
+    phenoState,
     phenoLabel,
     clinicalInsight,
+    earlyAwarenessAlerts,
     sensorStatus,
     modalTitle,
     modalSubtitle,
@@ -30,7 +33,10 @@ export const MentalTwinPanel: React.FC = () => {
     energyText,
   } = useMentalTwinAvatar();
 
-  
+  const hasSingleDayPhenotypeSignal =
+    earlyAwarenessAlerts.length === 0 &&
+    phenoState !== 'euthymic_healthy_balance' &&
+    phenoState !== 'learning_baseline';
 
   return (
     <div className="animate-fadeIn">
@@ -39,9 +45,6 @@ export const MentalTwinPanel: React.FC = () => {
         <div
           className={`absolute inset-0 bg-gradient-to-br ${auraGradient} opacity-60 pointer-events-none transition-all duration-700`}
         />
-
-        {/* Close Button */}
-        
 
         {/* Modal Header */}
         <div className="relative z-10 flex items-center justify-between gap-3 mb-4">
@@ -63,6 +66,90 @@ export const MentalTwinPanel: React.FC = () => {
             {modalTitle}
           </span>
         </div>
+
+        {/* Blinking Critical Threshold Early Awareness Warning Banner */}
+        {earlyAwarenessAlerts.length > 0 && (
+          <div
+            data-testid="early-awareness-blinking-warning"
+            className="relative z-10 mb-4 rounded-2xl border-2 border-rose-500/80 bg-rose-50/95 p-4 shadow-md transition-all"
+          >
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
+                </span>
+                <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
+                  Erken Farkındalık & Kritik Eşik Uyarısı
+                </span>
+              </div>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
+                {earlyAwarenessAlerts.length} Potansiyel Sinyal
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {earlyAwarenessAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
+                      {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
+                    </h4>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
+                      {alert.insightType === 'anxietySleep'
+                        ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                        : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
+                    </span>
+                  </div>
+
+                  {alert.statisticalSummary && (
+                    <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2.5 py-1 rounded-lg border border-rose-100">
+                      📊 Biyobelirteç İstatistiği: {alert.statisticalSummary}
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-comus-navy leading-relaxed">
+                    {alert.notificationBody}
+                  </p>
+
+                  {alert.explainableEvidences && alert.explainableEvidences.length > 0 && (
+                    <ul className="space-y-1 pt-1 border-t border-rose-100 text-[10px] text-comus-sand-dark list-disc list-inside">
+                      {alert.explainableEvidences.map((ev, i) => (
+                        <li key={i}>{ev}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-2.5 pt-2 border-t border-rose-200/60 text-[10px] text-rose-900/80 italic font-medium">
+              * Bu uyarı kesin bir tıbbi teşhis değildir; biyobelirteç istatistiklerinize dayalı olarak &ldquo;potansiyel&rdquo; ve &ldquo;olabilir&rdquo; kapsamında erken farkındalık sağlamak amacıyla sunulmuştur.
+            </div>
+          </div>
+        )}
+
+        {/* Single-Day Probabilistic Phenotype Signal Banner (when not yet multi-day critical) */}
+        {hasSingleDayPhenotypeSignal && (
+          <div className="relative z-10 mb-4 rounded-2xl border border-amber-400/80 bg-amber-50/90 p-3.5 shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600" />
+              </span>
+              <span className="text-[11px] font-bold text-amber-900 animate-pulse">
+                Erken Farkındalık Öngörüsü: {phenoLabel}
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-950/90 leading-relaxed">
+              {clinicalInsight}
+            </p>
+          </div>
+        )}
 
         {/* Avatar Display Arena (Custom 3D Avatar Image) */}
         <div className={`relative z-10 rounded-3xl p-6 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}>
@@ -112,7 +199,11 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-comus-sand-dark leading-relaxed">
-            {hasIndex ? getSynthesisCopy(affectiveIndex).text : clinicalInsight}
+            {hasSingleDayPhenotypeSignal || earlyAwarenessAlerts.length > 0
+              ? clinicalInsight
+              : hasIndex
+              ? getSynthesisCopy(affectiveIndex).text
+              : clinicalInsight}
           </p>
 
           <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
@@ -121,7 +212,11 @@ export const MentalTwinPanel: React.FC = () => {
               <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
             </span>
             <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
-              {hasIndex ? getSynthesisCopy(affectiveIndex).badge : phenoLabel}
+              {hasSingleDayPhenotypeSignal || earlyAwarenessAlerts.length > 0
+                ? phenoLabel
+                : hasIndex
+                ? getSynthesisCopy(affectiveIndex).badge
+                : phenoLabel}
             </span>
           </div>
         </div>
