@@ -112,11 +112,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       sensorManager.syncWithSettings(currentSettings);
 
       // 4. Initialize and sync notifications
-      if (currentSettings.notificationsEnabled) {
-        await notificationService.init();
-        const perm = await notificationService.checkPermissions();
-        if (perm === 'granted') {
+      await notificationService.init();
+      const perm = await notificationService.checkPermissions();
+      if (perm === 'granted') {
+        if (currentSettings.notificationsEnabled) {
           await notificationService.scheduleDailyReminders();
+        }
+        if (currentSettings.inspirationNotificationsEnabled) {
+          await notificationService.scheduleDailyInspirations(currentSettings.inspirationFrequency || 1);
+        } else {
+          await notificationService.scheduleDailyInspirations(0);
         }
       }
 

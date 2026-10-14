@@ -247,16 +247,22 @@ class NotificationService {
       await this.init();
 
       if (Capacitor.isNativePlatform()) {
-        // Cancel existing inspiration notifications
-        await LocalNotifications.cancel({ 
-          notifications: [{ id: 2001 }, { id: 2002 }, { id: 2003 }] 
+        // Cancel existing inspiration notifications (including any legacy interval-based requests)
+        await LocalNotifications.cancel({
+          notifications: [{ id: 2001 }, { id: 2002 }, { id: 2003 }],
         }).catch(() => {});
+
+        // If currently daytime (05:00 - 17:59), clear any stale delivered evening notification (ID 2003)
+        const currentHour = new Date().getHours();
+        if (currentHour >= 5 && currentHour < 18) {
+          await LocalNotifications.removeDeliveredNotifications({
+            notifications: [{ id: 2003, title: '', body: '' }],
+          }).catch(() => {});
+        }
 
         if (frequency === 0) return;
 
-
         const notifications: any[] = [];
-
         const getRandomQuote = (quotes: string[]) => quotes[Math.floor(Math.random() * quotes.length)];
 
         // 1. Morning check-in (09:00)
@@ -265,7 +271,7 @@ class NotificationService {
             id: 2001,
             title: 'Huzur ve İlham 🌅',
             body: getRandomQuote(mindfulnessQuotes.morning),
-            schedule: { repeats: true, on: { hour: 9, minute: 0 } },
+            schedule: { repeats: true, on: { hour: 9, minute: 0, second: 0 } },
             sound: 'beep.wav',
             channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_morning' },
@@ -278,20 +284,20 @@ class NotificationService {
             id: 2002,
             title: 'Kısa Bir Mola 🌿',
             body: getRandomQuote(mindfulnessQuotes.noon),
-            schedule: { repeats: true, on: { hour: 14, minute: 0 } },
+            schedule: { repeats: true, on: { hour: 14, minute: 0, second: 0 } },
             sound: 'beep.wav',
             channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_noon' },
           });
         }
 
-        // 3. Evening check-in (21:30)
+        // 3. Evening check-in (21:30 - strictly evening hours only)
         if (frequency >= 2) {
           notifications.push({
             id: 2003,
             title: 'Günü Geride Bırakırken 🌙',
             body: getRandomQuote(mindfulnessQuotes.evening),
-            schedule: { repeats: true, on: { hour: 21, minute: 30 } },
+            schedule: { repeats: true, on: { hour: 21, minute: 30, second: 0 } },
             sound: 'beep.wav',
             channelId: 'dijital_mental_iİkizim_reminders',
             extra: { type: 'inspiration_evening' },
