@@ -44,16 +44,6 @@ const AWARENESS_SUGGESTION_POOLS: Record<string, string[]> = {
     'Gece geç saatlerdeki pasif ekran tüketimini sonlandırıp size gerçekten iyi hissettiren bir müzik, kitap veya dingin bir dinlenme alanına geçiş yapabilirsiniz.',
     'İzleyici modundan çıkıp kendi iç sesinizle bağ kurmak için bugün sosyal medya akışlarına kısa bir mola vererek düşüncelerinizi birkaç cümleyle not etmeyi deneyebilirsiniz.',
   ],
-  'gaming-avoidance-alert': [
-    'Uzun süreli dijital kaçış oturumlarının ardından zihni gerçek dünyaya yumuşakça döndürmek için her 45 dakikada bir ayağa kalkıp su içmek ve kısa bir esneme yapmak iyi bir dengeleyici olabilir.',
-    'Sanal dünyada geçirilen süreyi dengelemek adına bugün ekran dışı, duyularınızı besleyen 15 dakikalık fiziksel bir aktivite veya kısa bir yürüyüş planlayabilirsiniz.',
-    'Yoğun stres anlarında oyuna sığınma ihtiyacını fark ettiğinizde oturum süresine nazik bir sınır koyup ardından bedeninizi dinlendirecek ılık bir duş veya nefes molası ekleyebilirsiniz.',
-  ],
-  'appearance-sensitivity-camera-alert': [
-    'Kamerayla tekrarlayıcı kontrol döngüsü başladığında öz-eleştiri sesini fark edip kamerayı kapatarak bedeninize yalnızca nefesiniz ve duruşunuz üzerinden şefkatle odaklanmayı seçebilirsiniz.',
-    'Görünüm odaklı mikro-kontrollerin yarattığı içsel baskıyı azaltmak için bugün ayna ve kamera kullanımına bilinçli bir ara verip size keyif veren bir uğraşa yönelebilirsiniz.',
-    'Öz-değer algınızı dış görünüm kontrollerinden özgürleştirmek adına bugün bedeninizin size sağladığı hareket ve yaşam enerjisine teşekkür eden kısa bir farkındalık molası verebilirsiniz.',
-  ],
   'cognitive-pattern-memory-executive': [
     'Günlük görev ve ilaç takibini kolaylaştırmak için hatırlatıcılarınızı sabah kahvaltısı veya akşam yemeği gibi sabit alışkanlıklarla eşleştirerek zihinsel yükünüzü azaltabilirsiniz.',
     'Unutkanlık veya erteleme eğilimi arttığında görevleri tek bir görünür kontrol listesinde toplayıp her adımda yalnızca tek bir maddeyi tamamlamaya odaklanabilirsiniz.',
@@ -119,10 +109,6 @@ const RULE_KEY_TO_POOL_KEY: Record<string, string> = {
   cognitiveDecline: 'cognitive-decline-alert',
   ptsdHypervigilance: 'ptsd-hypervigilance-alert',
   lowSelfEsteemPassiveSocial: 'low-self-esteem-passive-social-alert',
-  gamingAvoidance: 'gaming-avoidance-alert',
-  gaming_avoidance: 'gaming-avoidance-alert',
-  appearanceSensitivityCamera: 'appearance-sensitivity-camera-alert',
-  appearance_sensitivity: 'appearance-sensitivity-camera-alert',
 };
 
 /**
@@ -294,19 +280,19 @@ export function synthesizeHolisticAwarenessSummary({
 
   const hasIsolationOrMobility =
     enriched.some((i) =>
-      ['depression-isolation-alert', 'social_withdrawal', 'gaming-avoidance-alert', 'gaming_avoidance'].includes(i.biomarkerType)
+      ['depression-isolation-alert', 'social_withdrawal'].includes(i.biomarkerType)
     ) ||
     earlyAwarenessAlerts.some((a) =>
-      ['depressionIsolation', 'gamingAvoidance'].includes(a.insightType)
+      ['depressionIsolation'].includes(a.insightType)
     ) ||
     anomalies.some((a) => a.isAnomaly && (a.metricKey === 'mobility_index' || a.metricKey === 'homestay_ratio' || a.metricKey === 'mobility_radius'));
 
   const hasHypervigilanceOrSocial =
     enriched.some((i) =>
-      ['ptsd-hypervigilance-alert', 'low-self-esteem-passive-social-alert', 'appearance-sensitivity-camera-alert', 'appearance_sensitivity'].includes(i.biomarkerType)
+      ['ptsd-hypervigilance-alert', 'low-self-esteem-passive-social-alert'].includes(i.biomarkerType)
     ) ||
     earlyAwarenessAlerts.some((a) =>
-      ['ptsdHypervigilance', 'lowSelfEsteemPassiveSocial', 'appearanceSensitivityCamera'].includes(a.insightType)
+      ['ptsdHypervigilance', 'lowSelfEsteemPassiveSocial'].includes(a.insightType)
     );
 
   const totalSignals = Math.max(

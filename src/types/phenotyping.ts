@@ -97,8 +97,6 @@ export type ClinicalPhenotypeState =
   | 'cognitive_decline_risk_phenotype'
   | 'ptsd_hypervigilance_phenotype'
   | 'low_self_esteem_phenotype'
-  | 'gaming_avoidance_phenotype'
-  | 'appearance_sensitivity_phenotype'
   | 'euthymic_healthy_balance';
 
 export interface ClinicalPhenotypeInference {
@@ -121,9 +119,7 @@ export interface ClinicalInsightAlert {
     | 'cognitiveDecline'
     | 'CognitivePattern'
     | 'ptsdHypervigilance'
-    | 'lowSelfEsteemPassiveSocial'
-    | 'gamingAvoidance'
-    | 'appearanceSensitivityCamera';
+    | 'lowSelfEsteemPassiveSocial';
   title: string;
   potentialStateLabel?: string;
   personalizedDeviationStatement: string;

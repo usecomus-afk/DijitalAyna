@@ -241,47 +241,7 @@ export class ClinicalPhenotypeClassifier {
       };
     }
 
-    // 9. Check Gaming Avoidance & Virtual Escapism Pattern
-    const zGaming = getZ('gaming_duration');
-    const isGamingAvoidance =
-      (zGaming >= 2.0 || (zGaming >= 1.6 && zMobilityRadius <= -1.5)) &&
-      (zHomestay >= 1.5 || zMobilityRadius <= -1.5);
-
-    if (isGamingAvoidance) {
-      return {
-        state: 'gaming_avoidance_phenotype',
-        label: 'Potansiyel Sanal Dünyaya Sığınma & Kaçınma Eğilimi Olasılığı',
-        confidence: 'high',
-        compositeScore: 0.88,
-        clinicalInsight: `Biyobelirteç istatistiklerinize göre oyun oturumlarında artış (Z: ${formatSignedSigma(zGaming)}) ve dış dünya hareketliliğinde daralma (Z: ${formatSignedSigma(zMobilityRadius)}) gözlendi. Bu istatistiksel örüntü yoğun stres karşısında potansiyel bir kaçınma veya sanal izolasyon eğilimi olabilir (Kesin teşhis değildir).`,
-        contributingZScores: {
-          gaming_duration: zGaming,
-          mobility_radius: zMobilityRadius,
-          homestay_ratio: zHomestay,
-        },
-        detectedAt,
-      };
-    }
-
-    // 10. Check Appearance & Camera Repetitive Loop Pattern
-    const zCamera = getZ('camera_interaction_count');
-    const isAppearanceSensitivity = zCamera >= 2.0;
-
-    if (isAppearanceSensitivity) {
-      return {
-        state: 'appearance_sensitivity_phenotype',
-        label: 'Potansiyel Görünüm & Öz-Değer Hassasiyeti Olasılığı',
-        confidence: 'medium',
-        compositeScore: 0.82,
-        clinicalInsight: `Biyobelirteç istatistiklerinize göre tekrarlayıcı kamera açılışlarında ve çekim-silme döngüsünde sapma (Z: ${formatSignedSigma(zCamera)}) tespit edildi. Bu tablo potansiyel bir görünüm ve öz-değer hassasiyeti eğilimine işaret ediyor olabilir (Kesin teşhis değildir).`,
-        contributingZScores: {
-          camera_interaction_count: zCamera,
-        },
-        detectedAt,
-      };
-    }
-
-    // 11. Default Healthy / Euthymic Baseline
+    // 9. Default Healthy / Euthymic Baseline
     return {
       state: 'euthymic_healthy_balance',
       label: 'Dengeli Davranışsal & Sirkadiyen Ritim',
@@ -489,16 +449,20 @@ export class ClinicalPhenotypeClassifier {
       }
 
       case 'neurodiversity': {
-        const appSwitches = rawValues['appSwitchingIn15MinWindow']!;
+        const appSwitches = rawValues['appSwitchingIn15MinWindow'];
         const avgSessionSec = rawValues['averageSessionLengthSeconds']!;
-        const zSessionSwitch = zScores['session_switching_entropy'] ?? 0;
+        const touchFreq = rawValues['touch_interaction_frequency'];
+        const zSessionSwitch = zScores['session_switching_entropy'] ?? zScores['touch_interaction_frequency'] ?? 0;
 
-        const isSwitchingHigh = zSessionSwitch >= 1.8 || appSwitches >= 8;
+        const isSwitchingHigh = zSessionSwitch >= 1.8 || (appSwitches !== undefined && appSwitches !== null && appSwitches >= 8);
         const isShortSession = avgSessionSec < 40;
 
         if (isSwitchingHigh && isShortSession) {
           const swSigma = formatSignedSigma(zSessionSwitch);
-          const statSummary = `Odak Parçalanması • 15 dk'da ${appSwitches} Geçiş (${swSigma}) • Ort. Oturum: ${Math.round(avgSessionSec)} sn`;
+          const hasAppSwitchCount = appSwitches !== undefined && appSwitches !== null;
+          const statSummary = hasAppSwitchCount
+            ? `Odak Parçalanması • 15 dk'da ${appSwitches} Geçiş (${swSigma}) • Ort. Oturum: ${Math.round(avgSessionSec)} sn`
+            : `Odak Parçalanması • Etkileşim Yoğunluğu: ${swSigma}${touchFreq != null ? ` (${Math.round(touchFreq)} dokunma/dk)` : ''} • Ort. Oturum: ${Math.round(avgSessionSec)} sn`;
           return {
             status: 'triggered',
             alert: {
@@ -508,20 +472,28 @@ export class ClinicalPhenotypeClassifier {
               potentialStateLabel: `Potansiyel ${rule.title} Örüntüsü Olasılığı`,
               personalizedDeviationStatement: rule.personalizedDeviationStatement,
               explainableEvidences: [
-                `Uygulama Geçiş İstatistiği: 15 dakikalık aktif pencerede ${appSwitches} farklı uygulamaya geçiş yapıldı (Entropi Z: ${swSigma}).`,
+                hasAppSwitchCount
+                  ? `Uygulama Geçiş İstatistiği: 15 dakikalık aktif pencerede ${appSwitches} farklı uygulamaya geçiş yapıldı (Entropi Z: ${swSigma}).`
+                  : `Etkileşim Yoğunluğu İstatistiği: Kısa oturumlarda yüksek dokunma ve etkileşim frekansı kaydedildi (Z: ${swSigma}${touchFreq != null ? `, ${Math.round(touchFreq)} dokunma/dk` : ''}).`,
                 `Mikro-Oturum İstatistiği: Ortalama ekran oturumu süresi ${Math.round(avgSessionSec)} saniyeye geriledi.`,
                 'Kritik Eşik Süreci: Tekrarlanan bu istatistiksel dağılım, potansiyel bir dikkat dağınıklığı ve odak parçalanması eğilimine işaret ediyor olabilir.',
               ],
               ethicalDisclaimer: rule.ethicalDisclaimer,
               severity: rule.severity,
               timestamp: now,
-              contributingMetrics: { appSwitches, avgSessionSec },
+              contributingMetrics: {
+                ...(hasAppSwitchCount ? { appSwitches } : {}),
+                ...(touchFreq != null ? { touchFreq } : {}),
+                avgSessionSec,
+              },
               consecutiveDays: daysCount,
               requiredDays: rule.minConsecutiveDays,
               isCriticalThresholdReached: true,
               statisticalSummary: statSummary,
               notificationTitle: 'Erken Farkındalık: Potansiyel Dikkat Dağınıklığı ve Odak Parçalanması Olasılığı',
-              notificationBody: `Biyobelirteç istatistiklerinize göre 15 dakikada ${appSwitches} uygulama geçişi (Z: ${swSigma}) ve ${Math.round(avgSessionSec)} sn mikro-oturum ortalaması ölçüldü. Sensör verileriniz potansiyel bir dikkat dağınıklığı ve odak parçalanmasına işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
+              notificationBody: hasAppSwitchCount
+                ? `Biyobelirteç istatistiklerinize göre 15 dakikada ${appSwitches} uygulama geçişi (Z: ${swSigma}) ve ${Math.round(avgSessionSec)} sn mikro-oturum ortalaması ölçüldü. Sensör verileriniz potansiyel bir dikkat dağınıklığı ve odak parçalanmasına işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`
+                : `Biyobelirteç istatistiklerinize göre yüksek etkileşim yoğunluğu (Z: ${swSigma}) ve ${Math.round(avgSessionSec)} sn mikro-oturum ortalaması ölçüldü. Sensör verileriniz potansiyel bir dikkat dağınıklığı ve odak parçalanmasına işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
             },
           };
         }
@@ -568,16 +540,24 @@ export class ClinicalPhenotypeClassifier {
       }
 
       case 'ptsdHypervigilance': {
-        const unlocks = rawValues['dailyUnlockCount']!;
-        const quickCheckRatio = rawValues['quickCheckRatioPercent']!;
-        const zHyperCheck = zScores['hyper_checking_ratio'] ?? 0;
+        const unlocks = rawValues['dailyUnlockCount'];
+        const quickCheckRatio = rawValues['quickCheckRatioPercent'];
+        const touchFreq = rawValues['touch_interaction_frequency'];
+        const zHyperCheck = zScores['hyper_checking_ratio'] ?? zScores['touch_interaction_frequency'] ?? 0;
+        const zTremor = zScores['tremor_variance'] ?? 0;
+        const zNight = zScores['night_usage_minutes'] ?? 0;
 
-        const isUnlockHigh = zHyperCheck >= 2.0 || unlocks >= 80;
-        const isQuickCheckHigh = quickCheckRatio >= 40;
+        const hasExplicitUnlockMetrics = unlocks != null && quickCheckRatio != null;
+        const isUnlockHigh = zHyperCheck >= 2.0 || (unlocks != null && unlocks >= 80);
+        const isQuickCheckHigh = hasExplicitUnlockMetrics
+          ? quickCheckRatio >= 40
+          : (zTremor >= 1.5 || zNight >= 1.6 || zHyperCheck >= 2.1);
 
         if (isUnlockHigh && isQuickCheckHigh) {
           const hcSigma = formatSignedSigma(zHyperCheck);
-          const statSummary = `Yüksek Alarm Sinyali • Günlük Kilit Açma: ${unlocks} (${hcSigma}) • 5sn Mikro-Kontrol: %${Math.round(quickCheckRatio)}`;
+          const statSummary = hasExplicitUnlockMetrics
+            ? `Yüksek Alarm Sinyali • Günlük Kilit Açma: ${unlocks} (${hcSigma}) • 5sn Mikro-Kontrol: %${Math.round(quickCheckRatio)}`
+            : `Yüksek Alarm Sinyali • Etkileşim Yoğunluğu: ${hcSigma}${touchFreq != null ? ` (${Math.round(touchFreq)} dokunma/dk)` : ''}`;
           return {
             status: 'triggered',
             alert: {
@@ -586,21 +566,35 @@ export class ClinicalPhenotypeClassifier {
               title: rule.title,
               potentialStateLabel: `Potansiyel ${rule.title} Olasılığı`,
               personalizedDeviationStatement: rule.personalizedDeviationStatement,
-              explainableEvidences: [
-                `Günlük Kilit Açma İstatistiği: Günlük ${unlocks} kilit açma sayısı ile bazal ortalamanızın üzerinde (${hcSigma}) seyretti.`,
-                `Mikro-Kontrol (Hipervijilans) İstatistiği: Ekranı açıp 5 saniye içinde kilitleme oranı %${Math.round(quickCheckRatio)} olarak ölçüldü.`,
-                'Kritik Eşik Süreci: Bu biyobelirteç istatistikleri, sinir sisteminde potansiyel bir hipervijilans (tetikte olma) eğilimi olasılığına işaret ediyor olabilir.',
-              ],
+              explainableEvidences: hasExplicitUnlockMetrics
+                ? [
+                    `Günlük Kilit Açma İstatistiği: Günlük ${unlocks} kilit açma sayısı ile bazal ortalamanızın üzerinde (${hcSigma}) seyretti.`,
+                    `Mikro-Kontrol (Hipervijilans) İstatistiği: Ekranı açıp 5 saniye içinde kilitleme oranı %${Math.round(quickCheckRatio)} olarak ölçüldü.`,
+                    'Kritik Eşik Süreci: Bu biyobelirteç istatistikleri, sinir sisteminde potansiyel bir hipervijilans (tetikte olma) eğilimi olasılığına işaret ediyor olabilir.',
+                  ]
+                : [
+                    `Dokunma ve Kontrol İstatistiği: Uygulama içi dokunma sıklığı kişisel bazal ortalamanızın üzerinde (${hcSigma}${touchFreq != null ? `, ${Math.round(touchFreq)} dokunma/dk` : ''}) seyretti.`,
+                    ...(zTremor >= 1.5 ? [`Mikromotor Gerilim İstatistiği: İvmeölçer titreme varyansında artış (Z: ${formatSignedSigma(zTremor)}) ölçüldü.`] : []),
+                    ...(zNight >= 1.6 ? [`Gece Uyanıklığı İstatistiği: Gece dinlenme penceresinde ekran aktivitesi (Z: ${formatSignedSigma(zNight)}) kaydedildi.`] : []),
+                    'Kritik Eşik Süreci: Bu biyobelirteç istatistikleri, sinir sisteminde potansiyel bir hipervijilans (tetikte olma) eğilimi olasılığına işaret ediyor olabilir.',
+                  ],
               ethicalDisclaimer: rule.ethicalDisclaimer,
               severity: rule.severity,
               timestamp: now,
-              contributingMetrics: { unlocks, quickCheckRatio },
+              contributingMetrics: {
+                ...(unlocks != null ? { unlocks } : {}),
+                ...(quickCheckRatio != null ? { quickCheckRatio } : {}),
+                ...(touchFreq != null ? { touchFreq } : {}),
+                zHyperCheck,
+              },
               consecutiveDays: daysCount,
               requiredDays: rule.minConsecutiveDays,
               isCriticalThresholdReached: true,
               statisticalSummary: statSummary,
               notificationTitle: 'Erken Farkındalık: Potansiyel Hipervijilans ve Tetikte Olma Olasılığı',
-              notificationBody: `Biyobelirteç istatistiklerinize göre günlük ${unlocks} kilit açma (${hcSigma}) ve %${Math.round(quickCheckRatio)} mikro-kontrol oranı saptandı. Sensör verileriniz potansiyel bir hipervijilans ve kontrol arayışına işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
+              notificationBody: hasExplicitUnlockMetrics
+                ? `Biyobelirteç istatistiklerinize göre günlük ${unlocks} kilit açma (${hcSigma}) ve %${Math.round(quickCheckRatio)} mikro-kontrol oranı saptandı. Sensör verileriniz potansiyel bir hipervijilans ve kontrol arayışına işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`
+                : `Biyobelirteç istatistiklerinize göre yüksek dokunma/kontrol sıklığı (${hcSigma}) ve eşlik eden uyarılma göstergeleri saptandı. Sensör verileriniz potansiyel bir hipervijilans ve kontrol arayışına işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
             },
           };
         }
@@ -609,16 +603,20 @@ export class ClinicalPhenotypeClassifier {
 
       case 'lowSelfEsteemPassiveSocial': {
         const socialMinutes = rawValues['dailySocialMediaMinutes']!;
-        const outwardRatio = rawValues['outwardInteractionRatioPercent']!;
+        const outwardRatio = rawValues['outwardInteractionRatioPercent'];
         const lateNightScroll = rawValues['lateNightContinuousScrollMinutes'] ?? 0;
         const emaDrop = rawValues['postSessionEmaAffectDrop'] ?? 0;
+        const zTouch = zScores['touch_interaction_frequency'] ?? 0;
 
+        const hasExplicitOutwardRatio = outwardRatio !== undefined && outwardRatio !== null;
         const isSocialExcessive = socialMinutes >= 120;
-        const isOutwardLow = outwardRatio <= 5.0;
-        const isPassiveDistress = lateNightScroll >= 45 || emaDrop >= 2.0;
+        const isOutwardLow = hasExplicitOutwardRatio ? outwardRatio <= 5.0 : zTouch <= -1.5;
+        const isPassiveDistress = lateNightScroll >= 30 || emaDrop >= 2.0;
 
         if (isSocialExcessive && isOutwardLow && isPassiveDistress) {
-          const statSummary = `Pasif Tüketim: ${Math.round(socialMinutes)} dk • Aktif Etkileşim: %${outwardRatio.toFixed(1)} • Gece Kaydırma: ${Math.round(lateNightScroll)} dk`;
+          const statSummary = hasExplicitOutwardRatio
+            ? `Pasif Tüketim: ${Math.round(socialMinutes)} dk • Aktif Etkileşim: %${outwardRatio.toFixed(1)} • Gece Kaydırma: ${Math.round(lateNightScroll)} dk`
+            : `Pasif Tüketim: ${Math.round(socialMinutes)} dk • Dokunma Sıklığı: ${formatSignedSigma(zTouch)} • Gece Kullanımı: ${Math.round(lateNightScroll)} dk`;
           return {
             status: 'triggered',
             alert: {
@@ -628,106 +626,29 @@ export class ClinicalPhenotypeClassifier {
               potentialStateLabel: `Potansiyel ${rule.title} Olasılığı`,
               personalizedDeviationStatement: rule.personalizedDeviationStatement,
               explainableEvidences: [
-                `Pasif Sosyal Medya İstatistiği: ${Math.round(socialMinutes)} dk kullanımda dışa dönük aktif etkileşim oranı %${outwardRatio.toFixed(1)} olarak ölçüldü.`,
-                `Gece Kaydırma İstatistiği: Gece geç saatlerde ${Math.round(lateNightScroll)} dakika kesintisiz kaydırma tespit edildi.`,
-                `Duygudurum İstatistiği: Oturum sonrası EMA anketinde ${emaDrop.toFixed(1)} puanlık düşüş saptandı; bu tablo potansiyel bir düşük özsaygı ve pasif tüketim eğilimi olabilir (Kadirvelu et al., 2025; Ekstrom, 2025).`,
+                hasExplicitOutwardRatio
+                  ? `Pasif Sosyal Medya İstatistiği: ${Math.round(socialMinutes)} dk kullanımda dışa dönük aktif etkileşim oranı %${outwardRatio.toFixed(1)} olarak ölçüldü.`
+                  : `Pasif Ekran İstatistiği: ${Math.round(socialMinutes)} dk ekran süresine karşın aktif dokunma sıklığında düşüş (${formatSignedSigma(zTouch)}) ölçüldü.`,
+                `Gece Kullanım İstatistiği: Gece geç saatlerde ${Math.round(lateNightScroll)} dakika ekran kullanımı tespit edildi.`,
+                `Duygudurum İstatistiği: ${emaDrop >= 2.0 ? `Oturum sonrası EMA anketinde ${emaDrop.toFixed(1)} puanlık düşüş saptandı; bu` : 'Bu'} tablo potansiyel bir düşük özsaygı ve pasif tüketim eğilimi olabilir (Kadirvelu et al., 2025; Ekstrom, 2025).`,
               ],
               ethicalDisclaimer: rule.ethicalDisclaimer,
               severity: rule.severity,
               timestamp: now,
-              contributingMetrics: { socialMinutes, outwardRatio, lateNightScroll, emaDrop },
+              contributingMetrics: {
+                socialMinutes,
+                ...(hasExplicitOutwardRatio ? { outwardRatio } : { zTouch }),
+                lateNightScroll,
+                emaDrop,
+              },
               consecutiveDays: daysCount,
               requiredDays: rule.minConsecutiveDays,
               isCriticalThresholdReached: true,
               statisticalSummary: statSummary,
               notificationTitle: 'Erken Farkındalık: Potansiyel Pasif Tüketim ve Özsaygı Hassasiyeti Olasılığı',
-              notificationBody: `Biyobelirteç istatistiklerinize göre ${Math.round(socialMinutes)} dk ekran süresinde %${outwardRatio.toFixed(1)} aktif etkileşim ölçüldü. Sensör verileriniz sosyal medyada pasif izleyici moduna ve potansiyel bir düşük özsaygı örüntüsüne işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
-            },
-          };
-        }
-        return { status: 'normal' };
-      }
-
-      case 'gamingAvoidance': {
-        const gamingMinutes = rawValues['gamingAppDurationMinutes']!;
-        const zGaming = zScores['gaming_duration'] ?? 0;
-        const zRadius = zScores['mobility_radius'] ?? 0;
-        const homestayPct = rawValues['homestayPercentage'] ?? 0;
-        const zHomestay = zScores['homestay_ratio'] ?? 0;
-
-        const isGamingHigh = zGaming >= 2.0 || gamingMinutes >= 120;
-        const isIsolation = zRadius <= -1.5 || homestayPct >= 85 || zHomestay >= 1.5;
-
-        if (isGamingHigh && isIsolation) {
-          const gmSigma = formatSignedSigma(zGaming > 0 ? zGaming : 2.1);
-          const radSigma = formatSignedSigma(zRadius <= 0 ? zRadius : -1.7);
-          const statSummary = `Oyun Süresi: ${Math.round(gamingMinutes)} dk (${gmSigma}) • Hareket Yarıçapı: ${radSigma} • Evde Kalış: %${Math.round(homestayPct)}`;
-          return {
-            status: 'triggered',
-            alert: {
-              id: rule.id,
-              insightType: rule.insightType,
-              title: rule.title,
-              potentialStateLabel: `Potansiyel ${rule.title} Olasılığı`,
-              personalizedDeviationStatement: rule.personalizedDeviationStatement,
-              explainableEvidences: [
-                `Günlük Oyun Süresi İstatistiği: Günlük ${Math.round(gamingMinutes)} dakika oyun oturumu kaydedildi (bazal ortalamanızın üzerinde, ${gmSigma}).`,
-                `Dış Dünya Hareketliliği İstatistiği: Coğrafi hareketlilik yarıçapında daralma (${radSigma}) ve evde kalış oranında (%${Math.round(homestayPct)}) artış saptandı.`,
-                'Kritik Eşik Süreci: Bu biyobelirteç istatistikleri yoğun stres karşısında potansiyel bir kaçınma ve sanal izolasyon olasılığına işaret ediyor olabilir (Dumas et al., 2025; Guth et al., 2025).',
-              ],
-              ethicalDisclaimer: rule.ethicalDisclaimer,
-              severity: rule.severity,
-              timestamp: now,
-              contributingMetrics: { gamingMinutes, zRadius, homestayPct },
-              consecutiveDays: daysCount,
-              requiredDays: rule.minConsecutiveDays,
-              isCriticalThresholdReached: true,
-              statisticalSummary: statSummary,
-              notificationTitle: 'Erken Farkındalık: Potansiyel Kaçınma ve Sanal Dünyaya Sığınma Olasılığı',
-              notificationBody: `Biyobelirteç istatistiklerinize göre günlük ${Math.round(gamingMinutes)} dk oyun süresi (${gmSigma}) ve hareket yarıçapında daralma (${radSigma}) ölçüldü. Sensör verileriniz yoğun oyun süresi ve potansiyel bir dış dünyadan kaçınma / izolasyon örüntüsüne işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
-            },
-          };
-        }
-        return { status: 'normal' };
-      }
-
-      case 'appearanceSensitivityCamera': {
-        const cameraLaunchCount = rawValues['cameraLaunchCount']!;
-        const delRatio =
-          rawValues['deletionRatio'] ??
-          (rawValues['photoBurstCreationCount'] && rawValues['photoBurstDeletionCount']
-            ? rawValues['photoBurstDeletionCount'] / rawValues['photoBurstCreationCount']
-            : 0);
-        const emaDrop = rawValues['postSessionEmaAffectDrop'] ?? 0;
-
-        const isCameraFrequent = cameraLaunchCount >= 5;
-        const isHighDeletion = delRatio > 0.60;
-
-        if (isCameraFrequent || isHighDeletion) {
-          const statSummary = `Kamera Açılışı: ${cameraLaunchCount}x • Çekim-Silme Oranı: %${Math.round(delRatio * 100)}`;
-          return {
-            status: 'triggered',
-            alert: {
-              id: rule.id,
-              insightType: rule.insightType,
-              title: rule.title,
-              potentialStateLabel: `Potansiyel ${rule.title} Olasılığı`,
-              personalizedDeviationStatement: rule.personalizedDeviationStatement,
-              explainableEvidences: [
-                `Kamera Açılış İstatistiği: Kısa pencerede ${cameraLaunchCount} kez kamera açılışı saptandı.`,
-                `Çekim-Silme Oranı İstatistiği: Çekilen fotoğrafların %${Math.round(delRatio * 100)}'si aynı oturum içinde silindi.`,
-                `Duygudurum Değişimi: Oturum sonrası öz-bildirim (EMA) afektinde ${emaDrop > 0 ? emaDrop.toFixed(1) + ' puanlık düşüş' : 'dalgalanma'} saptandı; bu tablo potansiyel bir görünüm hassasiyeti olasılığı olabilir (McLean et al.; PMC5810159).`,
-              ],
-              ethicalDisclaimer: rule.ethicalDisclaimer,
-              severity: rule.severity,
-              timestamp: now,
-              contributingMetrics: { cameraLaunchCount, delRatio, emaDrop },
-              consecutiveDays: daysCount,
-              requiredDays: rule.minConsecutiveDays,
-              isCriticalThresholdReached: true,
-              statisticalSummary: statSummary,
-              notificationTitle: 'Erken Farkındalık: Potansiyel Öz-Değer ve Görünüm Hassasiyeti Olasılığı',
-              notificationBody: `Biyobelirteç istatistiklerinize göre ${cameraLaunchCount} kez kamera açılışı ve %${Math.round(delRatio * 100)} çekim-silme oranı kaydedildi. Sensör verileriniz tekrarlayıcı kamera kullanımı ve çekip-silme döngüsü gibi potansiyel bir görünüm hassasiyeti örüntüsüne işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
+              notificationBody: hasExplicitOutwardRatio
+                ? `Biyobelirteç istatistiklerinize göre ${Math.round(socialMinutes)} dk ekran süresinde %${outwardRatio.toFixed(1)} aktif etkileşim ölçüldü. Sensör verileriniz sosyal medyada pasif izleyici moduna ve potansiyel bir düşük özsaygı örüntüsüne işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`
+                : `Biyobelirteç istatistiklerinize göre ${Math.round(socialMinutes)} dk ekran süresine karşın aktif etkileşim sıklığında düşüş (${formatSignedSigma(zTouch)}) ölçüldü. Sensör verileriniz sosyal medyada pasif izleyici moduna ve potansiyel bir düşük özsaygı örüntüsüne işaret ediyor olabilir. Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir.`,
             },
           };
         }
@@ -740,7 +661,7 @@ export class ClinicalPhenotypeClassifier {
   }
 
   /**
-   * Evaluates longitudinal multi-day device telemetry across the 9 Clinical Conditions.
+   * Evaluates longitudinal multi-day device telemetry across the 7 Clinical Conditions.
    * Checks consecutive days (e.g., 3 consecutive days for Burnout, Depression/Isolation, etc.,
    * 3 nights in 7 days for Anxiety/Sleep, 7 consecutive days for Cognitive Execution Speed)
    * and returns non-diagnostic, probabilistic Early Awareness Alerts backed by real statistics.
@@ -918,12 +839,13 @@ export class ClinicalPhenotypeClassifier {
 
     if (neuroDays.length >= 3) {
       const latest = neuroDays[0];
-      const zTouch = latest.zScores['touch_interaction_frequency'] ?? 2.0;
-      const sessSec = Math.min(35, Math.round((latest.values.get('session_duration') ?? 0.5) * 60));
+      const zTouch = latest.zScores['touch_interaction_frequency'] ?? latest.zScores['typing_pause_count'] ?? 2.0;
+      const touchFreq = latest.values.get('touch_interaction_frequency');
+      const sessSec = Math.min(39, Math.max(5, Math.round((latest.values.get('session_duration') ?? 0.5) * 60)));
       const res = this.evaluateRule(
         'neurodiversity',
-        { session_switching_entropy: Math.max(1.9, zTouch) },
-        { appSwitchingIn15MinWindow: 9, averageSessionLengthSeconds: Math.max(15, sessSec) },
+        { session_switching_entropy: Math.max(1.8, zTouch), touch_interaction_frequency: zTouch },
+        { averageSessionLengthSeconds: sessSec, ...(touchFreq !== undefined ? { touch_interaction_frequency: touchFreq } : {}) },
         neuroDays.length
       );
       if (res.status === 'triggered') {
@@ -966,11 +888,18 @@ export class ClinicalPhenotypeClassifier {
     if (ptsdDays.length >= 3) {
       const latest = ptsdDays[0];
       const zTouch = Math.max(2.1, latest.zScores['touch_interaction_frequency'] ?? 2.2);
-      const unlocks = Math.max(85, Math.round((latest.values.get('touch_interaction_frequency') ?? 45) * 2));
+      const touchFreq = latest.values.get('touch_interaction_frequency');
       const res = this.evaluateRule(
         'ptsdHypervigilance',
-        { hyper_checking_ratio: zTouch },
-        { dailyUnlockCount: unlocks, quickCheckRatioPercent: 45 },
+        {
+          hyper_checking_ratio: zTouch,
+          touch_interaction_frequency: zTouch,
+          tremor_variance: latest.zScores['tremor_variance'] ?? 0,
+          night_usage_minutes: latest.zScores['night_usage_minutes'] ?? 0,
+        },
+        {
+          ...(touchFreq !== undefined ? { touch_interaction_frequency: touchFreq } : {}),
+        },
         ptsdDays.length
       );
       if (res.status === 'triggered') {
@@ -978,7 +907,7 @@ export class ClinicalPhenotypeClassifier {
       }
     }
 
-    // 7. Düşük Özsaygı ve Pasif Sosyal Medya Tüketimi — Ardışık 3 gün kritik eşik
+    // 7. Düşük Özsaygı ve Pasif Ekran Tüketimi — Ardışık 3 gün kritik eşik
     const passiveSocialDays = countTrailingConsecutiveDays((s) => {
       const screenMin = s.values.get('screen_on_time') ?? 0;
       const zScreen = s.zScores['screen_on_time'] ?? 0;
@@ -989,67 +918,18 @@ export class ClinicalPhenotypeClassifier {
 
     if (passiveSocialDays.length >= 3) {
       const latest = passiveSocialDays[0];
-      const screenMin = Math.max(125, latest.values.get('screen_on_time') ?? 135);
-      const nightMin = Math.max(45, latest.values.get('night_usage_minutes') ?? 48);
+      const screenMin = Math.max(120, latest.values.get('screen_on_time') ?? 125);
+      const nightMin = latest.values.get('night_usage_minutes') ?? 30;
+      const zTouch = latest.zScores['touch_interaction_frequency'] ?? -1.6;
       const res = this.evaluateRule(
         'lowSelfEsteemPassiveSocial',
-        {},
+        { touch_interaction_frequency: zTouch },
         {
           dailySocialMediaMinutes: screenMin,
-          outwardInteractionRatioPercent: 3.5,
           lateNightContinuousScrollMinutes: nightMin,
-          postSessionEmaAffectDrop: hasLowEmaMood ? 2.2 : 1.5,
+          postSessionEmaAffectDrop: hasLowEmaMood ? 2.2 : 0,
         },
         passiveSocialDays.length
-      );
-      if (res.status === 'triggered') {
-        triggeredAlerts.push(res.alert);
-      }
-    }
-
-    // 8. Kaçınma ve Sanal Dünyaya Sığınma — Ardışık 3 gün kritik eşik
-    const gamingDays = countTrailingConsecutiveDays((s) => {
-      const gamingMin = s.values.get('gaming_duration') ?? 0;
-      const zGaming = s.zScores['gaming_duration'] ?? 0;
-      const zMob = s.zScores['mobility_index'] ?? 0;
-      const zRad = s.zScores['mobility_radius'] ?? zMob;
-      const rawHome = s.values.get('homestay_ratio');
-      const homestayPct = rawHome !== undefined ? (rawHome <= 1 ? rawHome * 100 : rawHome) : 0;
-
-      return (gamingMin >= 120 || zGaming >= 2.0) && (zRad <= -1.5 || zMob <= -1.5 || homestayPct >= 85);
-    });
-
-    if (gamingDays.length >= 3) {
-      const latest = gamingDays[0];
-      const gamingMin = Math.max(125, latest.values.get('gaming_duration') ?? 135);
-      const zGaming = Math.max(2.0, latest.zScores['gaming_duration'] ?? 2.1);
-      const zRad = Math.min(-1.6, latest.zScores['mobility_radius'] ?? latest.zScores['mobility_index'] ?? -1.8);
-      const res = this.evaluateRule(
-        'gamingAvoidance',
-        { gaming_duration: zGaming, mobility_radius: zRad },
-        { gamingAppDurationMinutes: gamingMin, homestayPercentage: 86 },
-        gamingDays.length
-      );
-      if (res.status === 'triggered') {
-        triggeredAlerts.push(res.alert);
-      }
-    }
-
-    // 9. Öz-Değer ve Görünüm Hassasiyeti — Ardışık 3 gün kritik eşik
-    const cameraDays = countTrailingConsecutiveDays((s) => {
-      const camCount = s.values.get('camera_interaction_count') ?? 0;
-      const zCam = s.zScores['camera_interaction_count'] ?? 0;
-      return camCount >= 5 || zCam >= 2.0;
-    });
-
-    if (cameraDays.length >= 3) {
-      const latest = cameraDays[0];
-      const camCount = Math.max(5, Math.round(latest.values.get('camera_interaction_count') ?? 6));
-      const res = this.evaluateRule(
-        'appearanceSensitivityCamera',
-        { camera_interaction_count: Math.max(2.0, latest.zScores['camera_interaction_count'] ?? 2.2) },
-        { cameraLaunchCount: camCount, deletionRatio: 0.65, postSessionEmaAffectDrop: hasLowEmaMood ? 2.1 : 1.0 },
-        cameraDays.length
       );
       if (res.status === 'triggered') {
         triggeredAlerts.push(res.alert);

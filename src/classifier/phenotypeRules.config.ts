@@ -21,9 +21,7 @@ export interface PhenotypeRuleConfig {
     | 'cognitiveDecline'
     | 'CognitivePattern'
     | 'ptsdHypervigilance'
-    | 'lowSelfEsteemPassiveSocial'
-    | 'gamingAvoidance'
-    | 'appearanceSensitivityCamera';
+    | 'lowSelfEsteemPassiveSocial';
   title: string;
   academicCitations: string[];
   requiredMetrics: string[];
@@ -76,11 +74,11 @@ export const PHENOTYPE_RULES: Record<string, PhenotypeRuleConfig> = {
     insightType: 'neurodiversity',
     title: 'Nöroçeşitlilik (DEHB, Dikkat Dağınıklığı)',
     academicCitations: ['Wang et al., 2024', 'StudentLife 2024'],
-    requiredMetrics: ['appSwitchingIn15MinWindow', 'averageSessionLengthSeconds'],
+    requiredMetrics: ['averageSessionLengthSeconds'],
     requiredZMetrics: ['session_switching_entropy'],
     minConsecutiveDays: 1,
     severity: 'medium',
-    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre uygulama geçiş entropisi ve mikro-oturum sürelerinizde kritik eşiği aşan parçalanma gözlemlendi; bu örüntü potansiyel bir dikkat dağınıklığı ve odak bölünmesi eğilimi olabilir.',
+    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre etkileşim yoğunluğu ve mikro-oturum sürelerinizde kritik eşiği aşan parçalanma gözlemlendi; bu örüntü potansiyel bir dikkat dağınıklığı ve odak bölünmesi eğilimi olabilir.',
     ethicalDisclaimer: 'Bu bir tıbbi teşhis değildir; kesinlik belirtmeyen, biyobelirteç istatistiklerine dayalı erken farkındalık öngörüsüdür. Bu nesnel verileri hekiminizle veya psikiyatristinizle değerlendirmeniz önerilir.',
   },
   cognitiveDecline: {
@@ -100,48 +98,24 @@ export const PHENOTYPE_RULES: Record<string, PhenotypeRuleConfig> = {
     insightType: 'ptsdHypervigilance',
     title: 'PTSD Belirtileri (Hipervijilans ve Kaçınma)',
     academicCitations: ['Torous et al., 2024'],
-    requiredMetrics: ['dailyUnlockCount', 'quickCheckRatioPercent'],
+    requiredMetrics: [],
     requiredZMetrics: ['hyper_checking_ratio'],
     minConsecutiveDays: 1,
     severity: 'medium',
-    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre sık ekran kilit açma ve mikro-kontrol oranınız kritik eşiği aştı; bu örüntü potansiyel bir hipervijilans (tetikte olma) ve yüksek alarm hali olasılığına işaret ediyor olabilir.',
+    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre yüksek dokunma/kontrol sıklığı, gece uyanıklığı ve mikro-etkileşim oranınız kritik eşiği aştı; bu örüntü potansiyel bir hipervijilans (tetikte olma) ve yüksek alarm hali olasılığına işaret ediyor olabilir.',
     ethicalDisclaimer: 'Bu bir tıbbi teşhis değildir; kesinlik belirtmeyen, biyobelirteç istatistiklerine dayalı erken farkındalık öngörüsüdür. Bu nesnel verileri hekiminizle veya psikiyatristinizle değerlendirmeniz önerilir.',
   },
   lowSelfEsteemPassiveSocial: {
     id: 'low-self-esteem-passive-social-alert',
     insightType: 'lowSelfEsteemPassiveSocial',
-    title: 'Düşük Özsaygı ve Pasif Sosyal Medya Tüketimi',
+    title: 'Düşük Özsaygı ve Pasif Ekran Tüketimi',
     academicCitations: ['Kadirvelu et al., 2025', 'Ekstrom, 2025'],
-    requiredMetrics: ['dailySocialMediaMinutes', 'outwardInteractionRatioPercent'],
+    requiredMetrics: ['dailySocialMediaMinutes'],
     requiredZMetrics: [],
     minConsecutiveDays: 1,
     severity: 'medium',
-    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre yüksek ekran süresine karşın düşük aktif etkileşim ve gece kaydırma örüntüsü kritik eşiğe ulaştı; bu durum potansiyel bir pasif tüketim ve özsaygı hassasiyeti olasılığı olabilir.',
+    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre yüksek ekran süresine karşın düşük aktif etkileşim ve gece kullanım örüntüsü kritik eşiğe ulaştı; bu durum potansiyel bir pasif tüketim ve özsaygı hassasiyeti olasılığı olabilir.',
     ethicalDisclaimer: 'Bu bir tıbbi teşhis değildir; kesinlik belirtmeyen, biyobelirteç istatistiklerine dayalı erken farkındalık öngörüsüdür. Bu nesnel verileri hekiminizle veya psikiyatristinizle değerlendirmeniz önerilir.',
-  },
-  gamingAvoidance: {
-    id: 'gaming-avoidance-alert',
-    insightType: 'gamingAvoidance',
-    title: 'Kaçınma ve Sanal Dünyaya Sığınma',
-    academicCitations: ['Dumas et al., 2025', 'Guth et al., 2025'],
-    requiredMetrics: ['gamingAppDurationMinutes'],
-    requiredZMetrics: [],
-    minConsecutiveDays: 1,
-    severity: 'high',
-    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre oyun oturumu süresindeki artış ve dış dünya hareketliliğindeki daralma kritik eşiğe ulaştı; bu örüntü potansiyel bir kaçınma ve sanal dünyaya sığınma olasılığı olabilir.',
-    ethicalDisclaimer: 'Bu veriler kesin bir teşhis değildir; yoğun stres veya içsel baskı anlarında görülebilen potansiyel ve geçici tepkiler olabilir. Durumu hekiminizle/uzmanınızla paylaşmanız tavsiye edilir.',
-  },
-  appearanceSensitivityCamera: {
-    id: 'appearance-sensitivity-camera-alert',
-    insightType: 'appearanceSensitivityCamera',
-    title: 'Öz-Değer ve Görünüm Hassasiyeti',
-    academicCitations: ['McLean et al., 2024', 'PMC5810159'],
-    requiredMetrics: ['cameraLaunchCount'],
-    requiredZMetrics: [],
-    minConsecutiveDays: 1,
-    severity: 'medium',
-    personalizedDeviationStatement: 'Biyobelirteç istatistiklerinize göre tekrarlayıcı kamera açılışları ve çekim-silme döngüsü kritik eşiğe ulaştı; bu tablo potansiyel bir öz-değer ve görünüm hassasiyeti olasılığına işaret ediyor olabilir.',
-    ethicalDisclaimer: 'Bu veriler kesin bir teşhis değildir; yoğun stres veya içsel baskı anlarında görülebilen potansiyel ve geçici tepkiler olabilir. Durumu hekiminizle/uzmanınızla paylaşmanız tavsiye edilir.',
   },
   cognitivePattern1: {
     id: 'cognitive-pattern-memory-executive',

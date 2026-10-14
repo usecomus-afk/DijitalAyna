@@ -32,8 +32,6 @@ export const METRIC_REFERENCES: Partial<Record<MetricKey, MetricReference>> = {
   sleep_sol: { citations: ['Lee et al., 2025', 'Guth et al., 2025'], basis: 'anxietySleep / depressionIsolation' },
   sleep_waso: { citations: ['Lee et al., 2025'], basis: 'anxietySleep' },
   session_duration: { citations: ['Wang et al., 2024', 'StudentLife 2024'], basis: 'neurodiversity' },
-  gaming_duration: { citations: ['Dumas et al., 2025', 'Guth et al., 2025'], basis: 'gamingAvoidance' },
-  camera_interaction_count: { citations: ['McLean et al., 2024', 'PMC5810159'], basis: 'appearanceSensitivityCamera' },
 };
 
 /** All citations known to the phenotype rule config (used to validate METRIC_REFERENCES). */

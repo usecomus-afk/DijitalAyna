@@ -13,15 +13,15 @@ describe('Real Active Sensors, EWMA Exclusions & Data-Driven Awareness Notes', (
     vi.restoreAllMocks();
   });
 
-  it('1. excludes gaming_duration and camera_interaction_count from EWMA table keys', () => {
-    expect(EXCLUDED_EWMA_REPORT_KEYS).toContain('gaming_duration');
-    expect(EXCLUDED_EWMA_REPORT_KEYS).toContain('camera_interaction_count');
+  it('1. verifies gaming_duration and camera_interaction_count are completely removed and all 27 defined metrics are real sensor metrics', () => {
+    const allDefinedKeys = Object.keys(METRIC_DEFINITIONS) as string[];
+    expect(allDefinedKeys).not.toContain('gaming_duration');
+    expect(allDefinedKeys).not.toContain('camera_interaction_count');
+    expect(allDefinedKeys.length).toBe(27);
 
     const remainingKeys = (Object.keys(METRIC_DEFINITIONS) as MetricKey[]).filter(
       (k) => !EXCLUDED_EWMA_REPORT_KEYS.includes(k)
     );
-    expect(remainingKeys).not.toContain('gaming_duration');
-    expect(remainingKeys).not.toContain('camera_interaction_count');
     expect(remainingKeys.length).toBe(27);
   });
 

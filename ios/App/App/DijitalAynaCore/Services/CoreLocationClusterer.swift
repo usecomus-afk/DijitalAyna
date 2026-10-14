@@ -163,7 +163,7 @@ public final class CoreLocationClusterer: NSObject, CLLocationManagerDelegate, O
         }
 
         guard points.count >= 2 else {
-            return (radiusOfGyrationKm: 4.5, homestayPercentage: 70.0, uniqueLocationsCount: 2)
+            return (radiusOfGyrationKm: 0.0, homestayPercentage: 0.0, uniqueLocationsCount: points.count)
         }
 
         let clusters = performDBSCAN(points: points)
@@ -172,8 +172,8 @@ public final class CoreLocationClusterer: NSObject, CLLocationManagerDelegate, O
         // 1. Homestay %: Cluster with largest total stay is designated as "Home"
         let totalTrackedMinutes = points.reduce(0.0) { $0 + $1.durationMinutes }
         let homeCluster = clusters.max(by: { $0.totalDurationMinutes < $1.totalDurationMinutes })
-        let homeStayMinutes = homeCluster?.totalDurationMinutes ?? (totalTrackedMinutes * 0.70)
-        let homestayPercent = totalTrackedMinutes > 0 ? min(100.0, (homeStayMinutes / totalTrackedMinutes) * 100.0) : 70.0
+        let homeStayMinutes = homeCluster?.totalDurationMinutes ?? 0.0
+        let homestayPercent = totalTrackedMinutes > 0 ? min(100.0, (homeStayMinutes / totalTrackedMinutes) * 100.0) : 0.0
 
         // 2. Radius of Gyration (Rg): Root mean square distance from the center of mass
         let meanLat = points.reduce(0.0) { $0 + $1.latitude } / Double(points.count)

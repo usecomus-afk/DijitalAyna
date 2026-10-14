@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { calculateZScore } from '../engine/anomaly';
@@ -126,6 +126,21 @@ export const SettingsPage: React.FC = () => {
 
 
   const battery = getMetricData('battery_level', '[Veri Alınamıyor / İzin Bekleniyor]');
+  const networkMetric = getMetricData('network_online', '[Veri Alınamıyor]');
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleManualEvaluate = async () => {
     await runAnalysisPipeline();
@@ -305,7 +320,7 @@ export const SettingsPage: React.FC = () => {
 
           <div className="flex items-center gap-1.5 text-comus-navy/80">
             <Wifi className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-            <span>Ağ: <strong>Çevrimiçi</strong></span>
+            <span>Ağ: <strong>{isOnline && (networkMetric.curr === null || networkMetric.curr === 1) ? 'Çevrimiçi' : 'Çevrimdışı'}</strong></span>
           </div>
         </div>
 

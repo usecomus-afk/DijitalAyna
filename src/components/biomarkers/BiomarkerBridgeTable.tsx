@@ -11,7 +11,7 @@ export const BiomarkerBridgeTable: React.FC = () => {
       'Dijital Biyobelirteçler Özeti',
       '• Klavye Dinamiği: Yazım hızında yavaşlama, artan hatalar -> Potansiyel Duygusal Tükenmişlik',
       '• GPS / Hareket: Evden çıkmama, daralan hareketlilik -> Potansiyel Sosyal Çekilme',
-      '• Uygulama Kullanımı: Gece yarısı yoğun oyun/ekran kullanımı -> Potansiyel Dürtüsel Eğilim',
+      '• Dokunma & Oturum: Gece yarısı yoğun ve hızlı ekran/dokunma döngüleri -> Potansiyel Dürtüsel Eğilim',
       '• Işık / Ekran: Gece 02:00-04:00 arası yoğun kullanım -> Potansiyel Uyku ve Sirkadiyen Ritim Değişimi',
       '• Ses Analizi (Onaylı): Monoton ve yavaş konuşma tonu -> Potansiyel Duygudurum Değişimi',
       '',
@@ -111,10 +111,10 @@ export const BiomarkerBridgeTable: React.FC = () => {
                 </tr>
                 <tr className="border-b border-comus-sand-light/10">
                   <td className="py-3 px-2 flex items-center gap-2 text-comus-navy font-medium">
-                    <Smartphone className="w-4 h-4 text-sky-500" /> Uygulama Kullanımı
+                    <Smartphone className="w-4 h-4 text-sky-500" /> Dokunma &amp; Oturum
                   </td>
-                  <td className="py-3 px-2">Gece yarısı artan kumar/oyun kullanımı</td>
-                  <td className="py-3 px-2 text-amber-600 font-medium">Bağımlılık Eğilimi</td>
+                  <td className="py-3 px-2">Gece yarısı yoğun ve hızlı ekran/dokunma döngüleri</td>
+                  <td className="py-3 px-2 text-amber-600 font-medium">Dürtüsel Davranış Eğilimi</td>
                 </tr>
                 <tr className="border-b border-comus-sand-light/10">
                   <td className="py-3 px-2 flex items-center gap-2 text-comus-navy font-medium">

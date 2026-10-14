@@ -61,7 +61,7 @@ public final class HealthKitService: NSObject, ObservableObject {
     /// Computes sleep architecture metrics (SOL, TST, WASO, SE, SRI) from HKCategoryValueSleepAnalysis
     public func fetchSleepMetrics(for date: Date, completion: @escaping (Double, Double, Double, Double, Double) -> Void) {
         guard let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) else {
-            completion(20.0, 420.0, 30.0, 85.0, 80.0)
+            completion(0.0, 0.0, 0.0, 0.0, 0.0)
             return
         }
 
@@ -73,9 +73,9 @@ public final class HealthKitService: NSObject, ObservableObject {
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
             guard let sleepSamples = samples as? [HKCategorySample], !sleepSamples.isEmpty else {
-                // Return default healthy priors if no wearable connected
+                // Return 0.0 when no HealthKit sleep samples exist (no synthetic priors)
                 DispatchQueue.main.async {
-                    completion(22.0, 420.0, 25.0, 88.0, 85.0)
+                    completion(0.0, 0.0, 0.0, 0.0, 0.0)
                 }
                 return
             }

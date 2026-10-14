@@ -44,7 +44,7 @@ export const MenuHubPage: React.FC = () => {
     {
       id: 'digital-biomarkers',
       title: 'Dijital Biyobelirteçler',
-      subtitle: '9 Klinik Durum, Biyobelirteçler Tablosu, Sayısal Göstergeler & EWMA',
+      subtitle: '7 Klinik Durum, Biyobelirteçler Tablosu, Sayısal Göstergeler & EWMA',
       icon: Fingerprint,
       path: '/menu/digital-biomarkers',
     },

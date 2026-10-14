@@ -45,12 +45,6 @@ export function synthesizeBiomarkers(anomalies: AnomalyResult[]): BiomarkerResul
   if (rawValues['sleep_sol'] !== undefined) {
     rawValues['sleepOnsetLatencyMinutes'] = rawValues['sleep_sol'];
   }
-  if (rawValues['gaming_duration'] !== undefined) {
-    rawValues['gamingAppDurationMinutes'] = rawValues['gaming_duration'];
-  }
-  if (rawValues['camera_interaction_count'] !== undefined) {
-    rawValues['cameraLaunchCount'] = rawValues['camera_interaction_count'];
-  }
 
   const results: BiomarkerResult[] = [];
   const addedTypes = new Set<string>();
@@ -68,8 +62,6 @@ export function synthesizeBiomarkers(anomalies: AnomalyResult[]): BiomarkerResul
   const sleepDur = anomalyMap.get('sleep_duration');
   const sleepSol = anomalyMap.get('sleep_sol');
   const sleepWaso = anomalyMap.get('sleep_waso');
-  const gamingDuration = anomalyMap.get('gaming_duration');
-  const cameraCount = anomalyMap.get('camera_interaction_count');
 
   // 1. Keystroke Dynamics & Emotional Burnout
   const hasTypingSlowdown = (typingWpm && typingWpm.zScore <= -1.8) || (typingHold && typingHold.zScore >= 1.8);
@@ -127,35 +119,7 @@ export function synthesizeBiomarkers(anomalies: AnomalyResult[]): BiomarkerResul
     addedTypes.add('circadian_disruption');
   }
 
-  // 4. Gaming Avoidance & Virtual Escapism
-  if (gamingDuration && (gamingDuration.zScore >= 2.0 || gamingDuration.currentValue >= 120)) {
-    const hasReducedMobility = mobility && (mobility.zScore <= -1.5 || mobility.currentValue <= 30);
-    const triggers = [gamingDuration, ...(mobility ? [mobility] : [])];
-    results.push({
-      type: 'gaming_avoidance',
-      label: 'Kaçınma ve Sanal Dünyaya Sığınma Sinyali',
-      confidence: hasReducedMobility ? 'high' : 'medium',
-      score: 0.89,
-      triggerAnomalies: triggers,
-      detectedAt: today,
-    });
-    addedTypes.add('gaming_avoidance');
-  }
-
-  // 5. Appearance & Self-Worth Sensitivity
-  if (cameraCount && (cameraCount.zScore >= 2.0 || cameraCount.currentValue >= 5)) {
-    results.push({
-      type: 'appearance_sensitivity',
-      label: 'Öz-Değer ve Görünüm Hassasiyeti Sinyali',
-      confidence: 'medium',
-      score: 0.85,
-      triggerAnomalies: [cameraCount],
-      detectedAt: today,
-    });
-    addedTypes.add('appearance_sensitivity');
-  }
-
-  // 6. Also include any additional rule alerts from PHENOTYPE_RULES
+  // 4. Also include any additional rule alerts from PHENOTYPE_RULES
   const alerts = ClinicalPhenotypeClassifier.evaluateEarlyAwarenessAlerts(zScores, rawValues);
   for (const alert of alerts) {
     if (addedTypes.has(alert.id)) continue;

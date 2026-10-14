@@ -27,7 +27,7 @@ interface SubMenuItem {
 const SUB_MENU_ITEMS: SubMenuItem[] = [
   {
     id: 'clinical-conditions',
-    title: 'Erken Farkındalık Sağlanan 9 Klinik Durum',
+    title: 'Erken Farkındalık Sağlanan 7 Klinik Durum',
     subtitle: 'Davranışsal örüntüler ve erken farkındalık eşikleri',
     icon: Activity,
   },

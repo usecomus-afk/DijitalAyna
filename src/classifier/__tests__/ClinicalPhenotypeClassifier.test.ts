@@ -114,32 +114,6 @@ describe('ClinicalPhenotypeClassifier - Rule-Augmented Landmark Mental Health Ph
     expect(inference.label).toContain('Pasif Tüketim');
   });
 
-  it('should detect Gaming Avoidance / Virtual Escapism Phenotype Pattern (High gaming, restricted mobility)', () => {
-    const zScores = {
-      gaming_duration: 2.2,
-      mobility_radius: -1.8,
-    };
-
-    const inference = ClinicalPhenotypeClassifier.classifyPhenotype(zScores);
-
-    expect(inference.state).toBe('gaming_avoidance_phenotype');
-    expect(inference.label).toContain('Sanal Dünyaya Sığınma');
-    expect(inference.clinicalInsight.toLowerCase()).toContain('oyun');
-  });
-
-  it('should detect Appearance / Camera Sensitivity Phenotype Pattern (High camera interaction, session entropy)', () => {
-    const zScores = {
-      camera_interaction_count: 2.3,
-      session_switching_entropy: 1.6,
-    };
-
-    const inference = ClinicalPhenotypeClassifier.classifyPhenotype(zScores);
-
-    expect(inference.state).toBe('appearance_sensitivity_phenotype');
-    expect(inference.label).toContain('Görünüm & Öz-Değer');
-    expect(inference.clinicalInsight.toLowerCase()).toContain('kamera');
-  });
-
   it('should return Euthymic / Healthy Baseline when Z-Scores are balanced', () => {
     const zScores = {
       mobility_index: 0.2,
@@ -174,7 +148,7 @@ describe('ClinicalPhenotypeClassifier - Rule-Augmented Landmark Mental Health Ph
     expect(lowIndex).toBeLessThan(50);
   });
 
-  describe('EarlyAwarenessEngine - 9 Clinical Insight Patterns & Longitudinal Thresholds', () => {
+  describe('EarlyAwarenessEngine - 7 Clinical Insight Patterns & Longitudinal Thresholds', () => {
     it('should generate explainable alerts for Burnout, Depression, Anxiety, ADHD, Cognitive, PTSD, and Passive Social', () => {
       const zScores = {
         typing_hold_time: 2.3,
@@ -227,48 +201,6 @@ describe('ClinicalPhenotypeClassifier - Rule-Augmented Landmark Mental Health Ph
       expect(passiveSocial).toBeDefined();
       expect(passiveSocial?.title).toContain('Düşük Özsaygı');
       expect(passiveSocial?.notificationBody).toContain('sosyal medyada pasif izleyici');
-    });
-
-    it('should generate explainable alert for Gaming Avoidance / Virtual Escapism (Rule 8)', () => {
-      const zScores = {
-        gaming_duration: 2.3,
-        mobility_radius: -2.1,
-      };
-
-      const rawValues = {
-        gamingAppDurationMinutes: 145,
-        homestayPercentage: 90,
-      };
-
-      const alerts = ClinicalPhenotypeClassifier.evaluateEarlyAwarenessAlerts(zScores, rawValues);
-
-      const gaming = alerts.find(a => a.insightType === 'gamingAvoidance');
-      expect(gaming).toBeDefined();
-      expect(gaming?.title).toContain('Sanal Dünyaya Sığınma');
-      expect(gaming?.explainableEvidences.length).toBeGreaterThanOrEqual(1);
-      expect(gaming?.ethicalDisclaimer).toContain('kesin bir teşhis değildir');
-      expect(gaming?.notificationBody).toContain('oyun');
-    });
-
-    it('should generate explainable alert for Appearance & Self-Worth Sensitivity (Rule 9)', () => {
-      const zScores = {
-        camera_interaction_count: 2.4,
-      };
-
-      const rawValues = {
-        cameraLaunchCount: 6,
-        deletionRatio: 0.75,
-        postSessionEmaAffectDrop: 2.2,
-      };
-
-      const alerts = ClinicalPhenotypeClassifier.evaluateEarlyAwarenessAlerts(zScores, rawValues);
-
-      const appearance = alerts.find(a => a.insightType === 'appearanceSensitivityCamera');
-      expect(appearance).toBeDefined();
-      expect(appearance?.title).toContain('Öz-Değer ve Görünüm Hassasiyeti');
-      expect(appearance?.explainableEvidences.length).toBeGreaterThanOrEqual(1);
-      expect(appearance?.ethicalDisclaimer).toContain('kesin bir teşhis değildir');
-      expect(appearance?.notificationBody).toContain('kamera');
     });
 
     it('should evaluate longitudinal 3-day consecutive Burnout critical threshold and output non-diagnostic statistical warning', () => {

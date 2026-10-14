@@ -146,13 +146,11 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
     emotional_burnout: 'burnout',
     social_withdrawal: 'depressionIsolation',
     circadian_disruption: 'anxietySleep',
-    gaming_avoidance: 'gamingAvoidance',
-    appearance_sensitivity: 'appearanceSensitivityCamera',
   };
 
   // Helper to build a real-telemetry summary string for latestDate
   const todaysRealMetrics = allMetrics.filter(
-    (m) => m.date === latestDate && m.metricKey !== 'gaming_duration' && m.metricKey !== 'camera_interaction_count'
+    (m) => m.date === latestDate && METRIC_DEFINITIONS[m.metricKey as MetricKey]
   );
   const formatRealSnapshotSummary = (): string => {
     if (todaysRealMetrics.length === 0) return '';

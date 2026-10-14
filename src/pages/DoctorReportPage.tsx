@@ -29,14 +29,10 @@ export type MetricDisplayStatus =
   | 'active'
   | 'permission_required'
   | 'unsupported'
-  | 'waiting_data'
-  | 'self_report_required';
+  | 'waiting_data';
 
-/** Excluded from the EWMA Baseline Deviation Table per clinical report specification */
-export const EXCLUDED_EWMA_REPORT_KEYS: MetricKey[] = [
-  'gaming_duration',
-  'camera_interaction_count',
-];
+/** All 27 defined metrics are real device/sensor metrics; none are excluded */
+export const EXCLUDED_EWMA_REPORT_KEYS: MetricKey[] = [];
 
 export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDisplayStatus {
   if (hasData) return 'active';
@@ -50,13 +46,9 @@ export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDis
     key === 'mobility_radius' ||
     key === 'tremor_variance' ||
     key === 'voice_pitch_variance' ||
-    key === 'voice_speech_rate' ||
-    key === 'camera_interaction_count'
+    key === 'voice_speech_rate'
   ) {
     return 'permission_required';
-  }
-  if (key === 'gaming_duration') {
-    return 'self_report_required';
   }
   if (
     (key === 'battery_level' || key === 'is_charging') &&
@@ -99,8 +91,6 @@ function getUnavailableReason(key: MetricKey): string {
       return 'Konum (GPS) izni veya hareketlilik kaydı bekleniyor';
     case 'tremor_variance':
       return 'Cihaz Hareket (Motion) sensör izni bekleniyor';
-    case 'camera_interaction_count':
-      return 'Kamera izni bekleniyor';
     case 'light_ambient_lux':
       return 'Ekran parlaklığı vekili üzerinden ortam ışığı kaydı bekleniyor (yalnızca iOS/Android native desteklenir)';
     case 'night_light_violations':
@@ -113,8 +103,6 @@ function getUnavailableReason(key: MetricKey): string {
     case 'voice_pitch_variance':
     case 'voice_speech_rate':
       return 'Mikrofon izni verilmedi veya ses kaydı yok';
-    case 'gaming_duration':
-      return 'iOS Sandbox kısıtı nedeniyle öz-bildirim gereklidir';
     case 'cognitive_fatigue_score':
       return 'Bilişsel yorgunluk analizi için aktif oturum/yazım/dokunma verisi bekleniyor';
     case 'impulse_risk_index':

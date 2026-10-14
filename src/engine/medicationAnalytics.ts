@@ -165,7 +165,7 @@ export function analyzeMedicationImpact(
     baselines.filter((b) => (b.sampleCount ?? 0) > 0).map((b) => [b.metricKey, b])
   );
 
-  // Track core metrics + any optional clinical metrics that have real data (excluding gaming_duration & camera_interaction_count)
+  // Track core metrics + any optional clinical metrics that have real data
   const activeOptionalKeys = OPTIONAL_CLINICAL_METRICS.filter((k) =>
     sortedMetrics.some((m) => m.metricKey === k)
   );

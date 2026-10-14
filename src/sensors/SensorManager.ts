@@ -8,7 +8,6 @@ import { networkSensor } from './networkSensor';
 import { healthService } from '../services/native/healthService';
 import { deviceBatteryService } from '../services/native/deviceBatteryService';
 import { mobilityService } from '../services/native/mobilityService';
-import { keystrokeTracker } from '../services/keystrokeTracker';
 import { UserSettings } from '../types/user';
 import { runDailyAggregationAndCleanup } from '../db/aggregations';
 import { calculateEWMAForMetrics } from '../engine/BaselineEngine';
@@ -44,13 +43,11 @@ class SensorManager {
       mobilityService.stopTracking().catch(() => {});
     }
 
-    // Typing & Keystrokes
+    // Typing & Keystrokes (single unified collector to prevent double-counting)
     if (settings.sensorsEnabled.typing) {
       typingSensor.start();
-      keystrokeTracker.start();
     } else {
       typingSensor.stop();
-      keystrokeTracker.stop();
     }
 
     // Touch
@@ -100,7 +97,6 @@ class SensorManager {
       this.isEnabled('motion') ? motionSensor.flush() : Promise.resolve(),
       this.isEnabled('touch') ? touchSensor.flush() : Promise.resolve(),
       this.isEnabled('typing') ? typingSensor.flush() : Promise.resolve(),
-      this.isEnabled('typing') ? keystrokeTracker.flush() : Promise.resolve(),
       this.isEnabled('session') ? sessionSensor.flush() : Promise.resolve(),
       this.isEnabled('light') ? lightSensor.flush() : Promise.resolve(),
       this.isEnabled('network') ? networkSensor.flush() : Promise.resolve(),
@@ -182,7 +178,6 @@ class SensorManager {
   stopAll(): void {
     motionSensor.stop();
     typingSensor.stop();
-    keystrokeTracker.stop();
     touchSensor.stop();
     sessionSensor.stop();
     lightSensor.stop();

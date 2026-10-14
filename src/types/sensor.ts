@@ -38,8 +38,6 @@ export type MetricKey =
   | 'voice_speech_rate'
   | 'cognitive_fatigue_score'
   | 'impulse_risk_index'
-  | 'gaming_duration'
-  | 'camera_interaction_count'
   | 'homestay_ratio'
   | 'mobility_radius'
   | 'sleep_efficiency'
@@ -217,14 +215,6 @@ export const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     description: 'Gece yarısı ani işlem ve agresif ekran döngülerinde hesaplanan dürtüsellik skoru.',
     healthyTrend: 'lower',
   },
-  gaming_duration: {
-    key: 'gaming_duration',
-    label: 'Oyun Oturumu Süresi',
-    unit: 'dk',
-    category: 'session',
-    description: 'Günlük toplam oyun süresi ve tekil en uzun oyun oturumu süresi.',
-    healthyTrend: 'balanced',
-  },
   sleep_efficiency: {
     key: 'sleep_efficiency',
     label: 'Uyku Verimliliği',
@@ -232,14 +222,6 @@ export const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     category: 'sleep',
     description: 'Apple Sağlık üzerinden alınan TST ve WASO analizlerine dayalı uyku kalitesi.',
     healthyTrend: 'higher',
-  },
-  camera_interaction_count: {
-    key: 'camera_interaction_count',
-    label: 'Kamera Etkileşim Sıklığı',
-    unit: 'kez',
-    category: 'session',
-    description: 'Kısa sürede tekrarlayan kamera açılış sıklığı ve çekim-silme oranı.',
-    healthyTrend: 'balanced',
   },
   typing_hold_time: {
     key: 'typing_hold_time',

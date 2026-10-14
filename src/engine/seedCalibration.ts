@@ -26,8 +26,6 @@ export const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; 
   voice_speech_rate: { mean: 130, std: 15, min: 60, max: 220 },
   cognitive_fatigue_score: { mean: 22, std: 6, min: 0, max: 100 },
   impulse_risk_index: { mean: 18, std: 5, min: 0, max: 100 },
-  gaming_duration: { mean: 20, std: 15, min: 0, max: 360 },
-  camera_interaction_count: { mean: 1.5, std: 1.0, min: 0, max: 20 },
   sleep_efficiency: { mean: 85, std: 10, min: 0, max: 100 },
   homestay_ratio: { mean: 0.6, std: 0.2, min: 0, max: 1 },
   mobility_radius: { mean: 5, std: 2, min: 0, max: 50 },
@@ -39,22 +37,23 @@ export const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; 
 import { calculateEWMAForMetrics } from './BaselineEngine';
 
 /**
- * Cleans up any legacy synthetic (sampleCount === 0) baseline priors from IndexedDB
+ * Cleans up any legacy synthetic (sampleCount === 0) or deprecated baseline priors from IndexedDB
  * and ensures db.baselines only contains EWMA baselines computed from real device telemetry.
  */
 export async function ensureInitialCalibration(): Promise<boolean> {
   try {
     const allBaselines = await db.baselines.toArray();
-    const syntheticKeys = allBaselines
-      .filter((b) => !b.sampleCount || b.sampleCount <= 0)
+    const deprecatedKeys = new Set<string>(['gaming_duration', 'camera_interaction_count']);
+    const invalidKeys = allBaselines
+      .filter((b) => !b.sampleCount || b.sampleCount <= 0 || deprecatedKeys.has(b.metricKey as string))
       .map((b) => b.metricKey);
 
-    if (syntheticKeys.length > 0) {
-      await db.baselines.bulkDelete(syntheticKeys);
+    if (invalidKeys.length > 0) {
+      await db.baselines.bulkDelete(invalidKeys);
     }
 
     await calculateEWMAForMetrics();
-    return syntheticKeys.length > 0;
+    return invalidKeys.length > 0;
   } catch (err) {
     console.warn('[Calibration] Baseline cleanup error:', err);
     return false;
