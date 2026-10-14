@@ -337,10 +337,16 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                   <div className="font-semibold truncate text-[11px] text-comus-navy mb-0.5">{d.label}</div>
                   <div className="flex items-center gap-1 font-mono font-bold">
                     <Icon className="w-3.5 h-3.5" />
-                    <span>{d.changePercent > 0 ? `+${d.changePercent}%` : `${d.changePercent}%`}</span>
+                    <span>
+                      {d.changePercent !== null
+                        ? d.changePercent > 0
+                          ? `+${d.changePercent}%`
+                          : `${d.changePercent}%`
+                        : 'Veri Bekleniyor'}
+                    </span>
                   </div>
                   <div className="text-[10px] text-comus-sand-dark mt-0.5 tabular-nums">
-                    Öncesi: {d.preAvg} → {d.postAvg}
+                    Öncesi: {d.preAvg !== null ? `${d.preAvg}` : '—'} → {d.postAvg !== null ? `${d.postAvg} ${d.unit}` : '—'}
                   </div>
                 </div>
               );

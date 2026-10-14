@@ -21,7 +21,7 @@ import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
 import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
 import { PinnedInsight } from '../services/reportBuilder';
-import { NORMATIVE_DEFAULTS } from '../engine/seedCalibration';
+import { BaselineEngine } from '../engine/BaselineEngine';
 import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
 import { healthService } from '../services/native/healthService';
@@ -163,7 +163,10 @@ export const DoctorReportPage: React.FC = () => {
   const isLearning = effectiveDayCount < 14;
 
   const [capStatuses, setCapStatuses] = useState(() => sensorCapabilities.getAllCapabilities());
-  useEffect(() => sensorCapabilities.addListener((c) => setCapStatuses({ ...c })), []);
+  useEffect(() => {
+    sensorManager.evaluateNow().catch(() => {});
+    return sensorCapabilities.addListener((c) => setCapStatuses({ ...c }));
+  }, []);
 
   const isPermissionGranted = (key: MetricKey): boolean => {
     if (
@@ -221,9 +224,11 @@ export const DoctorReportPage: React.FC = () => {
     }
   };
 
-  // Compute summary stats for the report - all 21 indicators with strict Zero-Mock transparency
+  // Compute summary stats for the report - all indicators with strict Zero-Mock transparency
   const reportStats = useMemo(() => {
-    const baselineMap = new Map(baselines.map((b) => [b.metricKey, b]));
+    const realBaselineMap = new Map(
+      baselines.filter((b) => (b.sampleCount ?? 0) > 0).map((b) => [b.metricKey, b])
+    );
     const now = new Date();
     const cutoffDate = new Date(now);
     cutoffDate.setDate(cutoffDate.getDate() - selectedRange);
@@ -249,10 +254,7 @@ export const DoctorReportPage: React.FC = () => {
 
     for (const key of allKeys) {
       const def = METRIC_DEFINITIONS[key];
-      const base = baselineMap.get(key);
-      const norm = NORMATIVE_DEFAULTS[key] || { mean: 50, std: 5, min: 0, max: 100 };
-      const ewmaMean = base ? base.ewmaMean : norm.mean;
-      const ewmaStd = base ? base.ewmaStd : norm.std;
+      const base = realBaselineMap.get(key);
 
       const values = periodMetrics
         .filter((m) => m.metricKey === key)
@@ -262,6 +264,14 @@ export const DoctorReportPage: React.FC = () => {
       const statusType = getMetricStatusType(key, hasData);
 
       if (hasData) {
+        const allKeyValues = dailyMetrics
+          .filter((m) => m.metricKey === key)
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map((m) => m.value);
+        const computedBase = BaselineEngine.computeBaseline(allKeyValues, key);
+        const ewmaMean = base ? base.ewmaMean : computedBase.mean;
+        const ewmaStd = base ? base.ewmaStd : computedBase.shrunkStd;
+
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
         const dev =
           ewmaMean !== 0
@@ -814,13 +824,13 @@ export const DoctorReportPage: React.FC = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-2">
               <Pill className="w-4 h-4 text-teal-700" />
-              <span>4. Psikiyatri Tedavi & İlaç Yanıtı (Delta Analizi)</span>
+              <span>4. Psikiyatri Tedavi & İlaç Yanıtı (Delta Analizi — Gerçek Sensör Ölçümleri)</span>
             </h4>
 
             {medImpactReports.map((ir, idx) => (
               <div key={idx} className="p-4 rounded-2xl bg-teal-50/50 border border-teal-200/80 shadow-soft space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-serif font-bold text-sm text-teal-950">
                       {ir.medication.name} ({ir.medication.dosage})
                     </span>
@@ -828,14 +838,28 @@ export const DoctorReportPage: React.FC = () => {
                       • Günde {(ir.medication.timeSlots?.length || 1)}x • Başlangıç: {ir.medication.startDate}
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900">
-                    {ir.daysActive}. Günlük Tedavi Seyri
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/80 border border-teal-200 text-teal-900">
+                      Öncesi Veri: {ir.preSampleDays ?? 0} Gün • Dönem Veri: {ir.postSampleDays ?? 0} Gün
+                    </span>
+                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900">
+                      {ir.daysActive}. Günlük Tedavi Seyri
+                    </span>
+                  </div>
                 </div>
 
                 <p className="text-xs text-teal-900 leading-relaxed font-medium">
                   {ir.overallSummary}
                 </p>
+
+                {(ir.affectiveStateBefore !== null || ir.affectiveStateAfter !== null) && (
+                  <div className="text-[11px] text-teal-900 bg-white/70 border border-teal-200/60 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold">Öznel Duygudurum Ortalaması (Gerçek Ruh Hali Kayıtları):</span>
+                    <span className="font-mono font-bold">
+                      İlaç Öncesi: {ir.affectiveStateBefore !== null ? `${ir.affectiveStateBefore}/100` : 'Kayıt yok (—)'} → İlaç Dönemi: {ir.affectiveStateAfter !== null ? `${ir.affectiveStateAfter}/100` : 'Kayıt yok (—)'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Mobile Responsive Delta Display */}
                 <div className="block sm:hidden space-y-2">
@@ -843,13 +867,31 @@ export const DoctorReportPage: React.FC = () => {
                     <div key={d.metricKey} className="p-2.5 rounded-xl bg-white border border-teal-200/50 text-xs">
                       <div className="flex items-center justify-between font-semibold text-comus-navy mb-1">
                         <span>{d.label}</span>
-                        <span className={`font-mono font-bold ${d.changePercent < 0 ? 'text-indigo-700' : 'text-amber-700'}`}>
-                          {d.changePercent > 0 ? `+${d.changePercent}%` : `${d.changePercent}%`}
+                        <span
+                          className={`font-mono font-bold ${
+                            d.changePercent === null
+                              ? 'text-stone-400'
+                              : d.direction === 'improved'
+                              ? 'text-emerald-700'
+                              : d.direction === 'declined'
+                              ? 'text-rose-700'
+                              : 'text-comus-navy'
+                          }`}
+                        >
+                          {d.changePercent !== null
+                            ? d.changePercent > 0
+                              ? `+${d.changePercent}%`
+                              : `${d.changePercent}%`
+                            : '— (Veri Bekleniyor)'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-comus-sand-dark mb-1">
-                        <span>Öncesi: {d.preAvg} {d.unit}</span>
-                        <span>Sonrası: {d.postAvg} {d.unit}</span>
+                        <span>
+                          Öncesi: {d.preAvg !== null ? `${d.preAvg} ${d.unit} (${d.preSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
+                        </span>
+                        <span>
+                          Sonrası: {d.postAvg !== null ? `${d.postAvg} ${d.unit} (${d.postSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
+                        </span>
                       </div>
                       <p className="text-[10.5px] text-comus-navy/80">{d.interpretation}</p>
                     </div>
@@ -873,14 +915,28 @@ export const DoctorReportPage: React.FC = () => {
                         <tr key={d.metricKey}>
                           <td className="p-2.5 font-medium text-comus-navy">{d.label}</td>
                           <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
-                            {d.preAvg} {d.unit}
+                            {d.preAvg !== null ? `${d.preAvg} ${d.unit} (${d.preSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
                           </td>
                           <td className="p-2.5 text-right font-mono tabular-nums font-semibold text-comus-navy">
-                            {d.postAvg} {d.unit}
+                            {d.postAvg !== null ? `${d.postAvg} ${d.unit} (${d.postSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
                           </td>
                           <td className="p-2.5 text-right font-mono tabular-nums font-bold">
-                            <span className={d.changePercent < 0 ? 'text-indigo-700' : 'text-amber-700'}>
-                              {d.changePercent > 0 ? `+${d.changePercent}%` : `${d.changePercent}%`}
+                            <span
+                              className={
+                                d.changePercent === null
+                                  ? 'text-stone-400 font-normal'
+                                  : d.direction === 'improved'
+                                  ? 'text-emerald-700'
+                                  : d.direction === 'declined'
+                                  ? 'text-rose-700'
+                                  : 'text-comus-navy'
+                              }
+                            >
+                              {d.changePercent !== null
+                                ? d.changePercent > 0
+                                  ? `+${d.changePercent}%`
+                                  : `${d.changePercent}%`
+                                : '— (Veri Bekleniyor)'}
                             </span>
                           </td>
                           <td className="p-2.5 text-comus-sand-dark">{d.interpretation}</td>
@@ -1320,6 +1376,8 @@ export const DoctorReportPage: React.FC = () => {
       <DoctorShareWizard 
         isOpen={isShareWizardOpen} 
         onClose={() => setIsShareWizardOpen(false)} 
+        stats={reportStats}
+        rangeDays={selectedRange}
       />
     </div>
   );

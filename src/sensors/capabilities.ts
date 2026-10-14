@@ -179,23 +179,26 @@ export class SensorCapabilityManager {
    */
   async requestMicrophonePermission(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      this.statuses.microphone = 'granted';
-      localStorage.setItem('comus_mic_permission', 'granted');
+      this.statuses.microphone = 'unsupported';
       this.notifyListeners();
-      return true;
+      return false;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       stream.getTracks().forEach((track) => track.stop());
       this.statuses.microphone = 'granted';
-      localStorage.setItem('comus_mic_permission', 'granted');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('comus_mic_permission', 'granted');
+      }
       this.notifyListeners();
       return true;
     } catch (err) {
       console.warn('[SensorCapabilityManager] Microphone permission denied:', err);
       this.statuses.microphone = 'denied';
-      localStorage.setItem('comus_mic_permission', 'denied');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('comus_mic_permission', 'denied');
+      }
       this.notifyListeners();
       return false;
     }

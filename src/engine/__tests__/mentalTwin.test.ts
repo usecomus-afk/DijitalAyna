@@ -117,15 +117,15 @@ describe('Digital Mental Twin - EMA Integration & Clinical Narrative Engine', ()
       isEstablished,
     });
 
-    // 0.75 * 20 + 0.25 * min(75, 35) = 15 + 8.75 = 23.75 -> 24
-    expect(balanceIndex).toBe(24);
+    // During uncalibrated cold start (!isEstablished), strictly uses real EMA score (20) without synthetic passive blending
+    expect(balanceIndex).toBe(20);
     expect(balanceIndex).toBeGreaterThanOrEqual(20);
     expect(balanceIndex).toBeLessThanOrEqual(30);
     expect(balanceIndex).not.toBe(70);
   });
 
   it('derives avatar score 1 (Zorlu) when balance index is in 20-30 band', () => {
-    const score = deriveAvatarScore(24, 20, false);
+    const score = deriveAvatarScore(20, 20, false);
     expect(score).toBe(1);
   });
 
@@ -150,7 +150,7 @@ describe('Digital Mental Twin - EMA Integration & Clinical Narrative Engine', ()
 
     expect(narrative.title).toBe('Zorlu & Yoğun Yük');
     expect(narrative.subtitle).toBe('Yüksek Zihinsel Yük • Zorlanma Eğilimi');
-    expect(narrative.energyText).toBe('%24 Duygusal Denge (Düşük)');
+    expect(narrative.energyText).toBe('%20 Duygusal Denge (Düşük)');
     expect(narrative.dialogue).toContain('Anıl');
     expect(narrative.dialogue).toContain('Zorlu');
     expect(narrative.dialogue).toContain('İş');

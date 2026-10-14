@@ -27,20 +27,28 @@ export interface MedicationEffectDelta {
   metricKey: MetricKey;
   label: string;
   unit: string;
-  preAvg: number;
-  postAvg: number;
-  changePercent: number;
-  zScoreDelta: number;
-  direction: 'improved' | 'declined' | 'stable';
+  preAvg: number | null;
+  postAvg: number | null;
+  changePercent: number | null;
+  zScoreDelta: number | null;
+  preSampleCount?: number;
+  postSampleCount?: number;
+  hasPreData?: boolean;
+  hasPostData?: boolean;
+  hasComparisonData?: boolean;
+  direction: 'improved' | 'declined' | 'stable' | 'insufficient_data';
   interpretation: string;
 }
 
 export interface MedicationImpactReport {
   medication: Medication;
   daysActive: number;
+  preSampleDays?: number;
+  postSampleDays?: number;
+  hasRealComparison?: boolean;
   deltas: MedicationEffectDelta[];
-  affectiveStateBefore: number; // 0-100
-  affectiveStateAfter: number;  // 0-100
+  affectiveStateBefore: number | null; // 0-100 or null if no pre-medication mood logs
+  affectiveStateAfter: number | null;  // 0-100 or null if no post-medication mood logs
   overallSummary: string;
   circadianImpactSummary: string;
 }

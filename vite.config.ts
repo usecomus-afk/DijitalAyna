@@ -20,7 +20,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      'comus-family-controls': path.resolve(__dirname, './src/plugins/FamilyControls/src/index.ts'),
+      'comus-sleep-plugin': path.resolve(__dirname, './src/plugins/ComusSleep/src/index.ts'),
     }
   }
 });

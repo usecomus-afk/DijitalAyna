@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { MetricKey, METRIC_DEFINITIONS } from '../types/sensor';
+import { MetricKey } from '../types/sensor';
 
 /**
  * Standard healthy normative behavioral values based on digital phenotyping literature (Insel 2017, Torous et al.)
@@ -36,33 +36,27 @@ export const NORMATIVE_DEFAULTS: Record<MetricKey, { mean: number; std: number; 
   sleep_waso: { mean: 30, std: 15, min: 0, max: 180 },
 };
 
+import { calculateEWMAForMetrics } from './BaselineEngine';
+
 /**
- * Ensure initial calibration data exists so the app can immediately calculate baselines,
- * detect anomalies, synthesize biomarkers, and generate clinical insights from day 1.
+ * Cleans up any legacy synthetic (sampleCount === 0) baseline priors from IndexedDB
+ * and ensures db.baselines only contains EWMA baselines computed from real device telemetry.
  */
 export async function ensureInitialCalibration(): Promise<boolean> {
-  const existingBaselines = await db.baselines.count();
-  if (existingBaselines > 0) {
-    return false; // Already has baselines
+  try {
+    const allBaselines = await db.baselines.toArray();
+    const syntheticKeys = allBaselines
+      .filter((b) => !b.sampleCount || b.sampleCount <= 0)
+      .map((b) => b.metricKey);
+
+    if (syntheticKeys.length > 0) {
+      await db.baselines.bulkDelete(syntheticKeys);
+    }
+
+    await calculateEWMAForMetrics();
+    return syntheticKeys.length > 0;
+  } catch (err) {
+    console.warn('[Calibration] Baseline cleanup error:', err);
+    return false;
   }
-
-  console.log('[Calibration] Initializing scientific reference priors for newly installed device...');
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const keys = Object.keys(METRIC_DEFINITIONS) as MetricKey[];
-
-  for (const key of keys) {
-    const norm = NORMATIVE_DEFAULTS[key] || { mean: 50, std: 5, min: 0, max: 100 };
-    await db.baselines.put({
-      metricKey: key,
-      ewmaMean: norm.mean,
-      ewmaStd: norm.std,
-      sampleCount: 0,
-      lastUpdated: todayStr,
-      isEstablished: false,
-    });
-  }
-
-  console.log('[Calibration] Scientific reference priors initialized. Ready to collect real device telemetry.');
-  return true;
 }
