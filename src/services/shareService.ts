@@ -34,6 +34,9 @@ export interface DoctorReportShareResult extends ShareResult {
  * Triggers a clean browser download for a Blob/File (such as the generated PDF report).
  */
 export function triggerBrowserPdfDownload(blob: Blob, filename: string): boolean {
+  if (Capacitor.isNativePlatform()) {
+    return false;
+  }
   if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
     return false;
   }
@@ -142,7 +145,27 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
           message: 'Paylaşım iptal edildi.',
         };
       }
-      console.warn('[ShareService] Web file share failed, falling back to PDF download + share:', err);
+      // On iOS WKWebView, sharing files + text simultaneously can fail on some targets; retry with files only
+      try {
+        await navigator.share({
+          title,
+          files,
+        });
+        return {
+          success: true,
+          method: 'native',
+          message: `Standart şablonlu PDF raporu (${files[0].name}) başarıyla paylaşıldı.`,
+        };
+      } catch (retryErr: any) {
+        if (retryErr?.name === 'AbortError' || retryErr?.message?.includes('canceled')) {
+          return {
+            success: false,
+            method: 'native',
+            message: 'Paylaşım iptal edildi.',
+          };
+        }
+        console.warn('[ShareService] Web file share failed, falling back to native share:', retryErr);
+      }
     }
   }
 
@@ -151,13 +174,10 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
     try {
       const canShare = await Share.canShare();
       if (canShare.value) {
-        if (files && files.length > 0) {
-          triggerBrowserPdfDownload(files[0], files[0].name);
-        }
         await Share.share({
           title,
           text,
-          url,
+          ...(url ? { url } : {}),
           dialogTitle: title,
         });
         return {
@@ -181,13 +201,14 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
   // 3. Try Web Share API (Mobile Safari, Chrome Mobile, Chrome Desktop)
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
-      if (files && files.length > 0) {
-        triggerBrowserPdfDownload(files[0], files[0].name);
-      }
+      const safeFallbackUrl =
+        typeof window !== 'undefined' && /^https?:\/\//i.test(window.location.href)
+          ? window.location.href
+          : undefined;
       const shareData: ShareData = {
         title,
         text,
-        url: url || (typeof window !== 'undefined' ? window.location.href : undefined),
+        ...(url || safeFallbackUrl ? { url: url || safeFallbackUrl } : {}),
       };
 
       await navigator.share(shareData);
@@ -197,7 +218,7 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
         message: 'Klinik rapor başarıyla paylaşıldı.',
       };
     } catch (err: any) {
-      if (err.name === 'AbortError') {
+      if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
         return {
           success: false,
           method: 'native',
@@ -210,7 +231,7 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
 
   // 4. If PDF file is present on desktop browser without Web Share API, trigger PDF download automatically
   let downloadedPdf = false;
-  if (files && files.length > 0) {
+  if (files && files.length > 0 && !Capacitor.isNativePlatform()) {
     downloadedPdf = triggerBrowserPdfDownload(files[0], files[0].name);
   }
 
@@ -303,6 +324,20 @@ export async function shareDoctorReportPdf(
   });
 
   if (mode === 'download') {
+    if (Capacitor.isNativePlatform()) {
+      const shareRes = await shareContent({
+        title: `Dijital Mental İkizim Hekim Raporu (${DOCTOR_REPORT_TEMPLATE_ID}) — ${model.metadata.patientName}`,
+        text: companionText,
+        files: [file],
+      });
+      return {
+        ...shareRes,
+        templateId: DOCTOR_REPORT_TEMPLATE_ID,
+        filename,
+        pdfBytes: bytes,
+        model,
+      };
+    }
     const ok = triggerBrowserPdfDownload(blob, filename);
     return {
       success: true,
@@ -318,13 +353,15 @@ export async function shareDoctorReportPdf(
   }
 
   if (mode === 'print') {
-    triggerBrowserPdfDownload(blob, filename);
+    if (!Capacitor.isNativePlatform()) {
+      triggerBrowserPdfDownload(blob, filename);
+    }
     const html = renderDoctorReportTemplateHtml(model);
     printCanonicalDoctorReportHtml(html);
     return {
       success: true,
       method: 'print',
-      message: `Standart PDF raporu (${filename}) indirildi ve yazdırma görünümü açıldı.`,
+      message: `Standart PDF raporu (${filename}) yazdırma görünümü açıldı.`,
       templateId: DOCTOR_REPORT_TEMPLATE_ID,
       filename,
       pdfBytes: bytes,

@@ -274,4 +274,45 @@ describe('Standardized Doctor Report PDF Template & Sharing Pipeline (STD-DMI-CL
     expect(downloadOutcome.filename).toBe(shareOutcome.filename);
     expect(downloadOutcome.pdfBytes.byteLength).toBe(shareOutcome.pdfBytes.byteLength);
   });
+
+  it('5. prevents blob download navigation on native Capacitor (iOS WKWebView bridge reset protection) and retries file-only share if combined text+files fails', async () => {
+    const { Capacitor } = await import('@capacitor/core');
+    const { triggerBrowserPdfDownload } = await import('../shareService');
+
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+
+    const sampleBlob = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+    // On native Capacitor, triggerBrowserPdfDownload must return false so WKWebView never navigates to blob: URL
+    expect(triggerBrowserPdfDownload(sampleBlob, 'test.pdf')).toBe(false);
+
+    // Simulate iOS WKWebView rejecting combined { title, text, files } on first call, then succeeding on { title, files }
+    const shareSpy = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('NotAllowedError: Combined text and files not supported'))
+      .mockResolvedValueOnce(undefined);
+    const canShareSpy = vi.fn().mockReturnValue(true);
+
+    Object.defineProperty(globalThis, 'navigator', {
+      value: {
+        share: shareSpy,
+        canShare: canShareSpy,
+      },
+      configurable: true,
+      writable: true,
+    });
+
+    const reportInput = {
+      patientName: 'Canan Demir',
+      rangeDays: 14,
+      generatedAt: new Date('2026-10-14T10:00:00Z'),
+      stats: [makeStat({})],
+    };
+
+    const res = await shareDoctorReportPdf(reportInput, 'share');
+    expect(res.success).toBe(true);
+    expect(res.method).toBe('native');
+    expect(shareSpy).toHaveBeenCalledTimes(2);
+    expect(shareSpy.mock.calls[1][0].files).toBeDefined();
+    expect(shareSpy.mock.calls[1][0].text).toBeUndefined();
+  });
 });

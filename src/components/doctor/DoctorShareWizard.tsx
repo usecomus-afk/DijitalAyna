@@ -34,10 +34,12 @@ interface DoctorShareWizardProps {
   rangeDays?: number;
 }
 
+const EMPTY_ARRAY: any[] = [];
+
 export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
   isOpen,
   onClose,
-  stats = [],
+  stats = EMPTY_ARRAY,
   rangeDays = 14,
 }) => {
   const { userProfile, baselineDayCount } = useAppStore();
@@ -52,15 +54,18 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
   });
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
-  const moods = useLiveQuery(() => db.moodReports.toArray()) || [];
-  const medications = useLiveQuery(() => db.medications.toArray()) || [];
-  const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) || [];
-  const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
-  const insights = useLiveQuery(() => db.insights.toArray()) || [];
-  const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) || [];
+  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) ?? EMPTY_ARRAY;
+  const moods = useLiveQuery(() => db.moodReports.toArray()) ?? EMPTY_ARRAY;
+  const medications = useLiveQuery(() => db.medications.toArray()) ?? EMPTY_ARRAY;
+  const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) ?? EMPTY_ARRAY;
+  const baselines = useLiveQuery(() => db.baselines.toArray()) ?? EMPTY_ARRAY;
+  const insights = useLiveQuery(() => db.insights.toArray()) ?? EMPTY_ARRAY;
+  const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) ?? EMPTY_ARRAY;
   const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
-  const pinnedInsights: PinnedInsight[] = Array.isArray(pinnedItem?.value) ? pinnedItem.value : [];
+  const pinnedInsights = useMemo<PinnedInsight[]>(
+    () => (Array.isArray(pinnedItem?.value) ? pinnedItem.value : EMPTY_ARRAY),
+    [pinnedItem?.value]
+  );
 
   const medReports = useMemo(
     () => medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods)),
@@ -294,8 +299,8 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
 
             {realChartData.length > 0 ? (
               <>
-                <div className="h-44 w-full mt-1">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-44 w-full min-w-0 overflow-hidden mt-1">
+                  <ResponsiveContainer width="100%" height={176}>
                     <LineChart data={realChartData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
                       <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -561,26 +566,41 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-comus-navy/60 backdrop-blur-sm animate-fadeIn no-print">
-      <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl relative flex flex-col min-h-[440px]">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 bg-stone-100 text-stone-500 rounded-full hover:bg-stone-200 transition-colors cursor-pointer"
-          aria-label="Kapat"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="flex gap-1 mb-5 pr-8">
-          {[1, 2, 3, 4].map((s) => (
-            <div key={s} className={`h-1.5 flex-1 rounded-full ${step >= s ? 'bg-comus-copper' : 'bg-stone-100'}`} />
-          ))}
+    <div
+      onClick={onClose}
+      style={{
+        paddingTop: 'max(env(safe-area-inset-top, 20px), 20px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
+      }}
+      className="fixed inset-0 z-[100] flex items-center justify-center px-3 sm:px-4 bg-comus-navy/60 backdrop-blur-sm animate-fadeIn no-print"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl max-w-xl w-full max-h-[calc(100dvh-48px)] p-4 sm:p-6 shadow-2xl relative flex flex-col overflow-hidden"
+      >
+        <div className="flex items-center gap-3 mb-4 shrink-0">
+          <div className="flex gap-1.5 flex-1">
+            {[1, 2, 3, 4].map((s) => (
+              <div key={s} className={`h-1.5 flex-1 rounded-full ${step >= s ? 'bg-comus-copper' : 'bg-stone-100'}`} />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 bg-stone-100 text-stone-500 rounded-full hover:bg-stone-200 transition-colors cursor-pointer shrink-0"
+            aria-label="Kapat"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex-1">{renderStepContent()}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-0.5">
+          {renderStepContent()}
+        </div>
 
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-stone-100">
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-100 shrink-0">
           <button
+            type="button"
             onClick={handlePrev}
             disabled={step === 1}
             className="px-4 py-2 text-xs font-semibold text-stone-500 disabled:opacity-30 cursor-pointer"
@@ -590,6 +610,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
 
           {step < 4 ? (
             <button
+              type="button"
               onClick={handleNext}
               className="px-6 py-2 bg-comus-navy text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-soft hover:bg-comus-navy-light cursor-pointer"
             >
@@ -597,6 +618,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
             </button>
           ) : (
             <button
+              type="button"
               onClick={onClose}
               className="px-6 py-2 bg-comus-copper text-white rounded-xl text-xs font-semibold shadow-soft hover:bg-comus-copper-dark cursor-pointer"
             >

@@ -147,10 +147,14 @@ function getUnavailableReason(key: MetricKey): string {
   }
 }
 
+const EMPTY_ARRAY: any[] = [];
+
 export const DoctorReportPage: React.FC = () => {
   const { userProfile, baselineDayCount } = useAppStore();
   const [selectedRange, setSelectedRange] = useState<7 | 14 | 30>(14);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const showEmbeddedReportSheet = false;
 
   // Medication modal state
   const [isAddMedModalOpen, setIsAddMedModalOpen] = useState(false);
@@ -167,15 +171,18 @@ export const DoctorReportPage: React.FC = () => {
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
-  const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
-  const insights = useLiveQuery(() => db.insights.toArray()) || [];
-  const medications = useLiveQuery(() => db.medications.toArray()) || [];
-  const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) || [];
-  const moods = useLiveQuery(() => db.moodReports.toArray()) || [];
-  const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) || [];
+  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) ?? EMPTY_ARRAY;
+  const baselines = useLiveQuery(() => db.baselines.toArray()) ?? EMPTY_ARRAY;
+  const insights = useLiveQuery(() => db.insights.toArray()) ?? EMPTY_ARRAY;
+  const medications = useLiveQuery(() => db.medications.toArray()) ?? EMPTY_ARRAY;
+  const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) ?? EMPTY_ARRAY;
+  const moods = useLiveQuery(() => db.moodReports.toArray()) ?? EMPTY_ARRAY;
+  const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) ?? EMPTY_ARRAY;
   const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
-  const pinnedInsights: PinnedInsight[] = Array.isArray(pinnedItem?.value) ? pinnedItem.value : [];
+  const pinnedInsights = useMemo<PinnedInsight[]>(
+    () => (Array.isArray(pinnedItem?.value) ? pinnedItem.value : EMPTY_ARRAY),
+    [pinnedItem?.value]
+  );
 
   const removePinnedInsight = async (addedAt: number) => {
     await db.settings.put({
@@ -192,7 +199,6 @@ export const DoctorReportPage: React.FC = () => {
   useEffect(() => {
     const syncActiveSensors = async () => {
       try {
-        await sensorManager.flushAndCollectAll();
         await sensorManager.evaluateNow();
       } catch {
         // Ignore transient evaluation errors
@@ -501,14 +507,20 @@ export const DoctorReportPage: React.FC = () => {
     [canonicalInput]
   );
 
-  const handleShareReport = async () => {
+  const handleShareReport = () => {
     setIsShareWizardOpen(true);
   };
 
   const handleDownloadStandardPdf = async () => {
-    const res = await shareDoctorReportPdf(canonicalInput, 'download');
-    setShareFeedback(res.message);
-    setTimeout(() => setShareFeedback(null), 5000);
+    if (isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const res = await shareDoctorReportPdf(canonicalInput, 'download');
+      setShareFeedback(res.message);
+      setTimeout(() => setShareFeedback(null), 5000);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -528,14 +540,17 @@ export const DoctorReportPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
+              type="button"
+              disabled={isDownloadingPdf}
               onClick={handleDownloadStandardPdf}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft transition-all cursor-pointer disabled:opacity-50"
               title="Standart şablonlu A4 PDF raporunu hemen indir"
             >
               <Download className="w-4 h-4 shrink-0" />
               <span className="whitespace-nowrap">Standart PDF İndir</span>
             </button>
             <button
+              type="button"
               onClick={handleShareReport}
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer"
             >
@@ -622,6 +637,7 @@ export const DoctorReportPage: React.FC = () => {
           <div className="flex items-center gap-1 bg-comus-surface p-1 rounded-xl border border-comus-sand-light/30">
             {[7, 14, 30].map((days) => (
               <button
+                type="button"
                 key={days}
                 onClick={() => setSelectedRange(days as any)}
                 className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
@@ -641,7 +657,8 @@ export const DoctorReportPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Printable Report Sheet Document */}
+      {/* Printable Report Sheet Document (Hidden on DoctorReportPage per user specification) */}
+      {showEmbeddedReportSheet && (
       <div className="bg-white rounded-3xl p-5 sm:p-9 border border-comus-sand-light/30 shadow-soft-lg print:border-none print:shadow-none print:p-0 space-y-7">
         {/* Report Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
@@ -1490,6 +1507,7 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Add Medication Modal */}
       {isAddMedModalOpen && (
@@ -1651,12 +1669,14 @@ export const DoctorReportPage: React.FC = () => {
       )}
 
       {/* Doctor Share Wizard Modal */}
-      <DoctorShareWizard 
-        isOpen={isShareWizardOpen} 
-        onClose={() => setIsShareWizardOpen(false)} 
-        stats={reportStats}
-        rangeDays={selectedRange}
-      />
+      {isShareWizardOpen && (
+        <DoctorShareWizard
+          isOpen={isShareWizardOpen}
+          onClose={() => setIsShareWizardOpen(false)}
+          stats={reportStats}
+          rangeDays={selectedRange}
+        />
+      )}
     </div>
   );
 };
