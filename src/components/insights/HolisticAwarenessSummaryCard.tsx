@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, ChevronDown, ChevronUp, Share2, Check, Sparkles } from 'lucide-react';
+import { Compass, ChevronDown, ChevronUp, Share2, Check, Bell } from 'lucide-react';
 import { HolisticAwarenessSummary } from '../../engine/awarenessSynthesis';
 import { shareContent } from '../../services/shareService';
 
@@ -70,7 +70,7 @@ export const HolisticAwarenessSummaryCard: React.FC<HolisticAwarenessSummaryCard
       )}
 
       {/* Middle Body — Stretches proportionally to fill screen */}
-      <div className={`flex flex-col gap-3 ${isExpanded ? '' : 'flex-1 min-h-0 justify-between'}`}>
+      <div className={`flex flex-col gap-3 ${isExpanded ? '' : 'flex-1 min-h-0 justify-evenly'}`}>
         {/* Holistic Summary Paragraph */}
         <div className="p-4 sm:p-5 rounded-2xl bg-comus-copper-subtle/35 border border-comus-copper/20 flex items-center">
           <p className="text-xs sm:text-sm text-comus-navy leading-relaxed font-medium">
@@ -78,25 +78,35 @@ export const HolisticAwarenessSummaryCard: React.FC<HolisticAwarenessSummaryCard
           </p>
         </div>
 
-        {/* 2x2 Pillar Grid — Proportionally fills remaining height */}
+        {/* Horizontal Phone Notification-Style Banner Table (e.g. Zihinsel Tempo) */}
         {summary.pillars.length > 0 && (
-          <div className={`grid grid-cols-2 gap-2.5 ${isExpanded ? '' : 'flex-1 min-h-0 items-stretch'}`}>
+          <div className="flex flex-col gap-2.5 w-full">
             {summary.pillars.map((pillar, idx) => (
               <div
                 key={idx}
-                className="p-3.5 rounded-2xl bg-comus-surface border border-comus-sand-light/30 flex flex-col justify-center gap-1"
+                className="w-full p-3.5 sm:p-4 rounded-2xl bg-comus-surface/95 backdrop-blur-md border border-comus-sand-light/40 shadow-soft flex items-center gap-3.5"
               >
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-comus-copper shrink-0" />
-                  <span className="text-xs font-bold text-comus-navy truncate">{pillar.label}</span>
+                {/* Notification Left App Badge */}
+                <div className="w-11 h-11 rounded-2xl bg-white border border-comus-copper/25 shadow-2xs flex items-center justify-center text-comus-copper shrink-0">
+                  <Bell className="w-5 h-5" />
                 </div>
-                <p
-                  className={`text-[11px] sm:text-xs text-comus-sand-dark leading-snug ${
-                    isExpanded ? '' : 'line-clamp-3'
-                  }`}
-                >
-                  {pillar.detail}
-                </p>
+
+                {/* Horizontal Notification Content Table */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1 pb-1 border-b border-comus-sand-light/25">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs sm:text-sm font-bold text-comus-navy truncate">
+                        {pillar.label}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-medium text-comus-sand-dark bg-white/80 px-2 py-0.5 rounded-full border border-comus-sand-light/30 shrink-0">
+                      Bildirim • Şimdi
+                    </span>
+                  </div>
+                  <p className="text-xs text-comus-navy/90 leading-relaxed">
+                    {pillar.detail}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

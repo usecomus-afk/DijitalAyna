@@ -1,28 +1,21 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { App as CapApp } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
 interface SplashIntroVideoProps {
-  /** Optional trigger key (e.g. when user logs in) to replay the intro video */
   triggerKey?: string | number | boolean;
 }
 
-const MIN_REPLAY_COOLDOWN_MS = 5000;
-const MIN_BACKGROUND_DURATION_MS = 5000;
 const MAX_VIDEO_FALLBACK_MS = 4500;
 const FADE_OUT_DURATION_MS = 400;
 
-export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }) => {
+export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = () => {
   const [isRendered, setIsRendered] = useState<boolean>(true);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const lastPlayedAtRef = useRef<number>(Date.now());
-  const backgroundedAtRef = useRef<number | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevTriggerKeyRef = useRef(triggerKey);
 
   const clearTimers = useCallback(() => {
     if (fallbackTimerRef.current) {
@@ -53,23 +46,7 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
     }, FADE_OUT_DURATION_MS);
   }, [clearTimers, restoreStatusBar]);
 
-  const startSplash = useCallback(() => {
-    clearTimers();
-    lastPlayedAtRef.current = Date.now();
-    setIsFadingOut(false);
-    setIsRendered(true);
-
-    if (Capacitor.isNativePlatform()) {
-      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-      StatusBar.hide().catch(() => {});
-    }
-
-    fallbackTimerRef.current = setTimeout(() => {
-      finishSplash();
-    }, MAX_VIDEO_FALLBACK_MS);
-  }, [clearTimers, finishSplash]);
-
-  // Play video whenever overlay is rendered
+  // Play video ONLY on cold app launch (when the app is closed and opened from scratch)
   useEffect(() => {
     if (!isRendered) return;
 
@@ -106,43 +83,6 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
       clearTimers();
     };
   }, [isRendered, finishSplash, clearTimers]);
-
-  // Replay when user logs in / authenticates (if not already played in the last 5 seconds)
-  useEffect(() => {
-    const prev = prevTriggerKeyRef.current;
-    prevTriggerKeyRef.current = triggerKey;
-
-    if (!prev && triggerKey) {
-      const elapsed = Date.now() - lastPlayedAtRef.current;
-      if (elapsed >= MIN_REPLAY_COOLDOWN_MS) {
-        startSplash();
-      }
-    }
-  }, [triggerKey, startSplash]);
-
-  // Replay on app foreground entry after being closed/backgrounded on mobile
-  useEffect(() => {
-    const subPromise = CapApp.addListener('appStateChange', ({ isActive }) => {
-      if (!isActive) {
-        backgroundedAtRef.current = Date.now();
-        return;
-      }
-
-      if (backgroundedAtRef.current !== null) {
-        const bgDuration = Date.now() - backgroundedAtRef.current;
-        backgroundedAtRef.current = null;
-        const sinceLastPlay = Date.now() - lastPlayedAtRef.current;
-
-        if (bgDuration >= MIN_BACKGROUND_DURATION_MS && sinceLastPlay >= MIN_REPLAY_COOLDOWN_MS) {
-          startSplash();
-        }
-      }
-    });
-
-    return () => {
-      subPromise.then((h) => h.remove()).catch(() => {});
-    };
-  }, [startSplash]);
 
   const handleVideoReady = () => {
     if (Capacitor.isNativePlatform()) {

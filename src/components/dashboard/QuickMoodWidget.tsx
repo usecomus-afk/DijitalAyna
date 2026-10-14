@@ -161,8 +161,8 @@ export const QuickMoodWidget: React.FC<QuickMoodWidgetProps> = ({ fillHeight = f
             key={opt.id}
             onClick={() => handleSelectMood(opt.id)}
             title={opt.label}
-            className={`flex-shrink-0 w-[104px] sm:w-[114px] flex flex-col items-center justify-center ${
-              fillHeight ? 'h-full max-h-48 min-h-[136px]' : 'h-32'
+            className={`flex-shrink-0 w-[124px] sm:w-[136px] flex flex-col items-center justify-center ${
+              fillHeight ? 'h-full max-h-56 min-h-[156px]' : 'h-40'
             } p-3 rounded-2xl border transition-all duration-200 group snap-center ${
               selectedMoodId === opt.id
                 ? `${opt.bgColor} text-comus-navy font-bold border-comus-copper shadow-md scale-105 ring-1 ring-comus-copper`
@@ -172,7 +172,7 @@ export const QuickMoodWidget: React.FC<QuickMoodWidgetProps> = ({ fillHeight = f
             <img
               src={opt.avatarSrc}
               alt={opt.label}
-              className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl mb-2 drop-shadow-sm group-hover:scale-110 transition-transform"
+              className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-xl mb-2 drop-shadow-sm group-hover:scale-110 transition-transform"
             />
             <span className="text-xs sm:text-sm font-semibold text-center leading-tight w-full">
               {opt.label}
