@@ -71,40 +71,46 @@ export const MentalTwinPanel: React.FC = () => {
   };
 
   return (
-    <div className={`animate-fadeIn ${isDetailsExpanded ? 'pb-16' : ''}`}>
-      <div className="bg-white rounded-3xl w-full p-4 sm:p-6 shadow-soft-lg border-2 border-comus-copper/30 relative overflow-hidden">
+    <div className={`animate-fadeIn ${isDetailsExpanded ? 'pb-16' : 'h-viewport-main flex flex-col'}`}>
+      <div
+        className={`bg-white rounded-3xl w-full p-5 sm:p-6 shadow-soft-lg border-2 border-comus-copper/30 relative overflow-hidden ${
+          isDetailsExpanded ? '' : 'flex-1 min-h-0 flex flex-col justify-between'
+        }`}
+      >
         {/* Ambient Mood Glow Background */}
         <div
           className={`absolute inset-0 bg-gradient-to-br ${auraGradient} opacity-60 pointer-events-none transition-all duration-700`}
         />
 
         {/* Header */}
-        <div className="relative z-10 flex items-center justify-between gap-2.5 mb-3">
+        <div className="relative z-10 flex items-center justify-between gap-2.5 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper block">
+              <span className="text-[10px] sm:text-[11px] uppercase font-bold tracking-widest text-comus-copper block">
                 Kişisel Zihin Yansıması
               </span>
-              <h3 className="font-serif font-bold text-base sm:text-xl text-comus-navy leading-tight truncate">
+              <h3 className="font-serif font-bold text-lg sm:text-xl text-comus-navy leading-tight truncate">
                 {userProfile.name}’in Dijital Mental İkizi
               </h3>
             </div>
           </div>
 
-          <span className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold border shrink-0 ${badgeClass}`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold border shrink-0 ${badgeClass}`}>
             {modalTitle}
           </span>
         </div>
 
-        {/* Avatar Display Arena (Custom 3D Avatar Image) */}
+        {/* Avatar Display Arena — Stretches proportionally to fill middle viewport */}
         <div
-          className={`relative z-10 rounded-3xl p-4 sm:p-5 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}
+          className={`relative z-10 rounded-3xl p-5 sm:p-6 my-3 border border-white/60 shadow-inner flex flex-col items-center justify-evenly text-center ${bgBase} backdrop-blur-sm transition-all duration-500 ${
+            isDetailsExpanded ? '' : 'flex-1 min-h-0'
+          }`}
         >
           {/* 3D Rendered Avatar Card */}
-          <div className="relative w-32 h-32 sm:w-44 sm:h-44 mb-2.5 flex items-center justify-center">
+          <div className="relative w-40 h-40 sm:w-52 sm:h-52 flex items-center justify-center shrink-0">
             {/* Glowing Aura Ring */}
             <div
               className="absolute inset-0 rounded-3xl blur-2xl opacity-60 transition-all duration-700 animate-pulse"
@@ -120,29 +126,29 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           {/* Subtitle & Affective Balance Gauge */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2">
-            <span className="text-xs font-semibold text-comus-navy">{modalSubtitle}</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/80 border border-comus-sand-light/30 text-comus-sand-dark font-bold">
+          <div className="flex flex-wrap items-center justify-center gap-2 my-1.5">
+            <span className="text-xs sm:text-sm font-semibold text-comus-navy">{modalSubtitle}</span>
+            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-white/85 border border-comus-sand-light/30 text-comus-sand-dark font-bold">
               {energyText}
             </span>
           </div>
 
           {/* Twin Speech Bubble */}
-          <div className="relative bg-white/95 rounded-2xl p-3 sm:p-3.5 border border-comus-sand-light/30 shadow-soft text-left mt-0.5 w-full max-w-lg">
+          <div className="relative bg-white/95 rounded-2xl p-4 sm:p-5 border border-comus-sand-light/30 shadow-soft text-left w-full max-w-lg">
             <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rotate-45 border-t border-l border-comus-sand-light/30" />
-            <p className="text-xs sm:text-sm text-comus-navy leading-snug italic font-serif">
+            <p className="text-xs sm:text-sm text-comus-navy leading-relaxed italic font-serif">
               "{dialogue}"
             </p>
           </div>
         </div>
 
         {/* İncele Toggle Button */}
-        <div className="relative z-10 mt-3.5 flex justify-center">
+        <div className="relative z-10 shrink-0 flex justify-center">
           <button
             type="button"
             data-testid="mental-twin-examine-button"
             onClick={() => setIsDetailsExpanded((prev) => !prev)}
-            className="w-full sm:w-auto min-w-[180px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light text-xs font-semibold transition-all shadow-soft cursor-pointer"
+            className="w-full py-3 px-6 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light text-xs sm:text-sm font-semibold transition-all shadow-soft flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>{isDetailsExpanded ? 'Ayrıntıları Gizle' : 'İncele'}</span>
             {isDetailsExpanded ? (

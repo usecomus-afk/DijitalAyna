@@ -5,7 +5,11 @@ import { getAvatarMap } from '../../constants/avatars';
 
 const AVAILABLE_TAGS = ['İş', 'Uyku', 'Zihinsel Yük', 'Sosyal', 'Açık Hava', 'Yorgunluk'];
 
-export const QuickMoodWidget: React.FC = () => {
+interface QuickMoodWidgetProps {
+  fillHeight?: boolean;
+}
+
+export const QuickMoodWidget: React.FC<QuickMoodWidgetProps> = ({ fillHeight = false }) => {
   const avatarMap = getAvatarMap();
 
   const moodOptions = [
@@ -24,11 +28,9 @@ export const QuickMoodWidget: React.FC = () => {
   ];
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  
-  // To center 'normal' initially
+
   useEffect(() => {
     if (scrollRef.current) {
-      // scroll to center roughly
       scrollRef.current.scrollLeft = 200;
     }
   }, []);
@@ -47,7 +49,6 @@ export const QuickMoodWidget: React.FC = () => {
       : [...selectedTags, tag];
     setSelectedTags(updatedTags);
 
-    // If a report was already created in this interaction, seamlessly update its tags in Dexie
     if (lastSavedId) {
       try {
         await db.moodReports.update(lastSavedId, { tags: updatedTags });
@@ -67,10 +68,9 @@ export const QuickMoodWidget: React.FC = () => {
     setIsSaving(true);
     setSaveError(null);
     const todayStr = new Date().toISOString().split('T')[0];
-    const selectedMood = moodOptions.find(m => m.id === selectedMoodId);
+    const selectedMood = moodOptions.find((m) => m.id === selectedMoodId);
     if (!selectedMood) return;
 
-    // Combine manual tags with the selected exact mood label
     const combinedTags = Array.from(new Set([...selectedTags, selectedMood.label]));
 
     try {
@@ -120,17 +120,22 @@ export const QuickMoodWidget: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-soft border border-comus-sand-light/20">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
-            <Smile className="w-4 h-4" />
+    <div
+      className={`bg-white rounded-3xl p-5 sm:p-6 shadow-soft border border-comus-sand-light/20 ${
+        fillHeight ? 'flex-1 min-h-0 flex flex-col justify-between' : ''
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
+            <Smile className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-semibold text-comus-navy text-sm sm:text-base leading-tight">
+            <h4 className="font-serif font-bold text-comus-navy text-base sm:text-lg leading-tight">
               Kendini nasıl hissediyorsun?
             </h4>
-            <span className="text-[11px] text-comus-sand-dark">
+            <span className="text-xs text-comus-sand-dark">
               Şu anki hissiyatını seç ve kaydet
             </span>
           </div>
@@ -143,9 +148,12 @@ export const QuickMoodWidget: React.FC = () => {
         )}
       </div>
 
-      <div 
+      {/* Mood Cards Carousel — Proportionally fills center space */}
+      <div
         ref={scrollRef}
-        className="flex overflow-x-auto gap-2.5 my-4 pb-3 snap-x hide-scrollbar"
+        className={`flex overflow-x-auto gap-3 items-center snap-x hide-scrollbar ${
+          fillHeight ? 'flex-1 min-h-0 my-3 py-2' : 'my-4 pb-3'
+        }`}
         style={{ scrollBehavior: 'smooth' }}
       >
         {moodOptions.map((opt) => (
@@ -153,7 +161,9 @@ export const QuickMoodWidget: React.FC = () => {
             key={opt.id}
             onClick={() => handleSelectMood(opt.id)}
             title={opt.label}
-            className={`flex-shrink-0 w-[88px] flex flex-col items-center justify-center h-28 p-2 rounded-2xl border transition-all duration-200 group snap-center ${
+            className={`flex-shrink-0 w-[104px] sm:w-[114px] flex flex-col items-center justify-center ${
+              fillHeight ? 'h-full max-h-48 min-h-[136px]' : 'h-32'
+            } p-3 rounded-2xl border transition-all duration-200 group snap-center ${
               selectedMoodId === opt.id
                 ? `${opt.bgColor} text-comus-navy font-bold border-comus-copper shadow-md scale-105 ring-1 ring-comus-copper`
                 : `${opt.bgColor} ${opt.hoverBg} border-transparent text-comus-navy/80`
@@ -162,38 +172,44 @@ export const QuickMoodWidget: React.FC = () => {
             <img
               src={opt.avatarSrc}
               alt={opt.label}
-              className="w-14 h-14 object-contain rounded-xl mb-1.5 drop-shadow-sm group-hover:scale-110 transition-transform"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl mb-2 drop-shadow-sm group-hover:scale-110 transition-transform"
             />
-            <span className="text-[11px] font-semibold text-center leading-tight w-full">
+            <span className="text-xs sm:text-sm font-semibold text-center leading-tight w-full">
               {opt.label}
             </span>
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-comus-sand-light/10">
-        <span className="text-[11px] text-comus-sand-dark mr-1">Etiket ekle:</span>
-        {AVAILABLE_TAGS.map((tag) => {
-          const isSelected = selectedTags.includes(tag);
-          return (
-            <button
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              className={`text-xs px-2.5 py-1 rounded-xl transition-colors flex items-center gap-1 ${
-                isSelected
-                  ? 'bg-comus-navy text-white font-medium shadow-sm'
-                  : 'bg-comus-sand-subtle hover:bg-comus-sand-light/30 text-comus-sand-dark'
-              }`}
-            >
-              {isSelected ? null : <Plus className="w-3 h-3 text-comus-sand" />}
-              <span>{tag}</span>
-            </button>
-          );
-        })}
+      {/* Tags Section */}
+      <div className="pt-3 border-t border-comus-sand-light/20 space-y-2 shrink-0">
+        <span className="text-xs font-medium text-comus-sand-dark block">
+          Bu hisse eşlik eden bağlam etiketleri:
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {AVAILABLE_TAGS.map((tag) => {
+            const isSelected = selectedTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={`text-xs sm:text-sm px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-comus-navy text-white font-medium shadow-sm'
+                    : 'bg-comus-sand-subtle hover:bg-comus-sand-light/30 text-comus-sand-dark'
+                }`}
+              >
+                {isSelected ? null : <Plus className="w-3.5 h-3.5 text-comus-sand" />}
+                <span>{tag}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-3.5 pt-2.5 border-t border-comus-sand-light/10 flex items-center justify-between gap-3">
-        <span className="text-[11px] text-comus-sand-dark truncate">
+      {/* Save Action Footer */}
+      <div className="mt-3 pt-3 border-t border-comus-sand-light/20 flex items-center justify-between gap-3 shrink-0">
+        <span className="text-xs text-comus-sand-dark truncate">
           {selectedMoodId
             ? `${moodOptions.find((m) => m.id === selectedMoodId)?.label} seçildi (${selectedTags.length} etiket)`
             : 'Modunuzu ve etiketleri seçin'}
@@ -201,18 +217,18 @@ export const QuickMoodWidget: React.FC = () => {
         <button
           onClick={handleExplicitSave}
           disabled={!selectedMoodId || isSaving}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-soft hover:shadow-soft-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
             savedSuccess
               ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
               : 'bg-comus-navy hover:bg-comus-navy-light text-white'
           }`}
         >
-          <CheckCircle className={`w-3.5 h-3.5 ${savedSuccess ? 'text-white' : 'text-emerald-400'}`} />
+          <CheckCircle className={`w-4 h-4 ${savedSuccess ? 'text-white' : 'text-emerald-400'}`} />
           <span>{savedSuccess ? 'Kayıtlara işlendi' : isSaving ? 'Kaydediliyor...' : 'Kayıtlara işle'}</span>
         </button>
       </div>
       {saveError && (
-        <p role="alert" className="mt-2 text-[11px] font-medium text-rose-600">
+        <p role="alert" className="mt-2 text-[11px] font-medium text-rose-600 shrink-0">
           {saveError}
         </p>
       )}

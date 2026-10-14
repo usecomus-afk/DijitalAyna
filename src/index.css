@@ -34,6 +34,9 @@
   .bottom-safe {
     bottom: env(safe-area-inset-bottom, 0px);
   }
+  .h-viewport-main {
+    height: calc(100dvh - max(env(safe-area-inset-top, 24px), 24px) - max(env(safe-area-inset-bottom, 12px), 12px) - 142px);
+  }
 }
 
 /* Custom scrollbars for clean look */

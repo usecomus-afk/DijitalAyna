@@ -18,21 +18,23 @@ export const JournalPage: React.FC = () => {
   useViewportScrollLock(!isTestsExpanded);
 
   return (
-    <div className={`space-y-4 max-w-2xl mx-auto animate-fadeIn ${isTestsExpanded ? 'pb-20' : ''}`}>
+    <div
+      className={`max-w-2xl mx-auto animate-fadeIn ${
+        isTestsExpanded ? 'space-y-4 pb-20' : 'h-viewport-main flex flex-col justify-between gap-3'
+      }`}
+    >
       {/* Kendini nasıl hissediyorsun? — Instant Mood Check-In Widget */}
-      <QuickMoodWidget />
+      <QuickMoodWidget fillHeight={!isTestsExpanded} />
 
       {/* İncele Toggle Button */}
-      <div className="flex justify-center pt-1">
+      <div className="flex justify-center shrink-0">
         <button
           type="button"
           onClick={() => setIsTestsExpanded((prev) => !prev)}
           aria-expanded={isTestsExpanded}
-          className="w-full sm:w-auto min-w-[200px] py-2.5 px-5 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-soft cursor-pointer"
+          className="w-full py-3 px-6 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-soft cursor-pointer"
         >
-          <span>
-            {isTestsExpanded ? 'Ayrıntıları Gizle' : 'İncele'}
-          </span>
+          <span>{isTestsExpanded ? 'Ayrıntıları Gizle' : 'İncele'}</span>
           {isTestsExpanded ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
