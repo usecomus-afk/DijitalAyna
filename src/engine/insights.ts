@@ -8,8 +8,9 @@ import { checkAndTriggerCrisisIfNeeded, checkVulnerableWindowForShield } from '.
 import { notificationService } from '../services/notificationService';
 import { calculateRecentMoodScore, calculateEmotionalBalanceIndex } from './avatarNarrative';
 import { ClinicalPhenotypeClassifier } from '../classifier/ClinicalPhenotypeClassifier';
-import { resolveDailyState, applyDailyStateToInsight } from './dailyState';
+import { resolveDailyState } from './dailyState';
 import { PHENOTYPE_RULES } from '../classifier/phenotypeRules.config';
+import { getDistinctSuggestedAction, deduplicateAndEnrichInsights } from './awarenessSynthesis';
 
 /**
  * Upserts a daily insight record by primary date (YYYY-MM-DD), preserving historical records.
@@ -205,7 +206,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       badgeLabel: `Kritik Eşik • ${clinAlert.consecutiveDays || clinAlert.requiredDays || 3} Gün`,
       title: clinAlert.potentialStateLabel || `Potansiyel ${clinAlert.title} Olasılığı`,
       body: `${clinAlert.personalizedDeviationStatement}${clinAlert.statisticalSummary ? ` (${clinAlert.statisticalSummary})` : ''}`,
-      suggestedAction: clinAlert.ethicalDisclaimer,
+      suggestedAction: getDistinctSuggestedAction(clinAlert.id, {
+        isLearning,
+        variantIndex: generatedInsights.length,
+      }),
       evidence: evidenceList,
       dismissed: false,
       provisional: !isFinalized,
@@ -252,9 +256,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         body: isLearning
           ? `Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor (${sampleDays}/14 gün).${realSnap} 14 günlük stabil baz hattınız tamamlandığında sapma analizleri derinleşecektir.`
           : `Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel EWMA baz hattınla uyumlu ve dengeli seyrediyor.${realSnap}`,
-        suggestedAction: isLearning
-          ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
-          : 'Bu dingin ve sürdürülebilir ritmini korumak için günün keyfini çıkarabilirsin.',
+        suggestedAction: getDistinctSuggestedAction('healthy_balance', {
+          isLearning,
+          variantIndex: sampleDays,
+        }),
         evidence: evidenceList,
         dismissed: false,
         provisional: !isFinalized,
@@ -288,7 +293,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
           biomarkerType: rule.id,
           title: `Potansiyel ${rule.title} Olasılığı`,
           body: `${rule.personalizedDeviationStatement}${realEvidenceSuffix}`,
-          suggestedAction: rule.ethicalDisclaimer,
+          suggestedAction: getDistinctSuggestedAction(rule.id, {
+            isLearning,
+            variantIndex: generatedInsights.length,
+          }),
           evidence: evidenceList,
           dismissed: false,
           provisional: !isFinalized,
@@ -322,9 +330,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       body: isLearning
         ? `Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor (${sampleDays}/14 gün).${realSnap} 14 günlük stabil baz hattınız tamamlandığında sapma analizleri derinleşecektir.`
         : `Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz incelendi. Belirgin bir kritik eşik sapması tespit edilmedi.${realSnap}`,
-      suggestedAction: isLearning
-        ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
-        : 'Doğal ritminizi korumak için gününüze dengeli molalar eklemeye devam edebilirsiniz.',
+      suggestedAction: getDistinctSuggestedAction('healthy_balance', {
+        isLearning,
+        variantIndex: sampleDays + 1,
+      }),
       evidence: evidenceList,
       dismissed: false,
       provisional: !isFinalized,
@@ -342,8 +351,9 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
     const passiveScore = !isLearning ? ClinicalPhenotypeClassifier.calculateAffectiveStateIndex(zScores) : null;
     const balanceIndex = calculateEmotionalBalanceIndex({ recentMoodScore, passiveScore, isEstablished: !isLearning });
     const dailyState = resolveDailyState({ balanceIndex, recentMoodScore });
-    for (let i = 0; i < generatedInsights.length; i++) {
-      generatedInsights[i] = applyDailyStateToInsight(generatedInsights[i], dailyState);
+    const deduped = deduplicateAndEnrichInsights(generatedInsights, dailyState, isLearning);
+    for (let i = 0; i < deduped.length; i++) {
+      generatedInsights[i] = deduped[i];
     }
   } catch {
     // Mood data unavailable: keep generated insights as-is.

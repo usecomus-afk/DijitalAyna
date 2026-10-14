@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import { getSynthesisCopy } from '../../engine/dailyState';
+import { getDistinctSuggestedAction } from '../../engine/awarenessSynthesis';
+import { shareContent } from '../../services/shareService';
 import {
   Sparkles,
   Keyboard,
@@ -10,10 +12,14 @@ import {
   ShieldCheck,
   Cpu,
   AlertTriangle,
+  Compass,
+  Share2,
+  Check,
 } from 'lucide-react';
 
 export const MentalTwinPanel: React.FC = () => {
   const { userProfile } = useAppStore();
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const {
     avatarSrc,
     affectiveIndex,
@@ -38,15 +44,33 @@ export const MentalTwinPanel: React.FC = () => {
     phenoState !== 'euthymic_healthy_balance' &&
     phenoState !== 'learning_baseline';
 
+  const synthesisCopy = getSynthesisCopy(affectiveIndex);
+
+  const handleShareDetails = async () => {
+    const res = await shareContent({
+      title: `${userProfile.name || 'Kullanıcı'} — Dijital Mental İkiz Analizi`,
+      text: [
+        `Durum: ${modalTitle} (${energyText})`,
+        `Yansıma: "${dialogue}"`,
+        `Biyobelirteç Sentezi (İndeks ${affectiveIndex}/100): ${synthesisCopy.text}`,
+        `Sensör Özeti: Yazım ${sensorStatus.typing ?? '—'} WPM • Hareketlilik ${sensorStatus.mobility ?? '—'} Puan • Gece Ekran ${sensorStatus.night ?? '—'} dk`,
+        '',
+        '— Dijital Mental İkizim',
+      ].join('\n'),
+    });
+    setShareFeedback(res.message);
+    setTimeout(() => setShareFeedback(null), 3000);
+  };
+
   return (
     <div className="animate-fadeIn">
-      <div className="bg-white rounded-3xl w-full p-5 sm:p-7 shadow-soft-lg border-2 border-comus-copper/30 relative overflow-hidden mt-6">
+      <div className="bg-white rounded-3xl w-full p-5 sm:p-7 shadow-soft-lg border-2 border-comus-copper/30 relative overflow-hidden">
         {/* Ambient Mood Glow Background */}
         <div
           className={`absolute inset-0 bg-gradient-to-br ${auraGradient} opacity-60 pointer-events-none transition-all duration-700`}
         />
 
-        {/* Modal Header */}
+        {/* Header */}
         <div className="relative z-10 flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-2xl bg-comus-copper-subtle flex items-center justify-center text-comus-copper shrink-0">
@@ -90,41 +114,58 @@ export const MentalTwinPanel: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {earlyAwarenessAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1.5"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
-                      {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
-                    </h4>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
-                      {alert.insightType === 'anxietySleep'
-                        ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
-                        : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
-                    </span>
-                  </div>
-
-                  {alert.statisticalSummary && (
-                    <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2.5 py-1 rounded-lg border border-rose-100">
-                      📊 Biyobelirteç İstatistiği: {alert.statisticalSummary}
+              {earlyAwarenessAlerts.map((alert, idx) => {
+                const cleanedBody = (alert.notificationBody || '').replace(
+                  /\s*Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir\.?/gi,
+                  ''
+                );
+                const distinctAction = getDistinctSuggestedAction(alert.id, {
+                  variantIndex: idx,
+                });
+                return (
+                  <div
+                    key={alert.id}
+                    className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
+                        {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
+                      </h4>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
+                        {alert.insightType === 'anxietySleep'
+                          ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                          : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
+                      </span>
                     </div>
-                  )}
 
-                  <p className="text-[11px] text-comus-navy leading-relaxed">
-                    {alert.notificationBody}
-                  </p>
+                    {alert.statisticalSummary && (
+                      <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2.5 py-1 rounded-lg border border-rose-100">
+                        📊 Biyobelirteç İstatistiği: {alert.statisticalSummary}
+                      </div>
+                    )}
 
-                  {alert.explainableEvidences && alert.explainableEvidences.length > 0 && (
-                    <ul className="space-y-1 pt-1 border-t border-rose-100 text-[10px] text-comus-sand-dark list-disc list-inside">
-                      {alert.explainableEvidences.map((ev, i) => (
-                        <li key={i}>{ev}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+                    <p className="text-[11px] text-comus-navy leading-relaxed">
+                      {cleanedBody}
+                    </p>
+
+                    <div className="p-2.5 rounded-xl bg-comus-copper-subtle/35 border border-comus-copper/20 text-[11px] text-comus-navy">
+                      <span className="font-bold text-comus-copper-dark inline-flex items-center gap-1 mr-1">
+                        <Compass className="w-3 h-3 text-comus-copper inline" />
+                        Özel Öneri:
+                      </span>
+                      <span>{distinctAction}</span>
+                    </div>
+
+                    {alert.explainableEvidences && alert.explainableEvidences.length > 0 && (
+                      <ul className="space-y-1 pt-1 border-t border-rose-100 text-[10px] text-comus-sand-dark list-disc list-inside">
+                        {alert.explainableEvidences.map((ev, i) => (
+                          <li key={i}>{ev}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-2.5 pt-2 border-t border-rose-200/60 text-[10px] text-rose-900/80 italic font-medium">
@@ -199,11 +240,7 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-comus-sand-dark leading-relaxed">
-            {hasSingleDayPhenotypeSignal || earlyAwarenessAlerts.length > 0
-              ? clinicalInsight
-              : hasIndex
-              ? getSynthesisCopy(affectiveIndex).text
-              : clinicalInsight}
+            {hasIndex ? synthesisCopy.text : clinicalInsight}
           </p>
 
           <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
@@ -215,7 +252,7 @@ export const MentalTwinPanel: React.FC = () => {
               {hasSingleDayPhenotypeSignal || earlyAwarenessAlerts.length > 0
                 ? phenoLabel
                 : hasIndex
-                ? getSynthesisCopy(affectiveIndex).badge
+                ? synthesisCopy.badge
                 : phenoLabel}
             </span>
           </div>
@@ -229,7 +266,7 @@ export const MentalTwinPanel: React.FC = () => {
               <span>Yazım Akışı</span>
             </div>
             <div className="font-semibold text-comus-navy font-mono text-xs">
-              {sensorStatus.typing} WPM
+              {sensorStatus.typing ?? '—'} WPM
             </div>
           </div>
 
@@ -239,7 +276,7 @@ export const MentalTwinPanel: React.FC = () => {
               <span>Hareketlilik</span>
             </div>
             <div className="font-semibold text-comus-navy font-mono text-xs">
-              {sensorStatus.mobility} Puan
+              {sensorStatus.mobility ?? '—'} Puan
             </div>
           </div>
 
@@ -249,18 +286,28 @@ export const MentalTwinPanel: React.FC = () => {
               <span>Gece Uykusu</span>
             </div>
             <div className="font-semibold text-comus-navy font-mono text-xs">
-              {sensorStatus.night} dk ekran
+              {sensorStatus.night ?? '—'} dk ekran
             </div>
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="relative z-10 mt-4 pt-3 border-t border-comus-sand-light/20 flex items-center justify-end text-xs text-comus-sand-dark">
+        {/* Footer Share Action */}
+        <div className="relative z-10 mt-4 pt-3 border-t border-comus-sand-light/20 flex items-center justify-between gap-2 text-xs text-comus-sand-dark">
+          {shareFeedback ? (
+            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{shareFeedback}</span>
+            </span>
+          ) : (
+            <span>İstediğiniz zaman bu ayrıntıları doktorunuzla veya yakınınızla paylaşabilirsiniz.</span>
+          )}
           <button
-            onClick={() => null}
-            className="px-4 py-2 rounded-xl bg-comus-navy text-white font-medium hover:bg-comus-navy-light transition-colors shrink-0 shadow-soft"
+            type="button"
+            onClick={handleShareDetails}
+            className="px-4 py-2 rounded-xl bg-comus-surface hover:bg-comus-sand-subtle text-comus-navy border border-comus-sand-light/40 font-semibold transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
           >
-            Tamam
+            <Share2 className="w-3.5 h-3.5 text-comus-copper" />
+            <span>Ayrıntıları Paylaş</span>
           </button>
         </div>
       </div>

@@ -1,43 +1,48 @@
-import { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { DigitalTwinMirror } from '../components/dashboard/DigitalTwinMirror';
 import { MentalTwinPanel } from '../components/avatar/MentalTwinPanel';
+import { InsightCard } from '../components/insights/InsightCard';
+import { HolisticAwarenessSummaryCard } from '../components/insights/HolisticAwarenessSummaryCard';
 import { calculateZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
+import { useMentalTwinAvatar } from '../hooks/useMentalTwinAvatar';
+import {
+  deduplicateAndEnrichInsights,
+  synthesizeHolisticAwarenessSummary,
+} from '../engine/awarenessSynthesis';
 
 export const DashboardPage: React.FC = () => {
-  const { baselineDayCount } = useAppStore();
+  const { baselineDayCount, userProfile } = useAppStore();
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
+  const rawInsights = useLiveQuery(() => db.insights.toArray()) || [];
 
+  const {
+    dailyState,
+    affectiveIndex,
+    hasIndex,
+    earlyAwarenessAlerts,
+    topTags,
+  } = useMentalTwinAvatar();
 
   // Group metrics by key and find latest date
-  const { anomalies } = useMemo(() => {
+  const { anomalies, sampleDays } = useMemo(() => {
     const bMap = new Map(baselines.map(b => [b.metricKey, b]));
-    const hMap = new Map<string, { date: string; value: number }[]>();
-    const lMap = new Map<string, number>();
-
+    const distinctDates = new Set<string>();
     let maxDate = '';
 
-    // Sort metrics by date
     const sorted = [...dailyMetrics].sort((a, b) => a.date.localeCompare(b.date));
 
     for (const m of sorted) {
+      distinctDates.add(m.date);
       if (m.date > maxDate) maxDate = m.date;
-      if (!hMap.has(m.metricKey)) {
-        hMap.set(m.metricKey, []);
-      }
-      hMap.get(m.metricKey)!.push({
-        date: m.date.slice(5),
-        value: m.value,
-      });
-      lMap.set(m.metricKey, m.value);
     }
 
-    // Build anomalies for latest date
     const anoms: AnomalyResult[] = [];
     if (maxDate) {
       const todays = sorted.filter(m => m.date === maxDate);
@@ -64,21 +69,68 @@ export const DashboardPage: React.FC = () => {
     }
 
     return {
-      historyByKey: hMap,
-      latestMetricsByKey: lMap,
       anomalies: anoms,
-      baselineMap: bMap,
+      sampleDays: distinctDates.size,
     };
   }, [dailyMetrics, baselines]);
 
+  const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
+  const isLearning = effectiveDayCount < 14;
 
+  const uniqueInsights = useMemo(
+    () => deduplicateAndEnrichInsights(rawInsights, dailyState, isLearning),
+    [rawInsights, dailyState, isLearning]
+  );
 
-
+  const holisticSummary = useMemo(
+    () =>
+      synthesizeHolisticAwarenessSummary({
+        insights: uniqueInsights,
+        anomalies,
+        earlyAwarenessAlerts,
+        dailyState,
+        affectiveIndex,
+        hasIndex,
+        effectiveDayCount,
+        userName: userProfile.name,
+        topTags,
+      }),
+    [
+      uniqueInsights,
+      anomalies,
+      earlyAwarenessAlerts,
+      dailyState,
+      affectiveIndex,
+      hasIndex,
+      effectiveDayCount,
+      userProfile.name,
+      topTags,
+    ]
+  );
 
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
       <DigitalTwinMirror anomalies={anomalies} sampleDays={baselineDayCount} />
-      <MentalTwinPanel />
+
+      <HolisticAwarenessSummaryCard
+        summary={holisticSummary}
+        isExpanded={isDetailsExpanded}
+        onToggleExpand={() => setIsDetailsExpanded((prev) => !prev)}
+      />
+
+      {isDetailsExpanded && (
+        <div className="space-y-6 animate-fadeIn">
+          <MentalTwinPanel />
+
+          {uniqueInsights.length > 0 && (
+            <div className="space-y-4">
+              {uniqueInsights.map((insight) => (
+                <InsightCard key={insight.id || `${insight.date}-${insight.biomarkerType}`} insight={insight} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

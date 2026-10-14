@@ -563,3 +563,29 @@ export function generateRealReportAwarenessNotes(input: AwarenessNotesInput): Re
   return notes;
 }
 
+export {
+  DOCTOR_REPORT_TEMPLATE_ID,
+  DOCTOR_REPORT_TEMPLATE_VERSION,
+  DOCTOR_REPORT_TEMPLATE_TITLE,
+  DOCTOR_REPORT_TEMPLATE_SUBTITLE,
+  DOCTOR_REPORT_SECTION_ORDER,
+  CATEGORY_LABELS_TR,
+  buildCanonicalDoctorReportTemplate,
+  generateDoctorReportPdfBytes,
+  generateDoctorReportPdfFile,
+  renderDoctorReportTemplateHtml,
+  normalizeTextForPdf,
+  encodePdfLiteralString,
+} from './pdfReportTemplate';
+export type {
+  CanonicalDoctorReportInput,
+  CanonicalDoctorReportModel,
+  ReportKpiComparisonCard,
+  NotableComparisonRow,
+  DailyMedicationProtocolRow,
+  MedicationMultiPeriodTemplateRow,
+  MedicationImpactTemplateSection,
+  CategorizedMetricTemplateRow,
+  CategorizedMetricsGroup,
+} from './pdfReportTemplate';
+

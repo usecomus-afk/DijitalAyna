@@ -16,6 +16,8 @@ import {
   Plus,
   Trash2,
   X,
+  Download,
+  FileText,
 } from 'lucide-react';
 import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
@@ -24,7 +26,14 @@ import {
   formatMedicationDosage,
   formatMedicationSchedule,
 } from '../engine/medicationAnalytics';
-import { PinnedInsight, generateRealReportAwarenessNotes } from '../services/reportBuilder';
+import {
+  PinnedInsight,
+  generateRealReportAwarenessNotes,
+  DOCTOR_REPORT_TEMPLATE_ID,
+  buildCanonicalDoctorReportTemplate,
+  CanonicalDoctorReportInput,
+} from '../services/reportBuilder';
+import { shareDoctorReportPdf } from '../services/shareService';
 import { BaselineEngine } from '../engine/BaselineEngine';
 import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
@@ -141,7 +150,7 @@ function getUnavailableReason(key: MetricKey): string {
 export const DoctorReportPage: React.FC = () => {
   const { userProfile, baselineDayCount } = useAppStore();
   const [selectedRange, setSelectedRange] = useState<7 | 14 | 30>(14);
-  const [shareFeedback] = useState<string | null>(null);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   // Medication modal state
   const [isAddMedModalOpen, setIsAddMedModalOpen] = useState(false);
@@ -449,8 +458,57 @@ export const DoctorReportPage: React.FC = () => {
 
   const [isShareWizardOpen, setIsShareWizardOpen] = useState(false);
 
+  const canonicalInput = useMemo<CanonicalDoctorReportInput>(
+    () => ({
+      patientName: userProfile.name || 'Danışan',
+      patientEmail: userProfile.email,
+      rangeDays: selectedRange,
+      generatedAt: new Date(),
+      effectiveDayCount,
+      baselineStatus:
+        effectiveDayCount >= 14
+          ? `${effectiveDayCount} günlük kişisel EWMA baz hattı tamamlandı`
+          : `Baz hattı öğrenme sürecinde (${effectiveDayCount}/14 gün)`,
+      stats: reportStats,
+      medications,
+      todaysLogs,
+      medImpactReports,
+      moods,
+      surveys,
+      awarenessNotes,
+      pinnedInsights,
+      insights,
+    }),
+    [
+      userProfile.name,
+      userProfile.email,
+      selectedRange,
+      effectiveDayCount,
+      reportStats,
+      medications,
+      todaysLogs,
+      medImpactReports,
+      moods,
+      surveys,
+      awarenessNotes,
+      pinnedInsights,
+      insights,
+    ]
+  );
+
+  const canonicalModel = useMemo(
+    () => buildCanonicalDoctorReportTemplate(canonicalInput),
+    [canonicalInput]
+  );
+
   const handleShareReport = async () => {
     setIsShareWizardOpen(true);
+  };
+
+  const handleDownloadStandardPdf = async () => {
+    const res = await shareDoctorReportPdf(canonicalInput, 'download');
+    setShareFeedback(res.message);
+    setTimeout(() => setShareFeedback(null), 5000);
   };
 
   return (
@@ -459,18 +517,30 @@ export const DoctorReportPage: React.FC = () => {
       <div className="no-print space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-comus-navy/10 text-comus-navy text-[10.5px] font-mono font-bold mb-1">
+              <FileText className="w-3 h-3 text-comus-copper" />
+              <span>Standart Rapor Şablonu: {DOCTOR_REPORT_TEMPLATE_ID}</span>
+            </div>
             <p className="text-xs sm:text-sm text-comus-sand-dark">
-              Ruh sağlığı hekiminizle ve terapistinizle paylaşabileceğiniz tüm biyometrik göstergeler, ilaç kullanım talimatları ve günlük doz takip çizelgesi
+              Ruh sağlığı hekiminizle ve terapistinizle her paylaşımda aynı standart PDF şablonuyla paylaşabileceğiniz karşılaştırmalı biyometrik göstergeler, ilaç protokolü ve doz takip raporu
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={handleDownloadStandardPdf}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft transition-all cursor-pointer"
+              title="Standart şablonlu A4 PDF raporunu hemen indir"
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">Standart PDF İndir</span>
+            </button>
             <button
               onClick={handleShareReport}
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer"
             >
               <Share2 className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Doktorumla Paylaş</span>
+              <span className="whitespace-nowrap">Doktorumla Paylaş (PDF)</span>
             </button>
           </div>
         </div>
@@ -528,7 +598,7 @@ export const DoctorReportPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs leading-relaxed">
             <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-2xl">
-              <strong className="text-rose-950 block mb-1">Öznel Soru: "Geçen hafta nasıldın-</strong>
+              <strong className="text-rose-950 block mb-1">Öznel Soru: "Geçen hafta nasıldın?"</strong>
               <p className="text-rose-900">
                 Hasta o anki ruh haline göre hatalı veya eksik yanıt verebilir. "Çok az uyudum" veya "hep gergindim" öznel ve hatırlama yanlılığına açık bir beyandır.
               </p>
@@ -576,14 +646,17 @@ export const DoctorReportPage: React.FC = () => {
         {/* Report Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-comus-navy pb-4 gap-3">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="font-serif font-bold text-2xl text-comus-navy">Dijital Mental İkizim</span>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper border border-comus-copper/30 px-2 py-0.5 rounded">
-                Davranışsal Fenotip, İlaç Talimatı & Doz Takip Raporu
+                Davranışsal Fenotip, İlaç Talimatı &amp; Doz Takip Raporu
+              </span>
+              <span className="text-[10px] font-mono font-bold bg-comus-navy text-white px-2 py-0.5 rounded">
+                Şablon: {DOCTOR_REPORT_TEMPLATE_ID}
               </span>
             </div>
             <p className="text-xs text-comus-sand-dark">
-              Dijital Fenotipleme (Torous et al.) & EWMA İstatistiksel Baz Hattı Analiz Çıktısı
+              Dijital Fenotipleme (Torous et al.) &amp; EWMA İstatistiksel Baz Hattı Analiz Çıktısı
             </p>
           </div>
 
@@ -595,15 +668,98 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 1. Summary Narrative */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-comus-surface border border-comus-sand-light/20">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy mb-1.5 flex items-center gap-1.5">
-            <Info className="w-4 h-4 text-comus-copper" />
-            <span>1. Genel Özet & Fenotipik Eğilim</span>
-          </h4>
-          <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed">
-            {userProfile.name} adlı kullanıcının son {selectedRange} günlük cihaz içi etkileşimleri, yazım temposu, hata düzeltme oranları, fiziksel hareketlilik ve sirkadiyen dinlenme pencereleri EWMA kişisel baz hattı ile boylamsal olarak karşılaştırılmıştır. Sistemde ölçümlenen {activeCount} aktif biyobelirteç analize dahil edilmiştir ({unavailableCount} gösterge donanım/izin kısıtı nedeniyle veri toplayamamaktadır). Bu veriler klinik tanı içermemekte olup uzman hekim ve terapist değerlendirmesine destek amacıyla sunulmuştur.
-          </p>
+        {/* 1. Summary Narrative & Executive KPI Comparison Cards */}
+        <div className="space-y-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-comus-surface border border-comus-sand-light/20 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy flex items-center gap-1.5">
+              <Info className="w-4 h-4 text-comus-copper" />
+              <span>1. Yönetici Özeti, Hızlı Kıyaslama Kartları &amp; Hekim Okuma Rehberi</span>
+            </h4>
+            <p className="text-xs sm:text-sm text-comus-sand-dark leading-relaxed">
+              {canonicalModel.executiveSummary.narrative}
+            </p>
+
+            {/* 4 Comparative KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+              {canonicalModel.kpiCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="p-3 rounded-xl bg-white border border-comus-sand-light/40 shadow-xs space-y-1"
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-comus-sand-dark">
+                    {card.title}
+                  </div>
+                  <div className="text-sm font-bold text-comus-navy">{card.primaryValue}</div>
+                  <div className="text-[10.5px] font-semibold text-comus-copper">{card.comparisonLabel}</div>
+                  <p className="text-[10.5px] text-comus-sand-dark leading-snug">{card.explanation}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Clinician Quick Reading Guide */}
+            <div className="p-3 rounded-xl bg-white/80 border border-comus-sand-light/30 text-[11px] text-comus-sand-dark space-y-1">
+              <div className="font-bold text-comus-navy">Hekim İçin Karşılaştırma ve Yorumlama Rehberi:</div>
+              <ul className="list-disc pl-4 space-y-0.5">
+                {canonicalModel.executiveSummary.clinicianReadingGuide.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Notable Deviations Quick Comparison Table */}
+          {canonicalModel.notableComparisons.length > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                  Öne Çıkan Biyobelirteç Sapmaları — Kişisel EWMA Baz vs Dönem Ortalaması ({canonicalModel.notableComparisons.length} Gösterge)
+                </h5>
+                <span className="text-[10.5px] font-semibold text-amber-900 bg-white px-2.5 py-0.5 rounded-full border border-amber-200">
+                  Eşik: |Z| &ge; 1.5&sigma; veya |Değişim| &ge; %20
+                </span>
+              </div>
+              <div className="rounded-xl border border-amber-200/80 bg-white overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-amber-100/60 text-comus-navy font-semibold border-b border-amber-200/70">
+                      <th className="p-2.5">Biyobelirteç &amp; Kategori</th>
+                      <th className="p-2.5 text-right">Kişisel EWMA Baz</th>
+                      <th className="p-2.5 text-right">Dönem Ort. ({selectedRange}G)</th>
+                      <th className="p-2.5 text-right">Değişim (%)</th>
+                      <th className="p-2.5 text-right">Z-Skoru</th>
+                      <th className="p-2.5">Klinik Açıklama &amp; Kaynak</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-100 text-[11px]">
+                    {canonicalModel.notableComparisons.map((row) => (
+                      <tr key={row.key} className={row.severityLevel === 'high' ? 'bg-rose-50/40' : ''}>
+                        <td className="p-2.5 font-semibold text-comus-navy">
+                          <div>{row.label}</div>
+                          <div className="text-[10px] font-normal text-comus-sand-dark">{row.categoryLabel}</div>
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark whitespace-nowrap">
+                          {row.baselineText}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-comus-navy whitespace-nowrap">
+                          {row.periodAvgText}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-amber-800 whitespace-nowrap">
+                          {row.deviationText}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-rose-700 whitespace-nowrap">
+                          {row.zScoreText}
+                        </td>
+                        <td className="p-2.5 text-comus-sand-dark">
+                          <span className="font-semibold text-comus-navy">{row.directionLabel}: </span>
+                          {row.clinicalInterpretation} <span className="text-[10px] italic">{row.citationsText}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 2. Medication Usage Instructions (İlaç Kullanım Talimatı) */}

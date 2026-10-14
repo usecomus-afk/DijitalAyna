@@ -2,17 +2,25 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
-export const LegalDisclaimerPage: React.FC = () => {
+interface LegalDisclaimerPageProps {
+  embedded?: boolean;
+}
+
+export const LegalDisclaimerPage: React.FC<LegalDisclaimerPageProps> = ({
+  embedded = false,
+}) => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6 pb-24 animate-fadeIn">
-      <div className="flex items-center space-x-3 mb-6">
-        <button onClick={() => navigate('/menu')} className="p-2 -ml-2 text-comus-sand-dark hover:text-comus-navy transition-colors">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-xl font-bold text-comus-navy">Yasal Feragatnameler</h1>
-      </div>
+    <div className={embedded ? 'space-y-4' : 'space-y-6 pb-24 animate-fadeIn'}>
+      {!embedded && (
+        <div className="flex items-center space-x-3 mb-6">
+          <button onClick={() => navigate('/menu')} className="p-2 -ml-2 text-comus-sand-dark hover:text-comus-navy transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-bold text-comus-navy">Yasal Feragatnameler</h1>
+        </div>
+      )}
 
       <div className="bg-amber-50/70 rounded-3xl p-6 sm:p-7 shadow-soft border border-amber-200/80 space-y-4">
         <div className="flex items-center gap-2.5">

@@ -25,17 +25,25 @@ const PRINCIPLES = [
   },
 ];
 
-export const EthicsAndSciencePage: React.FC = () => {
+interface EthicsAndSciencePageProps {
+  embedded?: boolean;
+}
+
+export const EthicsAndSciencePage: React.FC<EthicsAndSciencePageProps> = ({
+  embedded = false,
+}) => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6 pb-24 animate-fadeIn">
-      <div className="flex items-center space-x-3 mb-6">
-        <button onClick={() => navigate('/menu')} className="p-2 -ml-2 text-comus-sand-dark hover:text-comus-navy transition-colors">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="text-xl font-bold text-comus-navy">Etik ve Güven</h1>
-      </div>
+    <div className={embedded ? 'space-y-4' : 'space-y-6 pb-24 animate-fadeIn'}>
+      {!embedded && (
+        <div className="flex items-center space-x-3 mb-6">
+          <button onClick={() => navigate('/menu')} className="p-2 -ml-2 text-comus-sand-dark hover:text-comus-navy transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-bold text-comus-navy">Etik ve Güven</h1>
+        </div>
+      )}
 
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-4">
         <div className="flex items-center gap-2.5">

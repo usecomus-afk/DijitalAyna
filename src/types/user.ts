@@ -44,6 +44,7 @@ export interface UserSettings {
   notificationsEnabled: boolean;
   inspirationNotificationsEnabled?: boolean;
   inspirationFrequency?: number;
+  medicationNotificationsEnabled?: boolean;
   lastAnalysisTimestamp: number;
 }
 

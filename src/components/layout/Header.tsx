@@ -13,7 +13,7 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-comus-bg/95 backdrop-blur-md border-b border-comus-sand-light/20 px-4 pb-3 sm:px-6" style={{ paddingTop: 'max(env(safe-area-inset-top, 24px), 24px)' }}>
+    <header className="no-print sticky top-0 z-40 bg-comus-bg/95 backdrop-blur-md border-b border-comus-sand-light/20 px-4 pb-3 sm:px-6" style={{ paddingTop: 'max(env(safe-area-inset-top, 24px), 24px)' }}>
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         {/* Brand with New Logo */}
         <NavLink to="/" className="flex items-center gap-2.5 group">

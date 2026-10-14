@@ -24,6 +24,7 @@ interface AppState {
   setOnboardingCompleted: (completed: boolean) => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
   setInspirationSettings: (enabled: boolean, frequency: number) => Promise<void>;
+  setMedicationNotificationsEnabled: (enabled: boolean) => Promise<boolean>;
   setCloudBackupEnabled: (enabled: boolean) => Promise<boolean>;
   syncCloudDataNow: () => Promise<{ success: boolean; message?: string }>;
   restoreFromCloudNow: (email?: string) => Promise<{ success: boolean; restored: boolean; message?: string }>;
@@ -60,6 +61,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   notificationsEnabled: true,
   inspirationNotificationsEnabled: false,
   inspirationFrequency: 1,
+  medicationNotificationsEnabled: true,
   lastAnalysisTimestamp: Date.now(),
 };
 
@@ -254,7 +256,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         return false;
       }
     } else {
-      await notificationService.cancelAll();
+      await notificationService.cancelDailyReminders();
       const updated = { ...current, notificationsEnabled: false };
       set({ settings: updated });
       await db.settings.put({ key: 'app_settings', value: updated });
@@ -283,6 +285,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     set({ settings: updated });
     await db.settings.put({ key: 'app_settings', value: updated });
+  },
+
+  setMedicationNotificationsEnabled: async (enabled: boolean): Promise<boolean> => {
+    const current = get().settings;
+    if (enabled) {
+      const granted = await notificationService.requestPermissions();
+      if (!granted) {
+        const updated = { ...current, medicationNotificationsEnabled: false };
+        set({ settings: updated });
+        await db.settings.put({ key: 'app_settings', value: updated });
+        return false;
+      }
+      const meds = await db.medications.toArray();
+      for (const med of meds) {
+        if (med.id && med.customTimes) {
+          for (let i = 0; i < med.customTimes.length; i++) {
+            const t = med.customTimes[i];
+            if (t && t.length === 5) {
+              await notificationService.scheduleMedicationReminder(med.id + i, med.name, t);
+            }
+          }
+        }
+      }
+      const updated = { ...current, medicationNotificationsEnabled: true };
+      set({ settings: updated });
+      await db.settings.put({ key: 'app_settings', value: updated });
+      return true;
+    } else {
+      await notificationService.cancelMedicationReminders();
+      const updated = { ...current, medicationNotificationsEnabled: false };
+      set({ settings: updated });
+      await db.settings.put({ key: 'app_settings', value: updated });
+      return true;
+    }
   },
 
   setCloudBackupEnabled: async (enabled: boolean): Promise<boolean> => {

@@ -20,6 +20,9 @@ import { BreathingExercisePage } from './pages/BreathingExercisePage';
 
 // Menu Pages
 import { MenuHubPage } from './pages/menu/MenuHubPage';
+import { DigitalBiomarkersPage } from './pages/menu/DigitalBiomarkersPage';
+import { EssentialsPage } from './pages/menu/EssentialsPage';
+import { NotificationsHubPage } from './pages/menu/NotificationsHubPage';
 import { ClinicalConditionsPage } from './pages/menu/ClinicalConditionsPage';
 import { ClinicalSurveyPage } from './pages/menu/ClinicalSurveyPage';
 import { BiomarkerBridgePage } from './pages/menu/BiomarkerBridgePage';
@@ -195,7 +198,10 @@ export const App: React.FC = () => {
                 <Route path="/journal/edit" element={<JournalEditPage />} />
                 <Route path="/assessment" element={<AssessmentPage />} />
 
-                {/* 13 Menu Sub-Pages */}
+                {/* Menu Sub-Pages */}
+                <Route path="/menu/digital-biomarkers" element={<DigitalBiomarkersPage />} />
+                <Route path="/menu/essentials" element={<EssentialsPage />} />
+                <Route path="/menu/notifications" element={<NotificationsHubPage />} />
                 <Route path="/menu/clinical-conditions" element={<ClinicalConditionsPage />} />
                 <Route path="/menu/clinical-survey" element={<ClinicalSurveyPage />} />
                 <Route path="/menu/biomarker-bridge" element={<BiomarkerBridgePage />} />

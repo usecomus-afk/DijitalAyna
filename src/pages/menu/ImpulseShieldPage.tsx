@@ -13,6 +13,9 @@ import {
   Copy,
   CheckCircle2,
   ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  Share2,
 } from 'lucide-react';
 import { FamilyControls } from 'comus-family-controls';
 import {
@@ -20,6 +23,7 @@ import {
   SHIELD_UNLOCK_UNTIL_KEY,
   SHIELD_SAVED_COUNT_KEY,
 } from '../../components/shield/DigitalNarcoticModal';
+import { shareContent } from '../../services/shareService';
 
 interface ProtectedAppOption {
   id: string;
@@ -108,6 +112,8 @@ export const ImpulseShieldPage: React.FC = () => {
 
   const [unlockRemainingSec, setUnlockRemainingSec] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [showShortcutGuide, setShowShortcutGuide] = useState<boolean>(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -279,16 +285,61 @@ export const ImpulseShieldPage: React.FC = () => {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  const handleShareShieldStatus = async () => {
+    const statusLabel =
+      isShieldActive && unlockRemainingSec === 0
+        ? 'Kalkan Kilitli (60 sn 4-7-8 Nefes Perdesi Aktif)'
+        : isShieldActive && unlockRemainingSec > 0
+        ? `Geçici İzin Açık (${formatCountdown(unlockRemainingSec)})`
+        : 'Pasif';
+
+    const lines = [
+      'Finansal Kontrol & Dürtü Kalkanı Özeti',
+      `• Kalkan Durumu: ${statusLabel}`,
+      `• Durdurulan Dürtü Dalgası: ${savedImpulseCount}`,
+      `• Koruma Altındaki Kategoriler (${selectedOptions.length}): ${
+        selectedOptions.map((o) => o.name).join(', ') || 'Seçilmedi'
+      }`,
+    ];
+    const res = await shareContent({
+      title: 'Finansal Kontrol & Dürtü Kalkanı',
+      text: lines.join('\n'),
+    });
+    if (res.success) {
+      setShareFeedback(res.method === 'clipboard' ? 'Kopyalandı' : 'Paylaşıldı');
+      setTimeout(() => setShareFeedback(null), 2500);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-24 animate-fadeIn">
-      <div className="flex items-center space-x-3 mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => navigate('/menu')}
+            className="p-2 -ml-2 text-comus-sand-dark hover:text-comus-navy transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-bold text-comus-navy">Finansal Kontrol &amp; Dürtü Kalkanı</h1>
+        </div>
         <button
-          onClick={() => navigate('/menu')}
-          className="p-2 -ml-2 text-comus-sand-dark hover:text-comus-navy transition-colors"
+          type="button"
+          onClick={handleShareShieldStatus}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 text-comus-navy text-xs font-semibold border border-stone-200/80 shadow-2xs transition-colors cursor-pointer shrink-0"
         >
-          <ArrowLeft className="w-6 h-6" />
+          {shareFeedback ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-emerald-700">{shareFeedback}</span>
+            </>
+          ) : (
+            <>
+              <Share2 className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Paylaş</span>
+            </>
+          )}
         </button>
-        <h1 className="text-xl font-bold text-comus-navy">Finansal Huzur ve Dürtü Kalkanı</h1>
       </div>
 
       {statusMessage && (
@@ -306,7 +357,7 @@ export const ImpulseShieldPage: React.FC = () => {
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="font-serif font-bold text-base sm:text-lg text-comus-navy tracking-tight leading-snug">
-                Finansal Huzur ve Dürtü Kalkanı
+                Finansal Kontrol &amp; Dürtü Kalkanı
               </h3>
               <p className="text-xs text-comus-sand-dark mt-1 leading-relaxed">
                 Gece uykusuz kaldığın kırılgan anlarda (02:00–05:00) veya ani harcama dürtüsü geldiğinde seçtiğin alanların önüne 60 saniyelik sakinleştirici 4-7-8 nefes perdesi koyar.
@@ -506,45 +557,67 @@ export const ImpulseShieldPage: React.FC = () => {
                 Banka ve Alışveriş Uygulamaları Açılırken Otomatik Nefes Perdesi
               </h4>
               <p className="text-xs text-comus-sand-dark mt-1 leading-relaxed">
-                iPhone’da Trendyol, Amazon, Borsa veya Mobil Bankacılık uygulamasını açtığınız anda otomatik olarak 60 saniyelik Nefes Perdesi’nin devreye girmesi için iOS <strong>Kestirmeler (Shortcuts)</strong> otomasyonuna aşağıdaki bağlantıyı ekleyebilirsiniz:
+                iPhone’da banka veya alışveriş uygulamasını açtığınız anda otomatik olarak 60 saniyelik Nefes Perdesi’nin devreye girmesi için kurulum adımlarını inceleyebilirsiniz.
               </p>
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-2">
-            <code className="text-xs font-mono font-bold text-indigo-900 truncate">
-              {SHORTCUT_DEEP_LINK}
-            </code>
-            <button
-              type="button"
-              onClick={handleCopyDeepLink}
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer"
-            >
-              {copiedLink ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Kopyalandı</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Kopyala</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowShortcutGuide((prev) => !prev)}
+            aria-expanded={showShortcutGuide}
+            className="w-full py-2.5 px-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          >
+            <span>
+              {showShortcutGuide
+                ? 'Kurulum Adımlarını Gizle'
+                : 'İncele (Otomatik Yakalama Kurulum Rehberi)'}
+            </span>
+            {showShortcutGuide ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
 
-          <ol className="text-[11px] text-comus-sand-dark space-y-1.5 list-decimal list-inside pt-1">
-            <li>
-              iPhone’unuzda <strong>Kestirmeler (Shortcuts)</strong> uygulamasını açıp <strong>Otomasyon</strong> sekmesinden <strong>+ Yeni Otomasyon</strong>’a dokunun.
-            </li>
-            <li>
-              <strong>Uygulama (App)</strong> seçeneğini seçip korunacak uygulamaları (Trendyol, Banka, Kripto vb.) ve <strong>&ldquo;Açıldığında / Hemen Çalıştır&rdquo;</strong> seçeneğini işaretleyin.
-            </li>
-            <li>
-              İşlem olarak <strong>URL’leri Aç (Open URLs)</strong> ekleyip <code>{SHORTCUT_DEEP_LINK}</code> adresini yapıştırın. Artık o uygulamayı her açtığınızda 60 saniyelik Nefes Perdesi otomatik açılır!
-            </li>
-          </ol>
+          {showShortcutGuide && (
+            <div className="space-y-3 pt-2 border-t border-indigo-100/60 animate-fadeIn">
+              <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-2">
+                <code className="text-xs font-mono font-bold text-indigo-900 truncate">
+                  {SHORTCUT_DEEP_LINK}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyDeepLink}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  {copiedLink ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Kopyalandı</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Kopyala</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <ol className="text-[11px] text-comus-sand-dark space-y-1.5 list-decimal list-inside pt-1">
+                <li>
+                  iPhone’unuzda <strong>Kestirmeler (Shortcuts)</strong> uygulamasını açıp <strong>Otomasyon</strong> sekmesinden <strong>+ Yeni Otomasyon</strong>’a dokunun.
+                </li>
+                <li>
+                  <strong>Uygulama (App)</strong> seçeneğini seçip korunacak uygulamaları (Trendyol, Banka, Kripto vb.) ve <strong>&ldquo;Açıldığında / Hemen Çalıştır&rdquo;</strong> seçeneğini işaretleyin.
+                </li>
+                <li>
+                  İşlem olarak <strong>URL’leri Aç (Open URLs)</strong> ekleyip <code>{SHORTCUT_DEEP_LINK}</code> adresini yapıştırın. Artık o uygulamayı her açtığınızda 60 saniyelik Nefes Perdesi otomatik açılır!
+                </li>
+              </ol>
+            </div>
+          )}
         </div>
       )}
 

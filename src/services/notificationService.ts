@@ -371,6 +371,21 @@ class NotificationService {
     }
   }
   /**
+   * Cancels only daily awareness reminders (1001, 1002)
+   */
+  async cancelDailyReminders(): Promise<void> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.cancel({
+          notifications: [{ id: 1001 }, { id: 1002 }],
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[NotificationService] cancelDailyReminders error:', err);
+    }
+  }
+
+  /**
    * Schedules medication reminders
    */
   async scheduleMedicationReminder(medId: number, name: string, time: string): Promise<void> {
@@ -396,7 +411,25 @@ class NotificationService {
       }
     } catch(err) {}
   }
+
+  /**
+   * Cancels all scheduled medication reminders (IDs >= 30000)
+   */
+  async cancelMedicationReminders(): Promise<void> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const pending = await LocalNotifications.getPending();
+        const medNotifs = pending.notifications.filter((n) => n.id >= 30000);
+        if (medNotifs.length > 0) {
+          await LocalNotifications.cancel({ notifications: medNotifs });
+        }
+      }
+    } catch (err) {
+      console.warn('[NotificationService] cancelMedicationReminders error:', err);
+    }
+  }
 }
 
 export const notificationService = new NotificationService();
+
 
