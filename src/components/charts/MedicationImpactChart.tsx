@@ -15,8 +15,12 @@ import {
 import { DailyMetric, MoodReport, BaselineState } from '../../types/engine';
 import { Medication } from '../../types/medication';
 import { MetricKey, METRIC_DEFINITIONS } from '../../types/sensor';
-import { analyzeMedicationImpact } from '../../engine/medicationAnalytics';
-import { Pill, Activity, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import {
+  analyzeMedicationImpact,
+  formatMedicationDosage,
+  formatMedicationSchedule,
+} from '../../engine/medicationAnalytics';
+import { Pill, Activity, ArrowUpRight, ArrowDownRight, Minus, Calendar, Clock } from 'lucide-react';
 
 interface MedicationImpactChartProps {
   medications: Medication[];
@@ -32,7 +36,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
   moods,
 }) => {
   const [selectedOverlay, setSelectedOverlay] = useState<MetricKey>('night_usage_minutes');
-  const [selectedRange, setSelectedRange] = useState<30 | 60 | 90>(30);
+  const [selectedRange, setSelectedRange] = useState<30 | 90 | 180>(90);
   const [activeMedIndex, setActiveMedIndex] = useState<number>(0);
 
   const activeMed = medications[activeMedIndex] || medications[0];
@@ -91,6 +95,13 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
 
   const activeDef = METRIC_DEFINITIONS[selectedOverlay];
   const medStartDateFormatted = activeMed ? activeMed.startDate.slice(5) : '';
+  const activeDosageLabel = activeMed ? formatMedicationDosage(activeMed.dosage) : '';
+  const activeScheduleLabel = activeMed ? formatMedicationSchedule(activeMed) : '';
+
+  const formatPct = (val: number | null) => {
+    if (val === null) return '—';
+    return `${val > 0 ? '+' : ''}${val}%`;
+  };
 
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-soft border border-comus-sand-light/20 space-y-5">
@@ -106,12 +117,12 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             </h3>
           </div>
           <p className="text-xs text-comus-sand-dark mt-0.5">
-            İlaç başlama tarihlerinin pasif davranışsal göstergeler ve ruh hali üzerindeki seyrini karşılaştırın
+            İlaç kullanımına başlama tarihi, kullanım zamanı ve dozaj bilgileriyle ilaç öncesi/sonrası 1, 3 ve 6 aylık dijital biyobelirteç karşılaştırması
           </p>
         </div>
 
         {/* Range & Metric Selectors */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 no-print">
           {/* Medication Selector (if multiple) */}
           {medications.length > 1 && (
             <select
@@ -121,7 +132,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             >
               {medications.map((m, idx) => (
                 <option key={m.id || idx} value={idx}>
-                  {m.name} ({m.dosage}mg)
+                  {m.name} ({formatMedicationDosage(m.dosage)})
                 </option>
               ))}
             </select>
@@ -130,6 +141,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
           {/* Metric Selector */}
           <div className="flex items-center gap-1 bg-comus-surface p-1 rounded-2xl border border-comus-sand-light/30 text-xs overflow-x-auto">
             <button
+              type="button"
               onClick={() => setSelectedOverlay('night_usage_minutes')}
               className={`px-2.5 py-1 rounded-xl font-medium whitespace-nowrap transition-all ${
                 selectedOverlay === 'night_usage_minutes'
@@ -140,6 +152,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
               Gece Kullanımı
             </button>
             <button
+              type="button"
               onClick={() => setSelectedOverlay('typing_wpm')}
               className={`px-2.5 py-1 rounded-xl font-medium whitespace-nowrap transition-all ${
                 selectedOverlay === 'typing_wpm'
@@ -150,6 +163,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
               Yazım Hızı
             </button>
             <button
+              type="button"
               onClick={() => setSelectedOverlay('mobility_index')}
               className={`px-2.5 py-1 rounded-xl font-medium whitespace-nowrap transition-all ${
                 selectedOverlay === 'mobility_index'
@@ -161,24 +175,66 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             </button>
           </div>
 
-          {/* Range Buttons */}
+          {/* Range Buttons: 1 Ay (30G), 3 Ay (90G), 6 Ay (180G) */}
           <div className="flex items-center gap-1 bg-comus-surface p-1 rounded-2xl border border-comus-sand-light/30 text-xs">
-            {[30, 60, 90].map((days) => (
+            {([
+              { days: 30, label: '1 Ay (30G)' },
+              { days: 90, label: '3 Ay (90G)' },
+              { days: 180, label: '6 Ay (180G)' },
+            ] as const).map(({ days, label }) => (
               <button
                 key={days}
-                onClick={() => setSelectedRange(days as any)}
+                type="button"
+                onClick={() => setSelectedRange(days)}
                 className={`px-2.5 py-1 rounded-xl font-medium transition-all ${
                   selectedRange === days
                     ? 'bg-comus-copper text-white shadow-sm'
                     : 'text-comus-sand-dark hover:text-comus-navy'
                 }`}
               >
-                {days}G
+                {label}
               </button>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Medication Protocol Metadata Banner (Start Date, Usage Time, Dosage) */}
+      {activeMed && impactReport && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/80 text-xs">
+          <div className="flex items-start gap-2.5 bg-white/80 p-2.5 rounded-xl border border-teal-100">
+            <Calendar className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                İlaç Kullanımına Başlama Tarihi (T0)
+              </div>
+              <div className="font-mono font-bold text-comus-navy mt-0.5">
+                {activeMed.startDate} ({impactReport.daysActive}. Gün)
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2.5 bg-white/80 p-2.5 rounded-xl border border-teal-100">
+            <Clock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                Kullanım Zamanı & Vakti
+              </div>
+              <div className="font-semibold text-comus-navy mt-0.5">{activeScheduleLabel}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2.5 bg-white/80 p-2.5 rounded-xl border border-teal-100">
+            <Pill className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                İlaç Adı & Dozaj Bilgisi
+              </div>
+              <div className="font-bold text-comus-navy mt-0.5">
+                {activeMed.name} — <span className="font-mono text-teal-900">{activeDosageLabel}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recharts Composed Chart with Medication Overlay */}
       <div className="h-72 sm:h-80 w-full">
@@ -218,10 +274,15 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                           <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold ${
                             isPostMed ? 'bg-teal-500 text-white' : 'bg-white/20 text-white/80'
                           }`}>
-                            {isPostMed ? `${activeMed.name} Dönemi` : 'İlaç Öncesi'}
+                            {isPostMed ? `${activeMed.name} (${activeDosageLabel}) Dönemi` : 'İlaç Öncesi Dönem'}
                           </span>
                         )}
                       </div>
+                      {activeMed && (
+                        <div className="text-[10px] text-teal-200">
+                          Başlangıç: {activeMed.startDate} • {activeScheduleLabel}
+                        </div>
+                      )}
                       <div className="text-comus-copper-light">
                         Ruh Hali: <strong className="font-bold">{data.moodScore ? `${data.moodScore} / 5` : 'Girilmedi'}</strong>
                       </div>
@@ -263,7 +324,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                 strokeDasharray="4 4"
                 strokeWidth={2}
                 label={{
-                  value: `💊 ${activeMed.name} (${activeMed.dosage}mg)`,
+                  value: `💊 ${activeMed.name} (${activeDosageLabel}) • T0: ${activeMed.startDate}`,
                   position: 'insideTopLeft',
                   fill: '#0F766E',
                   fontSize: 11,
@@ -299,26 +360,31 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
         </ResponsiveContainer>
       </div>
 
-      {/* Pre vs Post Delta Analytics Report Card */}
+      {/* Pre vs Post Delta Analytics & 1m / 3m / 6m Comparative Digital Biomarkers Table */}
       {impactReport && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/60 border border-teal-200/80 space-y-3">
+        <div className="p-4 sm:p-5 rounded-2xl bg-teal-50/60 border border-teal-200/80 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-teal-200/60 pb-2.5">
             <div className="flex items-center gap-2">
               <Pill className="w-4 h-4 text-teal-700 shrink-0" />
               <h4 className="font-serif font-bold text-sm text-teal-950">
-                {impactReport.medication.name} ({impactReport.medication.dosage}mg) Tedavi Etki Değerlendirmesi
+                {impactReport.medication.name} ({impactReport.formattedDosage}) — Tedavi Etki & Karşılaştırmalı Dijital Biyobelirteçler Analizi
               </h4>
             </div>
-            <span className="text-[11px] font-semibold text-teal-800 bg-teal-100/80 px-2.5 py-0.5 rounded-full">
-              Kullanım Süresi: {impactReport.daysActive}. Gün
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-teal-900 bg-white/80 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                Başlangıç: {impactReport.medication.startDate} • {impactReport.formattedSchedule}
+              </span>
+              <span className="text-[11px] font-semibold text-teal-800 bg-teal-100/80 px-2.5 py-0.5 rounded-full">
+                Kullanım Süresi: {impactReport.daysActive}. Gün
+              </span>
+            </div>
           </div>
 
           <p className="text-xs sm:text-sm text-teal-900 leading-relaxed font-medium">
             "{impactReport.overallSummary}"
           </p>
 
-          {/* Delta Metrics Grid */}
+          {/* Delta Metrics Quick Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-1">
             {impactReport.deltas.map((d) => {
               let Icon = Minus;
@@ -352,6 +418,84 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
               );
             })}
           </div>
+
+          {/* 1-Month, 3-Month, 6-Month Pre vs Post Comparative Digital Biomarkers Table */}
+          {impactReport.multiPeriodTable && impactReport.multiPeriodTable.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-teal-950">
+                  İlaç Öncesi Son 1 Ay, 3 Ay, 6 Ay vs İlaç Sonrası Karşılaştırmalı Dijital Biyobelirteçler Tablosu
+                </h5>
+                <span className="text-[10px] text-teal-800 font-medium">
+                  Öncesi Kayıtlı Gün: 1A ({impactReport.pre1MonthSampleDays}g) • 3A ({impactReport.pre3MonthsSampleDays}g) • 6A ({impactReport.pre6MonthsSampleDays}g) | Sonrası: {impactReport.postSampleDays}g
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-teal-200/80 bg-white overflow-x-auto">
+                <table className="w-full text-left text-[11px] border-collapse">
+                  <thead>
+                    <tr className="bg-teal-100/60 text-teal-950 font-semibold border-b border-teal-200/70">
+                      <th className="p-2.5">Dijital Biyobelirteç</th>
+                      <th className="p-2.5 text-right">Öncesi Son 1 Ay (30G)</th>
+                      <th className="p-2.5 text-right">Öncesi Son 3 Ay (90G)</th>
+                      <th className="p-2.5 text-right">Öncesi Son 6 Ay (180G)</th>
+                      <th className="p-2.5 text-right">İlaç Sonrası (1A / 3A / 6A & Genel)</th>
+                      <th className="p-2.5 text-right">Değişim (Delta % 1A / 3A / 6A)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-teal-100">
+                    {impactReport.multiPeriodTable.map((row) => (
+                      <tr key={row.metricKey} className="hover:bg-teal-50/30">
+                        <td className="p-2.5 font-semibold text-comus-navy">
+                          {row.label} <span className="text-[10px] font-normal text-comus-sand-dark">({row.unit})</span>
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
+                          {row.pre1Month.avg !== null
+                            ? `${row.pre1Month.avg} ${row.unit} (${row.pre1Month.sampleCount}g)`
+                            : 'Kayıt yok (—)'}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
+                          {row.pre3Months.avg !== null
+                            ? `${row.pre3Months.avg} ${row.unit} (${row.pre3Months.sampleCount}g)`
+                            : 'Kayıt yok (—)'}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
+                          {row.pre6Months.avg !== null
+                            ? `${row.pre6Months.avg} ${row.unit} (${row.pre6Months.sampleCount}g)`
+                            : 'Kayıt yok (—)'}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums font-semibold text-comus-navy">
+                          {row.postOverall.avg !== null ? (
+                            <div>
+                              <div>Genel: {row.postOverall.avg} {row.unit} ({row.postOverall.sampleCount}g)</div>
+                              <div className="text-[10px] font-normal text-comus-sand-dark">
+                                1A: {row.post1Month.avg !== null ? `${row.post1Month.avg}` : '—'} | 3A: {row.post3Months.avg !== null ? `${row.post3Months.avg}` : '—'} | 6A: {row.post6Months.avg !== null ? `${row.post6Months.avg}` : '—'}
+                              </div>
+                            </div>
+                          ) : (
+                            'Kayıt yok (—)'
+                          )}
+                        </td>
+                        <td className="p-2.5 text-right font-mono tabular-nums font-bold">
+                          <span
+                            className={
+                              row.direction === 'improved'
+                                ? 'text-emerald-700'
+                                : row.direction === 'declined'
+                                ? 'text-rose-700'
+                                : 'text-comus-navy'
+                            }
+                          >
+                            1A: {formatPct(row.pre1Month.changePercent)} | 3A: {formatPct(row.pre3Months.changePercent)} | 6A: {formatPct(row.pre6Months.changePercent)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

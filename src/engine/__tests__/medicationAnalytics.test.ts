@@ -199,7 +199,7 @@ describe('Medication Analytics Engine (Zero Fabrication & Real Telemetry)', () =
     expect(report.affectiveStateAfter!).toBeGreaterThan(report.affectiveStateBefore!);
   });
 
-  it('should generate meaningful summary narrative with real medication dosage', () => {
+  it('should generate meaningful summary narrative with real medication dosage, schedule, and start date', () => {
     const report = analyzeMedicationImpact(
       sampleMedication,
       sampleDailyMetrics,
@@ -207,7 +207,55 @@ describe('Medication Analytics Engine (Zero Fabrication & Real Telemetry)', () =
       sampleMoods
     );
 
-    expect(report.overallSummary).toContain('Escitalopram 10mg');
+    expect(report.overallSummary).toContain('Escitalopram');
+    expect(report.overallSummary).toContain('10 mg');
+    expect(report.overallSummary).toContain('2026-08-10');
+    expect(report.formattedDosage).toBe('10 mg');
+    expect(report.formattedSchedule).toContain('Sabah');
+  });
+
+  it('should compute 1-month, 3-month, and 6-month pre-medication vs post-medication comparative table accurately from real dailyMetrics', () => {
+    const multiWindowMetrics: DailyMetric[] = [
+      // 5 months before startDate (2026-08-10) -> inside 6m window, outside 3m & 1m
+      { date: '2026-03-15', metricKey: 'night_usage_minutes', value: 40, sampleCount: 1 },
+      // 2 months before startDate (2026-08-10) -> inside 6m & 3m windows, outside 1m
+      { date: '2026-06-15', metricKey: 'night_usage_minutes', value: 30, sampleCount: 1 },
+      // 5 days before startDate (2026-08-10) -> inside 1m, 3m, and 6m windows
+      { date: '2026-08-05', metricKey: 'night_usage_minutes', value: 20, sampleCount: 1 },
+      // Post-medication (on or after 2026-08-10)
+      { date: '2026-08-12', metricKey: 'night_usage_minutes', value: 10, sampleCount: 1 },
+    ];
+
+    const report = analyzeMedicationImpact(
+      sampleMedication,
+      multiWindowMetrics,
+      [],
+      []
+    );
+
+    expect(report.pre1MonthSampleDays).toBe(1);
+    expect(report.pre3MonthsSampleDays).toBe(2);
+    expect(report.pre6MonthsSampleDays).toBe(3);
+
+    const nightRow = report.multiPeriodTable.find((r) => r.metricKey === 'night_usage_minutes');
+    expect(nightRow).toBeDefined();
+    // 1 month pre: only 2026-08-05 (value=20) -> post=10 (-50%)
+    expect(nightRow?.pre1Month.avg).toBe(20);
+    expect(nightRow?.pre1Month.sampleCount).toBe(1);
+    expect(nightRow?.pre1Month.changePercent).toBe(-50);
+
+    // 3 months pre: 2026-06-15 (30) and 2026-08-05 (20) -> avg=25 -> post=10 (-60%)
+    expect(nightRow?.pre3Months.avg).toBe(25);
+    expect(nightRow?.pre3Months.sampleCount).toBe(2);
+    expect(nightRow?.pre3Months.changePercent).toBe(-60);
+
+    // 6 months pre: 40, 30, 20 -> avg=30 -> post=10 (-67%)
+    expect(nightRow?.pre6Months.avg).toBe(30);
+    expect(nightRow?.pre6Months.sampleCount).toBe(3);
+    expect(nightRow?.pre6Months.changePercent).toBe(-67);
+
+    expect(nightRow?.postOverall.avg).toBe(10);
+    expect(nightRow?.post1Month.avg).toBe(10);
   });
 
   it('generateClinicianMedicationReport should also never fabricate deltas from baselines', () => {

@@ -19,13 +19,18 @@ import {
 } from 'lucide-react';
 import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
-import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
+import {
+  analyzeMedicationImpact,
+  formatMedicationDosage,
+  formatMedicationSchedule,
+} from '../engine/medicationAnalytics';
 import { PinnedInsight, generateRealReportAwarenessNotes } from '../services/reportBuilder';
 import { BaselineEngine } from '../engine/BaselineEngine';
 import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
 import { healthService } from '../services/native/healthService';
 import { DoctorShareWizard } from '../components/doctor/DoctorShareWizard';
+import { MedicationImpactChart } from '../components/charts/MedicationImpactChart';
 import { TimeSlot, Medication } from '../types/medication';
 import { notificationService } from '../services/notificationService';
 
@@ -704,11 +709,11 @@ export const DoctorReportPage: React.FC = () => {
                           <div className="font-semibold text-xs text-comus-navy flex items-center gap-1.5">
                             <span>{med.name}</span>
                             <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100 text-teal-900 rounded font-bold">
-                              {med.dosage}
+                              {formatMedicationDosage(med.dosage)}
                             </span>
                           </div>
                           <span className="text-[10px] text-comus-sand-dark">
-                            Başlangıç: {med.startDate}
+                            Başlama Tarihi: {med.startDate}
                           </span>
                         </div>
                       </div>
@@ -746,11 +751,7 @@ export const DoctorReportPage: React.FC = () => {
 
                     <div className="pt-2 border-t border-comus-sand-light/20 text-[11px] space-y-1">
                       <div className="text-comus-navy font-medium">
-                        {med.timeSlots?.length === 1
-                          ? 'Günde 1x (Sabah 09:00)'
-                          : med.timeSlots?.length === 2
-                          ? 'Günde 2x (Sabah / Akşam)'
-                          : 'Günde 3x (Sabah / Öğle / Akşam)'}
+                        {formatMedicationSchedule(med)}
                         {' • '}Tok karnına, bol su ile
                       </div>
                       <p className="text-[10.5px] text-comus-sand-dark italic">
@@ -775,7 +776,7 @@ export const DoctorReportPage: React.FC = () => {
               <thead>
                 <tr className="bg-comus-sand-subtle text-comus-navy font-semibold border-b border-comus-sand-light/30">
                   <th className="p-3">İlaç Adı & Dozajı</th>
-                  <th className="p-3">Kullanım Vakti</th>
+                  <th className="p-3">Kullanım Zamanı & Vakti</th>
                   <th className="p-3">Alım Şekli & Koşulu</th>
                   <th className="p-3">Terapötik Amaç / Hekim Talimatı</th>
                   <th className="p-3 text-center">Bugünkü Durum</th>
@@ -793,19 +794,15 @@ export const DoctorReportPage: React.FC = () => {
                             <Pill className="w-3.5 h-3.5 text-teal-700 shrink-0" />
                             <span>{med.name}</span>
                             <span className="font-mono text-[10.5px] px-1.5 py-0.2 bg-teal-100/80 text-teal-900 rounded font-bold">
-                              {med.dosage}
+                              {formatMedicationDosage(med.dosage)}
                             </span>
                           </div>
                           <div className="text-[10px] text-comus-sand-dark mt-0.5">
-                            Başlangıç: {med.startDate}
+                            Başlama Tarihi: {med.startDate}
                           </div>
                         </td>
                         <td className="p-3 text-comus-navy font-medium">
-                          {med.timeSlots?.length === 1
-                            ? 'Günde 1x (Sabah 09:00)'
-                            : med.timeSlots?.length === 2
-                            ? 'Günde 2x (Sabah / Akşam)'
-                            : 'Günde 3x (Sabah / Öğle / Akşam)'}
+                          {formatMedicationSchedule(med)}
                         </td>
                         <td className="p-3 text-comus-sand-dark">
                           Tok karnına, bol su ile
@@ -860,142 +857,194 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 4. Medications & Treatment Response Section (Delta Analizi) */}
-        {medications.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-2">
-              <Pill className="w-4 h-4 text-teal-700" />
-              <span>4. Psikiyatri Tedavi & İlaç Yanıtı (Delta Analizi — Gerçek Sensör Ölçümleri)</span>
-            </h4>
+        {/* 4. İlaç Etki & Zaman Serisi Bindirme Analizi ve 1, 3, 6 Aylık Karşılaştırmalı Dijital Biyobelirteçler Tablosu (Zorunlu Paylaşım Bölümü) */}
+        <div className="space-y-4">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-2">
+            <Pill className="w-4 h-4 text-teal-700" />
+            <span>
+              4. İlaç Etki & Zaman Serisi Bindirme Analizi ve 1, 3, 6 Aylık Karşılaştırmalı Dijital Biyobelirteçler Tablosu
+            </span>
+          </h4>
 
-            {medImpactReports.map((ir, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-teal-50/50 border border-teal-200/80 shadow-soft space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-serif font-bold text-sm text-teal-950">
-                      {ir.medication.name} ({ir.medication.dosage})
-                    </span>
-                    <span className="text-[11px] text-teal-800">
-                      • Günde {(ir.medication.timeSlots?.length || 1)}x • Başlangıç: {ir.medication.startDate}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/80 border border-teal-200 text-teal-900">
-                      Öncesi Veri: {ir.preSampleDays ?? 0} Gün • Dönem Veri: {ir.postSampleDays ?? 0} Gün
-                    </span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900">
-                      {ir.daysActive}. Günlük Tedavi Seyri
-                    </span>
-                  </div>
-                </div>
+          {medications.length > 0 ? (
+            <>
+              {/* Embedded Time Series Overlay Chart */}
+              <MedicationImpactChart
+                medications={medications}
+                metrics={dailyMetrics}
+                baselines={baselines}
+                moods={moods}
+              />
 
-                <p className="text-xs text-teal-900 leading-relaxed font-medium">
-                  {ir.overallSummary}
-                </p>
-
-                {(ir.affectiveStateBefore !== null || ir.affectiveStateAfter !== null) && (
-                  <div className="text-[11px] text-teal-900 bg-white/70 border border-teal-200/60 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-semibold">Öznel Duygudurum Ortalaması (Gerçek Ruh Hali Kayıtları):</span>
-                    <span className="font-mono font-bold">
-                      İlaç Öncesi: {ir.affectiveStateBefore !== null ? `${ir.affectiveStateBefore}/100` : 'Kayıt yok (—)'} → İlaç Dönemi: {ir.affectiveStateAfter !== null ? `${ir.affectiveStateAfter}/100` : 'Kayıt yok (—)'}
-                    </span>
-                  </div>
-                )}
-
-                {/* Mobile Responsive Delta Display */}
-                <div className="block sm:hidden space-y-2">
-                  {ir.deltas.map((d) => (
-                    <div key={d.metricKey} className="p-2.5 rounded-xl bg-white border border-teal-200/50 text-xs">
-                      <div className="flex items-center justify-between font-semibold text-comus-navy mb-1">
-                        <span>{d.label}</span>
-                        <span
-                          className={`font-mono font-bold ${
-                            d.changePercent === null
-                              ? 'text-stone-400'
-                              : d.direction === 'improved'
-                              ? 'text-emerald-700'
-                              : d.direction === 'declined'
-                              ? 'text-rose-700'
-                              : 'text-comus-navy'
-                          }`}
-                        >
-                          {d.changePercent !== null
-                            ? d.changePercent > 0
-                              ? `+${d.changePercent}%`
-                              : `${d.changePercent}%`
-                            : '— (Veri Bekleniyor)'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-comus-sand-dark mb-1">
-                        <span>
-                          Öncesi: {d.preAvg !== null ? `${d.preAvg} ${d.unit} (${d.preSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
-                        </span>
-                        <span>
-                          Sonrası: {d.postAvg !== null ? `${d.postAvg} ${d.unit} (${d.postSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-comus-navy/80">{d.interpretation}</p>
+              {medImpactReports.map((ir, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-teal-50/50 border border-teal-200/80 shadow-soft space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-serif font-bold text-sm text-teal-950">
+                        {ir.medication.name} ({ir.formattedDosage})
+                      </span>
+                      <span className="text-[11px] text-teal-900 font-semibold">
+                        • Başlama Tarihi (T0): {ir.medication.startDate} • Kullanım Zamanı: {ir.formattedSchedule} • Dozaj: {ir.formattedDosage}
+                      </span>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/80 border border-teal-200 text-teal-900">
+                        Öncesi Kayıt: 1A ({ir.pre1MonthSampleDays}g) / 3A ({ir.pre3MonthsSampleDays}g) / 6A ({ir.pre6MonthsSampleDays}g) • Sonrası: {ir.postSampleDays ?? 0}g
+                      </span>
+                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900">
+                        {ir.daysActive}. Günlük Tedavi Seyri
+                      </span>
+                    </div>
+                  </div>
 
-                {/* Desktop Delta Table */}
-                <div className="hidden sm:block rounded-xl border border-teal-200/60 bg-white overflow-hidden">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-teal-100/50 text-teal-950 font-semibold border-b border-teal-200/60">
-                        <th className="p-2.5">Biyobelirteç / Metrik</th>
-                        <th className="p-2.5 text-right">İlaç Öncesi Baz</th>
-                        <th className="p-2.5 text-right">İlaç Dönemi Ort.</th>
-                        <th className="p-2.5 text-right">Değişim (Delta %)</th>
-                        <th className="p-2.5">Klinik Yansıma</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-teal-100 text-[11px]">
-                      {ir.deltas.map((d) => (
-                        <tr key={d.metricKey}>
-                          <td className="p-2.5 font-medium text-comus-navy">{d.label}</td>
-                          <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
-                            {d.preAvg !== null ? `${d.preAvg} ${d.unit} (${d.preSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
-                          </td>
-                          <td className="p-2.5 text-right font-mono tabular-nums font-semibold text-comus-navy">
-                            {d.postAvg !== null ? `${d.postAvg} ${d.unit} (${d.postSampleCount ?? 0}g)` : 'Kayıt yok (—)'}
-                          </td>
-                          <td className="p-2.5 text-right font-mono tabular-nums font-bold">
-                            <span
-                              className={
-                                d.changePercent === null
-                                  ? 'text-stone-400 font-normal'
-                                  : d.direction === 'improved'
-                                  ? 'text-emerald-700'
-                                  : d.direction === 'declined'
-                                  ? 'text-rose-700'
-                                  : 'text-comus-navy'
-                              }
-                            >
-                              {d.changePercent !== null
-                                ? d.changePercent > 0
-                                  ? `+${d.changePercent}%`
-                                  : `${d.changePercent}%`
-                                : '— (Veri Bekleniyor)'}
-                            </span>
-                          </td>
-                          <td className="p-2.5 text-comus-sand-dark">{d.interpretation}</td>
+                  <p className="text-xs text-teal-900 leading-relaxed font-medium">
+                    {ir.timeSeriesOverlaySummary}
+                  </p>
+
+                  <p className="text-xs text-teal-950/90 leading-relaxed">
+                    {ir.overallSummary}
+                  </p>
+
+                  {(ir.affectiveStateBefore !== null || ir.affectiveStateAfter !== null) && (
+                    <div className="text-[11px] text-teal-900 bg-white/70 border border-teal-200/60 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold">Öznel Duygudurum Ortalaması (Gerçek Ruh Hali Kayıtları):</span>
+                      <span className="font-mono font-bold">
+                        İlaç Öncesi: {ir.affectiveStateBefore !== null ? `${ir.affectiveStateBefore}/100` : 'Kayıt yok (—)'} → İlaç Başladıktan Sonra: {ir.affectiveStateAfter !== null ? `${ir.affectiveStateAfter}/100` : 'Kayıt yok (—)'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Mobile Responsive Multi-Period (1m / 3m / 6m) Delta Display */}
+                  <div className="block sm:hidden space-y-2">
+                    {ir.multiPeriodTable.map((row) => (
+                      <div key={row.metricKey} className="p-2.5 rounded-xl bg-white border border-teal-200/50 text-xs space-y-1">
+                        <div className="flex items-center justify-between font-semibold text-comus-navy">
+                          <span>{row.label} ({row.unit})</span>
+                          <span
+                            className={`font-mono font-bold text-[11px] ${
+                              row.direction === 'improved'
+                                ? 'text-emerald-700'
+                                : row.direction === 'declined'
+                                ? 'text-rose-700'
+                                : 'text-comus-navy'
+                            }`}
+                          >
+                            Sonrası: {row.postOverall.avg !== null ? `${row.postOverall.avg} ${row.unit}` : 'Kayıt yok'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 text-[10.5px] text-comus-sand-dark bg-teal-50/40 p-2 rounded-lg">
+                          <div>
+                            <div className="font-bold text-teal-900">Öncesi 1 Ay</div>
+                            <div>{row.pre1Month.avg !== null ? `${row.pre1Month.avg} (${row.pre1Month.sampleCount}g)` : '—'}</div>
+                            <div className="font-mono font-bold text-teal-800">
+                              Δ: {row.pre1Month.changePercent !== null ? `${row.pre1Month.changePercent > 0 ? '+' : ''}${row.pre1Month.changePercent}%` : '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-teal-900">Öncesi 3 Ay</div>
+                            <div>{row.pre3Months.avg !== null ? `${row.pre3Months.avg} (${row.pre3Months.sampleCount}g)` : '—'}</div>
+                            <div className="font-mono font-bold text-teal-800">
+                              Δ: {row.pre3Months.changePercent !== null ? `${row.pre3Months.changePercent > 0 ? '+' : ''}${row.pre3Months.changePercent}%` : '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-teal-900">Öncesi 6 Ay</div>
+                            <div>{row.pre6Months.avg !== null ? `${row.pre6Months.avg} (${row.pre6Months.sampleCount}g)` : '—'}</div>
+                            <div className="font-mono font-bold text-teal-800">
+                              Δ: {row.pre6Months.changePercent !== null ? `${row.pre6Months.changePercent > 0 ? '+' : ''}${row.pre6Months.changePercent}%` : '—'}
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-[10.5px] text-comus-navy/80">{row.interpretation}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop & Print 1m / 3m / 6m Comparative Digital Biomarkers Table */}
+                  <div className="hidden sm:block rounded-xl border border-teal-200/60 bg-white overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-teal-100/50 text-teal-950 font-semibold border-b border-teal-200/60">
+                          <th className="p-2.5">Dijital Biyobelirteç</th>
+                          <th className="p-2.5 text-right">Öncesi Son 1 Ay (30G)</th>
+                          <th className="p-2.5 text-right">Öncesi Son 3 Ay (90G)</th>
+                          <th className="p-2.5 text-right">Öncesi Son 6 Ay (180G)</th>
+                          <th className="p-2.5 text-right">İlaç Sonrası (1A / 3A / 6A & Genel)</th>
+                          <th className="p-2.5 text-right">Değişim (Delta % 1A / 3A / 6A)</th>
+                          <th className="p-2.5">Klinik Yansıma</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-teal-100 text-[11px]">
+                        {ir.multiPeriodTable.map((row) => {
+                          const fmtPct = (v: number | null) =>
+                            v !== null ? `${v > 0 ? '+' : ''}${v}%` : '—';
+                          return (
+                            <tr key={row.metricKey}>
+                              <td className="p-2.5 font-medium text-comus-navy">
+                                {row.label} <span className="text-[10px] text-comus-sand-dark">({row.unit})</span>
+                              </td>
+                              <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
+                                {row.pre1Month.avg !== null
+                                  ? `${row.pre1Month.avg} ${row.unit} (${row.pre1Month.sampleCount}g)`
+                                  : 'Kayıt yok (—)'}
+                              </td>
+                              <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
+                                {row.pre3Months.avg !== null
+                                  ? `${row.pre3Months.avg} ${row.unit} (${row.pre3Months.sampleCount}g)`
+                                  : 'Kayıt yok (—)'}
+                              </td>
+                              <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
+                                {row.pre6Months.avg !== null
+                                  ? `${row.pre6Months.avg} ${row.unit} (${row.pre6Months.sampleCount}g)`
+                                  : 'Kayıt yok (—)'}
+                              </td>
+                              <td className="p-2.5 text-right font-mono tabular-nums font-semibold text-comus-navy">
+                                {row.postOverall.avg !== null ? (
+                                  <div>
+                                    <div>{row.postOverall.avg} {row.unit} ({row.postOverall.sampleCount}g)</div>
+                                    <div className="text-[10px] font-normal text-comus-sand-dark">
+                                      1A: {row.post1Month.avg ?? '—'} | 3A: {row.post3Months.avg ?? '—'} | 6A: {row.post6Months.avg ?? '—'}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  'Kayıt yok (—)'
+                                )}
+                              </td>
+                              <td className="p-2.5 text-right font-mono tabular-nums font-bold">
+                                <span
+                                  className={
+                                    row.direction === 'improved'
+                                      ? 'text-emerald-700'
+                                      : row.direction === 'declined'
+                                      ? 'text-rose-700'
+                                      : 'text-comus-navy'
+                                  }
+                                >
+                                  1A: {fmtPct(row.pre1Month.changePercent)} | 3A: {fmtPct(row.pre3Months.changePercent)} | 6A: {fmtPct(row.pre6Months.changePercent)}
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-comus-sand-dark">{row.interpretation}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </>
+          ) : (
+            <div className="p-4 rounded-2xl bg-teal-50/40 border border-teal-200/70 text-xs text-teal-900">
+              Sistemde henüz aktif kayıtlı ilaç protokolü bulunmamaktadır. Yukarıdaki <strong>"Yeni İlaç Ekle"</strong> butonundan ilaç başlama tarihi, kullanım zamanı ve dozaj bilgisi eklendiğinde; ilaç öncesi son 1 ay, 3 ay, 6 ay ve ilaç sonrası karşılaştırmalı Dijital Biyobelirteçler Tablosu ile Zaman Serisi Bindirme Analizi bu alanda otomatik olarak paylaşılır.
+            </div>
+          )}
+        </div>
 
-        {/* 5. Complete Metrics Table (All 27 Indicators with Strict Zero-Mock Transparency) */}
+        {/* 5. Complete Metrics Table (All Indicators with Strict Zero-Mock Transparency) */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
-              {medications.length > 0 ? '5.' : '4.'} Sayısal Göstergeler & EWMA Baz Hattı Sapma Tablosu ({reportStats.length} Gösterge)
+              5. Sayısal Göstergeler & EWMA Baz Hattı Sapma Tablosu ({reportStats.length} Gösterge)
             </h4>
             <span className="text-[11px] text-comus-sand-dark font-medium">
               <strong className="text-emerald-700 font-bold">{activeCount}</strong> / {reportStats.length} Gösterge Aktif • <span className="text-amber-800 font-bold">{unavailableCount}</span> İzin/Etkileşim Bekleniyor
@@ -1232,7 +1281,7 @@ export const DoctorReportPage: React.FC = () => {
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
-              {medications.length > 0 ? '6.' : '5.'} Sistem Tarafından Üretilen Farkındalık Notları
+              6. Sistem Tarafından Üretilen Farkındalık Notları
             </h4>
             <span className="text-[10.5px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
               Gerçek Telemetri &amp; Öz-Bildirim Verilerine Dayalı ({awarenessNotes.length} Not)

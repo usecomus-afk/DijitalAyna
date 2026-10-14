@@ -39,6 +39,8 @@ export interface DoctorReportInput {
   generatedAt: Date;
   baselineStatus: string;
   stats: ReportMetricStat[];
+  /** Structured medication impact & 1m/3m/6m comparative reports (mandatory in doctor share). */
+  medImpactReports?: MedicationImpactReport[];
   /** Pre-rendered medication section (may be empty). */
   medicationSection?: string;
   /** Insights the user explicitly added to the report. */
@@ -87,6 +89,102 @@ function fmt(n: number | null, digits = 1): string {
 function signed(n: number | null, suffix = ''): string {
   if (n == null || Number.isNaN(n)) return '-';
   return `${n > 0 ? '+' : ''}${fmt(n)}${suffix}`;
+}
+
+/**
+ * Formats the mandatory "İlaç Etki & Zaman Serisi Bindirme Analizi" section including:
+ * - Medication start date (T_0), usage schedule/time slots, and dosage
+ * - Time-series overlay summary before & after T_0
+ * - Comparative Digital Biomarkers Table across Pre-Medication (Last 1 Month, 3 Months, 6 Months)
+ *   and Post-Medication (1 Month, 3 Months, 6 Months, Overall) windows.
+ */
+export function buildMedicationOverlayReportSection(medImpactReports: MedicationImpactReport[]): string {
+  if (!medImpactReports || medImpactReports.length === 0) {
+    return (
+      'Sistemde henüz tanımlanmış aktif bir ilaç kaydı bulunmamaktadır. ' +
+      'İlaç eklendiğinde kullanıma başlama tarihi (T₀), kullanım zamanı, dozaj bilgileri ve ilaç kullanılmaya başladıktan sonra ile ' +
+      'kullanmadan önceki son 1 ay, 3 ay, 6 aylık Dijital Biyobelirteçler Tablosu karşılaştırmalı olarak bu bölümde paylaşılır.'
+    );
+  }
+
+  const blocks: string[] = [];
+  for (const ir of medImpactReports) {
+    const lines: string[] = [];
+    lines.push(`■ İLAÇ KİMLİK & KULLANIM PROTOKOLÜ: ${ir.medication.name}`);
+    lines.push(`  • İlaç Adı: ${ir.medication.name}`);
+    lines.push(`  • Dozaj Bilgisi: ${ir.formattedDosage}`);
+    lines.push(`  • Kullanıma Başlama Tarihi (T₀): ${ir.medication.startDate} (${ir.daysActive}. gün)`);
+    lines.push(`  • Kullanım Zamanı / Vakti: ${ir.formattedSchedule}`);
+    if (ir.medication.notes) {
+      lines.push(`  • Terapötik Amaç / Hekim Talimatı: ${ir.medication.notes}`);
+    }
+    lines.push('');
+    lines.push('  [A] İLAÇ ETKİ & ZAMAN SERİSİ BİNDİRME ANALİZİ');
+    lines.push(`  • ${ir.timeSeriesOverlaySummary}`);
+    lines.push(`  • Klinik Değerlendirme: ${ir.overallSummary}`);
+    if (ir.affectiveStateBefore !== null || ir.affectiveStateAfter !== null) {
+      lines.push(
+        `  • Öznel Duygudurum Endeksi (0-100): İlaç Öncesi ${
+          ir.affectiveStateBefore !== null ? `${ir.affectiveStateBefore}/100` : 'Kayıt yok (—)'
+        } → İlaç Başladıktan Sonra ${
+          ir.affectiveStateAfter !== null ? `${ir.affectiveStateAfter}/100` : 'Kayıt yok (—)'
+        }`
+      );
+    }
+    lines.push('');
+    lines.push(
+      '  [B] KARŞILAŞTIRMALI DİJİTAL BİYOBELİRTEÇLER TABLOSU (İLAÇ KULLANMADAN ÖNCEKİ SON 1 AY, 3 AY, 6 AY vs İLAÇ KULLANILMAYA BAŞLADIKTAN SONRA)'
+    );
+    lines.push(
+      '  Biçim: Biyobelirteç | Önceki Son 1 Ay (T-30G) | Önceki Son 3 Ay (T-90G) | Önceki Son 6 Ay (T-180G) | İlaç Başladıktan Sonra (T+ Dönem: Genel [1 Ay / 3 Ay / 6 Ay]) | Karşılaştırmalı Değişim (Delta %)'
+    );
+
+    for (const row of ir.multiPeriodTable) {
+      const p1 =
+        row.pre1Month.avg !== null
+          ? `${row.pre1Month.avg} ${row.unit} (${row.pre1Month.sampleDays}g)`
+          : 'Kayıt yok (—)';
+      const p3 =
+        row.pre3Months.avg !== null
+          ? `${row.pre3Months.avg} ${row.unit} (${row.pre3Months.sampleDays}g)`
+          : 'Kayıt yok (—)';
+      const p6 =
+        row.pre6Months.avg !== null
+          ? `${row.pre6Months.avg} ${row.unit} (${row.pre6Months.sampleDays}g)`
+          : 'Kayıt yok (—)';
+      const postAll =
+        row.postOverall.avg !== null
+          ? `${row.postOverall.avg} ${row.unit} (${row.postOverall.sampleDays}g) [1A: ${
+              row.post1Month.avg !== null ? `${row.post1Month.avg}` : '—'
+            }, 3A: ${
+              row.post3Months.avg !== null ? `${row.post3Months.avg}` : '—'
+            }, 6A: ${
+              row.post6Months.avg !== null ? `${row.post6Months.avg}` : '—'
+            }]`
+          : 'Kayıt yok (—)';
+
+      const d1 =
+        row.pre1Month.changePercent !== null
+          ? `${row.pre1Month.changePercent > 0 ? '+' : ''}${row.pre1Month.changePercent}%`
+          : '—';
+      const d3 =
+        row.pre3Months.changePercent !== null
+          ? `${row.pre3Months.changePercent > 0 ? '+' : ''}${row.pre3Months.changePercent}%`
+          : '—';
+      const d6 =
+        row.pre6Months.changePercent !== null
+          ? `${row.pre6Months.changePercent > 0 ? '+' : ''}${row.pre6Months.changePercent}%`
+          : '—';
+
+      lines.push(
+        `  - ${row.label}: Önceki 1 Ay: ${p1} | Önceki 3 Ay: ${p3} | Önceki 6 Ay: ${p6} → İlaç Sonrası: ${postAll} | Delta (1A: ${d1}, 3A: ${d3}, 6A: ${d6})`
+      );
+    }
+
+    blocks.push(lines.join('\n'));
+  }
+
+  return blocks.join('\n\n');
 }
 
 /**
@@ -170,10 +268,18 @@ export function buildDoctorReportText(input: DoctorReportInput): string {
     L.push('');
   }
 
-  if (input.medicationSection && input.medicationSection.trim()) {
-    L.push(line, '5) İLAÇ KULLANIMI VE TEDAVİ YANITI', line);
-    L.push(input.medicationSection.trim(), '');
-  }
+  // 5) İlaç Etki & Zaman Serisi Bindirme Analizi (Always included in Doctor Share Report)
+  const renderedMedSection =
+    input.medicationSection && input.medicationSection.trim()
+      ? input.medicationSection.trim()
+      : buildMedicationOverlayReportSection(input.medImpactReports ?? []);
+
+  L.push(
+    line,
+    '5) İLAÇ ETKİ & ZAMAN SERİSİ BİNDİRME ANALİZİ (1 AY, 3 AY, 6 AY KARŞILAŞTIRMALI DİJİTAL BİYOBELİRTEÇLER TABLOSU)',
+    line
+  );
+  L.push(renderedMedSection, '');
 
   const pinned = input.pinnedInsights ?? [];
   if (pinned.length > 0 || (input.clinicalNotes && input.clinicalNotes.trim())) {

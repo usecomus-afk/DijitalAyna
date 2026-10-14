@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { X, CheckCircle, ChevronRight, Share, Download, FileText } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { X, CheckCircle, ChevronRight, Share, Download, FileText, Pill, Lock } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { useAppStore } from '../../store/useAppStore';
@@ -28,7 +28,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
     sleep: true,
     motion: true,
     typing: true,
-    medication: true,
+    medication: true, // Always true (mandatory in Doctor Share)
   });
 
   const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) || [];
@@ -40,16 +40,24 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
   const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
   const pinnedInsights: PinnedInsight[] = Array.isArray(pinnedItem?.value) ? pinnedItem.value : [];
 
+  const medReports = useMemo(
+    () => medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods)),
+    [medications, dailyMetrics, baselines, moods]
+  );
+
   const realChartData = useMemo(() => {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - rangeDays);
+    cutoff.setDate(cutoff.getDate() - Math.max(rangeDays, 30));
     const cutoffStr = cutoff.toISOString().split('T')[0];
 
     const dateSet = new Set<string>();
     dailyMetrics.filter((m) => m.date >= cutoffStr).forEach((m) => dateSet.add(m.date));
     moods.filter((m) => m.date >= cutoffStr).forEach((m) => dateSet.add(m.date));
+    medications.forEach((med) => {
+      if (med.startDate >= cutoffStr) dateSet.add(med.startDate);
+    });
 
-    const sortedDates = Array.from(dateSet).sort().slice(-7);
+    const sortedDates = Array.from(dateSet).sort().slice(-14);
     return sortedDates.map((d) => {
       const moodForDay = moods.find((m) => m.date === d);
       const sleepMin = dailyMetrics.find((m) => m.date === d && m.metricKey === 'sleep_duration')?.value;
@@ -57,17 +65,13 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
 
       return {
         day: d.slice(5),
+        fullDate: d,
         moodScore: moodForDay ? moodForDay.score : undefined,
         sleepHours: sleepMin !== undefined ? Math.round((sleepMin / 60) * 10) / 10 : undefined,
         nightMinutes: nightMin !== undefined ? Math.round(nightMin) : undefined,
       };
     });
-  }, [dailyMetrics, moods, rangeDays]);
-
-  const medReports = useMemo(
-    () => medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods)),
-    [medications, dailyMetrics, baselines, moods]
-  );
+  }, [dailyMetrics, moods, medications, rangeDays]);
 
   const activeStats = useMemo(() => stats.filter((s) => s.hasData), [stats]);
 
@@ -77,6 +81,8 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const toggleSelection = (key: keyof typeof selectedData) => {
+    // İlaç Etki & Zaman Serisi Bindirme Analizi kesinlikle paylaşılmalıdır (kapatılamaz)
+    if (key === 'medication') return;
     setSelectedData((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -88,30 +94,6 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
       return true;
     });
 
-    const medSection =
-      selectedData.medication && medReports.length > 0
-        ? medReports
-            .map((ir) => {
-              const lines = [
-                `• ${ir.medication.name} (${ir.medication.dosage}) — Başlangıç: ${ir.medication.startDate} (${ir.daysActive}. gün)`,
-                `  Özet: ${ir.overallSummary}`,
-              ];
-              ir.deltas
-                .filter((d) => d.hasPreData || d.hasPostData)
-                .forEach((d) => {
-                  const preStr = d.preAvg !== null ? `${d.preAvg} ${d.unit}` : 'Kayıt yok';
-                  const postStr = d.postAvg !== null ? `${d.postAvg} ${d.unit}` : 'Kayıt yok';
-                  const pctStr =
-                    d.changePercent !== null
-                      ? `${d.changePercent > 0 ? '+' : ''}${d.changePercent}%`
-                      : 'Veri bekleniyor';
-                  lines.push(`  - ${d.label}: Öncesi ${preStr} → Sonrası ${postStr} (${pctStr})`);
-                });
-              return lines.join('\n');
-            })
-            .join('\n\n')
-        : undefined;
-
     const sampleDays = new Set(dailyMetrics.map((m) => m.date)).size;
     const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
     const awarenessNotes = generateRealReportAwarenessNotes({
@@ -119,7 +101,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
       insights,
       moods,
       surveys,
-      medImpactReports: selectedData.medication ? medReports : [],
+      medImpactReports: medReports, // Mandatory inclusion
       effectiveDayCount,
       rangeDays,
     });
@@ -137,7 +119,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
           ? `${effectiveDayCount} günlük kişisel baz hattı tamamlandı`
           : `Baz hattı öğrenme sürecinde (${effectiveDayCount}/14 gün)`,
       stats: filteredStats,
-      medicationSection: medSection,
+      medImpactReports: medReports, // Mandatory: includes start date, schedule, dosage, and 1m/3m/6m comparative table
       pinnedInsights,
       clinicalNotes: clinicalNotesText,
       clinicalSurveyScores: latestSurvey
@@ -165,6 +147,11 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
     }, 150);
   };
 
+  const formatPct = (val: number | null) => {
+    if (val === null) return '—';
+    return `${val > 0 ? '+' : ''}${val}%`;
+  };
+
   const renderStepContent = () => {
     switch (step) {
       case 1:
@@ -172,14 +159,37 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
           <div className="space-y-4 animate-fadeIn">
             <h3 className="text-base font-bold text-comus-navy">1. Adım: Veri Seçimi</h3>
             <p className="text-xs text-comus-sand-dark">
-              Hekiminizle paylaşmak istediğiniz gerçek sensör ve klinik veri gruplarını seçin.
+              Hekiminizle paylaşmak istediğiniz gerçek sensör ve klinik veri gruplarını seçin. İlaç Etki &amp; Zaman Serisi Bindirme Analizi ve 1, 3, 6 aylık karşılaştırmalı tablo hekim raporunda zorunlu olarak paylaşılır.
             </p>
             <div className="space-y-2">
+              {/* Mandatory Medication Impact & Time Series Overlay Item */}
+              <div className="flex items-start justify-between gap-3 p-3 rounded-xl border border-teal-300 bg-teal-50/70">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-teal-700 mt-0.5"
+                    checked={true}
+                    disabled
+                    readOnly
+                  />
+                  <div>
+                    <div className="text-xs font-bold text-teal-950 flex items-center gap-1.5">
+                      <span>İlaç Etki &amp; Zaman Serisi Bindirme Analizi</span>
+                    </div>
+                    <p className="text-[10.5px] text-teal-800 mt-0.5">
+                      Başlama tarihi, kullanım zamanı, dozaj bilgileri ve ilaç öncesi/sonrası 1 ay, 3 ay, 6 aylık Dijital Biyobelirteçler Tablosu rapora zorunlu olarak eklenir.
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-900 border border-teal-300 shrink-0">
+                  <Lock className="w-3 h-3" /> Zorunlu
+                </span>
+              </div>
+
               {Object.entries({
                 sleep: 'Uyku Süresi ve Sirkadiyen Ritim',
                 motion: 'Fiziksel Hareketlilik Endeksi',
                 typing: 'Yazım Hızı ve Dinamiği',
-                medication: 'İlaç Kullanım & Gerçek Delta Analizi',
               }).map(([key, label]) => (
                 <label
                   key={key}
@@ -199,19 +209,69 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
         );
       case 2:
         return (
-          <div className="space-y-4 animate-fadeIn">
-            <h3 className="text-base font-bold text-comus-navy">2. Adım: Nesnel Zaman Serisi Özeti</h3>
+          <div className="space-y-3 animate-fadeIn">
+            <h3 className="text-base font-bold text-comus-navy">
+              2. Adım: İlaç Etki &amp; Zaman Serisi Bindirme Analizi
+            </h3>
             <p className="text-[11px] text-comus-sand-dark">
-              Son {rangeDays} günde cihazınızda gerçek olarak kaydedilen ruh hali ve uyku/gece ölçümleri:
+              İlaç kullanımına başlama tarihi (T0), kullanım zamanı ve dozaj bilgileriyle ruh hali ve biyobelirteç zaman serisi bindirmesi:
             </p>
+
+            {/* Medication Protocol Details (Start Date, Usage Time, Dosage) */}
+            {medReports.length > 0 ? (
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {medReports.map((ir, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-xl bg-teal-50/80 border border-teal-200 text-[11px] space-y-1"
+                  >
+                    <div className="font-bold text-teal-950 flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <Pill className="w-3.5 h-3.5 text-teal-700" />
+                        {ir.medication.name} — Dozaj: {ir.formattedDosage}
+                      </span>
+                      <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-900">
+                        {ir.daysActive}. Gün
+                      </span>
+                    </div>
+                    <div className="text-teal-900 font-medium">
+                      • Başlama Tarihi (T0): <strong>{ir.medication.startDate}</strong>
+                    </div>
+                    <div className="text-teal-900 font-medium">
+                      • Kullanım Zamanı: <strong>{ir.formattedSchedule}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-teal-50/60 border border-teal-200 text-[11px] text-teal-900">
+                Sistemde henüz aktif ilaç kaydı bulunmuyor. İlaç eklendiğinde başlama tarihi, kullanım zamanı ve dozaj bilgileri zaman serisi üzerine bindirilir.
+              </div>
+            )}
+
             {realChartData.length > 0 ? (
               <>
-                <div className="h-48 w-full mt-2">
+                <div className="h-44 w-full mt-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={realChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <LineChart data={realChartData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
                       <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <Tooltip labelStyle={{ fontSize: '10px' }} itemStyle={{ fontSize: '10px' }} />
+                      {medications.map((m, idx) => (
+                        <ReferenceLine
+                          key={m.id || idx}
+                          x={m.startDate.slice(5)}
+                          stroke="#0D9488"
+                          strokeDasharray="3 3"
+                          strokeWidth={2}
+                          label={{
+                            value: `T0: ${m.name}`,
+                            position: 'insideTopLeft',
+                            fill: '#0F766E',
+                            fontSize: 9,
+                          }}
+                        />
+                      ))}
                       <Line
                         type="monotone"
                         dataKey="moodScore"
@@ -231,13 +291,18 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex gap-4 text-[10px] justify-center text-comus-sand-dark">
+                <div className="flex flex-wrap gap-3 text-[10px] justify-center text-comus-sand-dark">
                   <span className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-[#C0674F]"></div> Ruh Hali (1-5)
                   </span>
                   <span className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-slate-900"></div> Gerçek Uyku (Saat)
                   </span>
+                  {medications.length > 0 && (
+                    <span className="flex items-center gap-1 text-teal-800 font-semibold">
+                      <div className="w-2 h-2 rounded-full bg-teal-600"></div> T0 İlaç Başlangıcı
+                    </span>
+                  )}
                 </div>
               </>
             ) : (
@@ -249,19 +314,92 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
         );
       case 3:
         return (
-          <div className="space-y-4 animate-fadeIn">
-            <h3 className="text-base font-bold text-comus-navy">3. Adım: Rapor Önizleme (Gerçek Veriler)</h3>
-            <div className="p-4 bg-comus-surface rounded-2xl border border-comus-sand-light/50 space-y-3 max-h-60 overflow-y-auto">
+          <div className="space-y-3 animate-fadeIn">
+            <h3 className="text-base font-bold text-comus-navy">
+              3. Adım: Rapor Önizleme (1, 3, 6 Aylık Karşılaştırmalı Biyobelirteç Tablosu)
+            </h3>
+            <div className="p-3.5 bg-comus-surface rounded-2xl border border-comus-sand-light/50 space-y-3 max-h-72 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-stone-200 pb-2">
                 <div className="font-serif font-bold text-sm text-comus-navy flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Klinik Özet Raporu
+                  <FileText className="w-4 h-4" /> Klinik Özet &amp; İlaç Etki Raporu
                 </div>
                 <span className="text-[10px] text-stone-500">
                   Son {rangeDays} Gün • {new Date().toLocaleDateString('tr-TR')}
                 </span>
               </div>
+
+              {/* Mandatory Medication Impact & 1m / 3m / 6m Comparative Table Preview */}
+              <div className="space-y-2.5">
+                <div className="text-xs font-bold text-teal-950 flex items-center gap-1.5">
+                  <Pill className="w-3.5 h-3.5 text-teal-700" />
+                  <span>İlaç Etki &amp; Zaman Serisi Bindirme Analizi (1A / 3A / 6A Karşılaştırmalı)</span>
+                </div>
+
+                {medReports.length > 0 ? (
+                  medReports.map((ir, idx) => (
+                    <div key={idx} className="p-2.5 rounded-xl bg-white border border-teal-200 space-y-2 text-[11px]">
+                      <div className="border-b border-teal-100 pb-1.5 space-y-0.5">
+                        <div className="font-bold text-teal-950">
+                          {ir.medication.name} ({ir.formattedDosage})
+                        </div>
+                        <div className="text-[10.5px] text-teal-900">
+                          • <strong>Başlama Tarihi:</strong> {ir.medication.startDate} ({ir.daysActive}. gün)
+                        </div>
+                        <div className="text-[10.5px] text-teal-900">
+                          • <strong>Kullanım Zamanı:</strong> {ir.formattedSchedule}
+                        </div>
+                        <div className="text-[10.5px] text-teal-900">
+                          • <strong>Dozaj Bilgisi:</strong> {ir.formattedDosage}
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-[10px] border-collapse">
+                          <thead>
+                            <tr className="bg-teal-50 text-teal-950 font-semibold border-b border-teal-200">
+                              <th className="p-1.5">Biyobelirteç</th>
+                              <th className="p-1.5 text-right">Öncesi 1A</th>
+                              <th className="p-1.5 text-right">Öncesi 3A</th>
+                              <th className="p-1.5 text-right">Öncesi 6A</th>
+                              <th className="p-1.5 text-right">Sonrası</th>
+                              <th className="p-1.5 text-right">Δ (1A/3A/6A)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-teal-50">
+                            {ir.multiPeriodTable.map((row) => (
+                              <tr key={row.metricKey}>
+                                <td className="p-1.5 font-medium text-comus-navy">{row.label}</td>
+                                <td className="p-1.5 text-right font-mono text-comus-sand-dark">
+                                  {row.pre1Month.avg !== null ? `${row.pre1Month.avg}` : '—'}
+                                </td>
+                                <td className="p-1.5 text-right font-mono text-comus-sand-dark">
+                                  {row.pre3Months.avg !== null ? `${row.pre3Months.avg}` : '—'}
+                                </td>
+                                <td className="p-1.5 text-right font-mono text-comus-sand-dark">
+                                  {row.pre6Months.avg !== null ? `${row.pre6Months.avg}` : '—'}
+                                </td>
+                                <td className="p-1.5 text-right font-mono font-bold text-comus-navy">
+                                  {row.postOverall.avg !== null ? `${row.postOverall.avg} ${row.unit}` : '—'}
+                                </td>
+                                <td className="p-1.5 text-right font-mono font-semibold text-teal-800">
+                                  {formatPct(row.pre1Month.changePercent)} / {formatPct(row.pre3Months.changePercent)} / {formatPct(row.pre6Months.changePercent)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[11px] text-teal-900 bg-teal-50/60 p-2.5 rounded-xl border border-teal-200">
+                    Henüz kayıtlı ilaç bulunmuyor. Paylaşılan raporda ilaç protokolü durumu ve karşılaştırmalı biyobelirteç tablosu şablonu yer alacaktır.
+                  </p>
+                )}
+              </div>
+
               {activeStats.length > 0 ? (
-                <ul className="space-y-2 text-xs text-comus-sand-dark">
+                <ul className="space-y-1.5 text-xs text-comus-sand-dark pt-2 border-t border-stone-200">
                   {activeStats.slice(0, 5).map((s) => (
                     <li key={s.key} className="flex items-center gap-2">
                       <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0" />
@@ -273,20 +411,9 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-comus-sand-dark">
+                <p className="text-xs text-comus-sand-dark pt-2 border-t border-stone-200">
                   Bu dönemde henüz aktif biyobelirteç ölçümü kaydedilmedi.
                 </p>
-              )}
-
-              {selectedData.medication && medReports.length > 0 && (
-                <div className="pt-2 border-t border-stone-200 space-y-1 text-xs">
-                  <div className="font-semibold text-teal-900">İlaç Yanıtı (Gerçek Delta):</div>
-                  {medReports.map((ir, idx) => (
-                    <p key={idx} className="text-[11px] text-comus-sand-dark leading-relaxed">
-                      • <strong>{ir.medication.name}:</strong> {ir.overallSummary}
-                    </p>
-                  ))}
-                </div>
               )}
             </div>
           </div>
@@ -300,7 +427,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
               </div>
               <h3 className="text-lg font-bold text-comus-navy">Rapor Hazır</h3>
               <p className="text-xs text-comus-sand-dark">
-                Raporunuz yalnızca gerçek cihaz ölçümlerinizle hazırlandı. Hekiminizle paylaşabilir veya yazdırabilirsiniz.
+                İlaç Etki &amp; Zaman Serisi Bindirme Analizi (başlama tarihi, kullanım zamanı, dozaj bilgileri) ve ilaç öncesi/sonrası 1, 3, 6 aylık Dijital Biyobelirteçler Tablosu rapora eklendi.
               </p>
             </div>
             {shareMessage && (
@@ -335,7 +462,7 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-comus-navy/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative flex flex-col min-h-[400px]">
+      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative flex flex-col min-h-[420px]">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-stone-100 text-stone-500 rounded-full hover:bg-stone-200 transition-colors"

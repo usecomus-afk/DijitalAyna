@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildDoctorReportText, isNotable, ReportMetricStat } from '../reportBuilder';
 import { METRIC_REFERENCES, getKnownCitations, getMetricCitations } from '../../engine/metricReferences';
+import { analyzeMedicationImpact } from '../../engine/medicationAnalytics';
 
 function stat(over: Partial<ReportMetricStat>): ReportMetricStat {
   return {
@@ -63,7 +64,45 @@ describe('buildDoctorReportText', () => {
     // missing metric is explained, not invented
     expect(text).toContain('4) VERİ ALINAMAYAN GÖSTERGELER');
     expect(text).toContain('Pil telemetrisi yok');
+    // mandatory medication overlay section is always present
+    expect(text).toContain('5) İLAÇ ETKİ & ZAMAN SERİSİ BİNDİRME ANALİZİ (1 AY, 3 AY, 6 AY KARŞILAŞTIRMALI DİJİTAL BİYOBELİRTEÇLER TABLOSU)');
     expect(text).toContain('YÖNTEM VE YASAL UYARI');
+  });
+
+  it('includes medication start date, usage schedule, dosage, and 1m/3m/6m comparative digital biomarkers table when medImpactReports are provided', () => {
+    const medReport = analyzeMedicationImpact(
+      {
+        id: 1,
+        name: 'Lustral',
+        dosage: '50',
+        timeSlots: ['morning', 'evening'],
+        customTimes: ['09:00', '21:00'],
+        startDate: '2026-09-01',
+        createdAt: Date.now(),
+      },
+      [
+        { date: '2026-04-10', metricKey: 'night_usage_minutes', value: 45, sampleCount: 1 },
+        { date: '2026-07-10', metricKey: 'night_usage_minutes', value: 35, sampleCount: 1 },
+        { date: '2026-08-25', metricKey: 'night_usage_minutes', value: 25, sampleCount: 1 },
+        { date: '2026-09-05', metricKey: 'night_usage_minutes', value: 10, sampleCount: 1 },
+      ],
+      [],
+      []
+    );
+
+    const text = buildDoctorReportText({
+      ...base,
+      stats: [stat({})],
+      medImpactReports: [medReport],
+    });
+
+    expect(text).toContain('5) İLAÇ ETKİ & ZAMAN SERİSİ BİNDİRME ANALİZİ (1 AY, 3 AY, 6 AY KARŞILAŞTIRMALI DİJİTAL BİYOBELİRTEÇLER TABLOSU)');
+    expect(text).toContain('İlaç Adı: Lustral');
+    expect(text).toContain('Dozaj Bilgisi: 50 mg');
+    expect(text).toContain('Kullanıma Başlama Tarihi (T₀): 2026-09-01');
+    expect(text).toContain('Kullanım Zamanı / Vakti: Günde 2x — Sabah (09:00), Akşam (21:00)');
+    expect(text).toContain('Önceki 1 Ay: 25 dk (1g) | Önceki 3 Ay: 30 dk (2g) | Önceki 6 Ay: 35 dk (3g) → İlaç Sonrası: 10 dk (1g)');
+    expect(text).toContain('Delta (1A: -60%, 3A: -67%, 6A: -71%)');
   });
 
   it('states clearly when no metric has an academic reference', () => {
