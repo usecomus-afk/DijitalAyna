@@ -4,6 +4,7 @@ import { useAppStore } from './store/useAppStore';
 import { Header } from './components/layout/Header';
 import { BottomNav } from './components/layout/BottomNav';
 import { MentalTwinModal } from './components/avatar/MentalTwinModal';
+import { SplashIntroVideo } from './components/common/SplashIntroVideo';
 import { BetaAccessGate } from './components/BetaAccessGateView';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { OnboardingCards, ONBOARDING_COMPLETED_KEY } from './components/onboarding/OnboardingCards';
@@ -166,8 +167,10 @@ export const App: React.FC = () => {
   const alreadyOnboarded = isAuthenticated && settings.onboardingCompleted;
 
   return (
-    <BetaAccessGate>
-      {!cardsCompleted && !alreadyOnboarded ? (
+    <>
+      <SplashIntroVideo triggerKey={alreadyOnboarded} />
+      <BetaAccessGate>
+        {!cardsCompleted && !alreadyOnboarded ? (
         <OnboardingCards onComplete={() => setCardsCompleted(true)} />
       ) : !isAuthenticated || !settings.onboardingCompleted ? (
         <OnboardingPage />
@@ -225,7 +228,8 @@ export const App: React.FC = () => {
           </div>
         </HashRouter>
       )}
-    </BetaAccessGate>
+      </BetaAccessGate>
+    </>
   );
 };
 
