@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 interface SplashIntroVideoProps {
   /** Optional trigger key (e.g. when user logs in) to replay the intro video */
@@ -19,8 +20,8 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastPlayedAtRef = useRef<number>(Date.now());
   const backgroundedAtRef = useRef<number | null>(null);
-  const fallbackTimerRef = useRef< ReturnType<typeof setTimeout> | null >(null);
-  const fadeTimerRef = useRef< ReturnType<typeof setTimeout> | null >(null);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevTriggerKeyRef = useRef(triggerKey);
 
   const clearTimers = useCallback(() => {
@@ -34,20 +35,34 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
     }
   }, []);
 
+  const restoreStatusBar = useCallback(() => {
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+      StatusBar.show().catch(() => {});
+    }
+  }, []);
+
   const finishSplash = useCallback(() => {
     clearTimers();
     setIsFadingOut(true);
+    restoreStatusBar();
     fadeTimerRef.current = setTimeout(() => {
       setIsRendered(false);
       setIsFadingOut(false);
     }, FADE_OUT_DURATION_MS);
-  }, [clearTimers]);
+  }, [clearTimers, restoreStatusBar]);
 
   const startSplash = useCallback(() => {
     clearTimers();
     lastPlayedAtRef.current = Date.now();
     setIsFadingOut(false);
     setIsRendered(true);
+
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+      StatusBar.hide().catch(() => {});
+    }
 
     fallbackTimerRef.current = setTimeout(() => {
       finishSplash();
@@ -57,6 +72,11 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
   // Play video whenever overlay is rendered
   useEffect(() => {
     if (!isRendered) return;
+
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+      StatusBar.hide().catch(() => {});
+    }
 
     const video = videoRef.current;
     if (video) {
@@ -135,9 +155,21 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
   return (
     <div
       data-testid="splash-intro-video-overlay"
-      className={`fixed inset-0 z-[99999] w-screen h-[100dvh] bg-[#F5F2EA] flex items-center justify-center overflow-hidden select-none transition-opacity duration-400 ${
+      className={`fixed inset-0 z-[999999] bg-[#F5F2EA] flex items-center justify-center overflow-hidden select-none transition-opacity duration-400 ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100dvh',
+        minHeight: '-webkit-fill-available',
+        margin: 0,
+        padding: 0,
+      }}
     >
       <video
         ref={videoRef}
@@ -152,7 +184,16 @@ export const SplashIntroVideo: React.FC<SplashIntroVideoProps> = ({ triggerKey }
         onPlay={handleVideoReady}
         onEnded={finishSplash}
         onError={finishSplash}
-        className="w-full h-full object-cover pointer-events-none"
+        className="pointer-events-none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center center',
+        }}
       />
     </div>
   );

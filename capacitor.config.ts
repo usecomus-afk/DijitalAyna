@@ -7,6 +7,10 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
+  ios: {
+    contentInset: 'never',
+    backgroundColor: '#F5F2EA'
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 250,
@@ -18,8 +22,8 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#F2F0EB',
-      overlaysWebView: false
+      backgroundColor: '#F5F2EA',
+      overlaysWebView: true
     },
     FirebaseAuthentication: {
       authDomain: 'comus-ai-duty.firebaseapp.com',

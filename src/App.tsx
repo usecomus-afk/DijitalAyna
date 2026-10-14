@@ -109,7 +109,7 @@ export const App: React.FC = () => {
 
     if (Capacitor.isNativePlatform()) {
       StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
 
       // Handle cold start launch URL
       CapApp.getLaunchUrl().then((launchUrl) => {
