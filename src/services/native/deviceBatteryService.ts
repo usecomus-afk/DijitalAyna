@@ -28,7 +28,7 @@ class DeviceBatteryService {
     if (Capacitor.isNativePlatform()) {
       try {
         const info: BatteryInfo = await Device.getBatteryInfo();
-        if (typeof info.batteryLevel === 'number' && !isNaN(info.batteryLevel)) {
+        if (typeof info.batteryLevel === 'number' && !isNaN(info.batteryLevel) && info.batteryLevel >= 0) {
           return {
             batteryLevel: Math.round(info.batteryLevel * 100),
             isCharging: Boolean(info.isCharging),

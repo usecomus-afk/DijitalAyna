@@ -141,6 +141,51 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   const generatedInsights: Insight[] = [];
   const addedBiomarkerTypes = new Set<string>();
 
+  const BIOMARKER_TO_RULE_KEY: Record<string, string> = {
+    emotional_burnout: 'burnout',
+    social_withdrawal: 'depressionIsolation',
+    circadian_disruption: 'anxietySleep',
+    gaming_avoidance: 'gamingAvoidance',
+    appearance_sensitivity: 'appearanceSensitivityCamera',
+  };
+
+  // Helper to build a real-telemetry summary string for latestDate
+  const todaysRealMetrics = allMetrics.filter(
+    (m) => m.date === latestDate && m.metricKey !== 'gaming_duration' && m.metricKey !== 'camera_interaction_count'
+  );
+  const formatRealSnapshotSummary = (): string => {
+    if (todaysRealMetrics.length === 0) return '';
+    const priorityKeys: MetricKey[] = [
+      'screen_on_time',
+      'session_duration',
+      'touch_interaction_frequency',
+      'typing_wpm',
+      'mobility_index',
+      'night_usage_minutes',
+      'cognitive_fatigue_score',
+      'impulse_risk_index',
+      'battery_level',
+    ];
+    const items: string[] = [];
+    for (const k of priorityKeys) {
+      const m = todaysRealMetrics.find((x) => x.metricKey === k);
+      const def = METRIC_DEFINITIONS[k];
+      if (m && def) {
+        items.push(`${def.label}: ${m.value} ${def.unit}`);
+      }
+      if (items.length >= 4) break;
+    }
+    if (items.length === 0) {
+      for (const m of todaysRealMetrics.slice(0, 3)) {
+        const def = METRIC_DEFINITIONS[m.metricKey as MetricKey];
+        if (def) items.push(`${def.label}: ${m.value} ${def.unit}`);
+      }
+    }
+    return items.length > 0
+      ? ` Gerçek Cihaz Ölçümleri (${todaysRealMetrics.length} aktif gösterge): ${items.join(' • ')}.`
+      : '';
+  };
+
   // First, include any longitudinal multi-day critical threshold alerts (9 Clinical Conditions)
   for (const clinAlert of longitudinalClinicalAlerts) {
     const ruleKey = Object.keys(PHENOTYPE_RULES).find(k => PHENOTYPE_RULES[k].id === clinAlert.id);
@@ -167,19 +212,36 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       finalized: isFinalized,
     });
     addedBiomarkerTypes.add(clinAlert.id);
+    if (ruleKey) addedBiomarkerTypes.add(ruleKey);
 
     // Send early awareness notification for critical threshold
     notificationService.sendClinicalEarlyAwarenessAlert(clinAlert).catch(() => {});
   }
 
   for (const bio of biomarkers) {
-    if (addedBiomarkerTypes.has(bio.type)) continue;
+    const mappedRuleKey =
+      BIOMARKER_TO_RULE_KEY[bio.type] ||
+      Object.keys(PHENOTYPE_RULES).find(
+        (k) => PHENOTYPE_RULES[k].id === bio.type || PHENOTYPE_RULES[k].insightType === bio.type || k === bio.type
+      );
+
+    if (addedBiomarkerTypes.has(bio.type) || (mappedRuleKey && addedBiomarkerTypes.has(mappedRuleKey))) {
+      continue;
+    }
 
     if (bio.type === 'healthy_balance') {
       if (generatedInsights.length > 0) continue; // Do not add healthy_balance if a clinical alert is active
-      const mobEv = await buildEvidence('mobility_index');
-      const wpmEv = await buildEvidence('typing_wpm');
-      const evidenceList = [mobEv, wpmEv].filter(Boolean) as EvidenceItem[];
+      const candidateEvidenceKeys: MetricKey[] = [
+        'mobility_index',
+        'typing_wpm',
+        'screen_on_time',
+        'session_duration',
+        'touch_interaction_frequency',
+        'cognitive_fatigue_score',
+      ];
+      const evResults = await Promise.all(candidateEvidenceKeys.map((k) => buildEvidence(k)));
+      const evidenceList = evResults.filter(Boolean).slice(0, 4) as EvidenceItem[];
+      const realSnap = formatRealSnapshotSummary();
 
       generatedInsights.push({
         createdAt: Date.now(),
@@ -188,10 +250,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         biomarkerType: 'healthy_balance',
         title: isLearning ? `Kişisel Baz Hattı Oluşturuluyor (${sampleDays}/14 Gün)` : 'Dengeli ve Kararlı Davranışsal Ritim',
         body: isLearning
-          ? 'Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor. 14 günlük stabil baz hattınız oluştuktan sonra kişiselleştirilmiş içgörüler ve anomali analizleri üretilecektir.'
-          : 'Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel baz hattınla son derece uyumlu ve dengeli seyrediyor.',
+          ? `Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor (${sampleDays}/14 gün).${realSnap} 14 günlük stabil baz hattınız tamamlandığında sapma analizleri derinleşecektir.`
+          : `Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel EWMA baz hattınla uyumlu ve dengeli seyrediyor.${realSnap}`,
         suggestedAction: isLearning
-          ? 'Cihazınızı her zamanki gibi doğal akışında kullanımaya devam edebilirsiniz.'
+          ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
           : 'Bu dingin ve sürdürülebilir ritmini korumak için günün keyfini çıkarabilirsin.',
         evidence: evidenceList,
         dismissed: false,
@@ -199,36 +261,58 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         finalized: isFinalized,
       });
     } else {
-      const ruleKey = Object.keys(PHENOTYPE_RULES).find(k => PHENOTYPE_RULES[k].id === bio.type);
-      const rule = ruleKey ? PHENOTYPE_RULES[ruleKey] : null;
+      const rule = mappedRuleKey ? PHENOTYPE_RULES[mappedRuleKey] : null;
 
       if (rule) {
-        const validMetrics = [...rule.requiredMetrics, ...rule.requiredZMetrics]
-          .filter(m => METRIC_DEFINITIONS[m as MetricKey]);
-        const evidencePromises = validMetrics.map(metric => buildEvidence(metric as MetricKey));
+        const triggerKeys = (bio.triggerAnomalies || []).map((a) => a.metricKey);
+        const ruleKeys = [...rule.requiredMetrics, ...rule.requiredZMetrics].filter(
+          (m) => METRIC_DEFINITIONS[m as MetricKey]
+        ) as MetricKey[];
+        const uniqueMetricKeys = Array.from(new Set<MetricKey>([...triggerKeys, ...ruleKeys]));
+        const evidencePromises = uniqueMetricKeys.map((metric) => buildEvidence(metric));
         const resolvedEvidence = await Promise.all(evidencePromises);
         const evidenceList = resolvedEvidence.filter(Boolean) as EvidenceItem[];
+
+        const triggerStatParts = evidenceList.map((ev) => {
+          const sign = ev.changePercent > 0 ? '+' : '';
+          const zSign = ev.zScore > 0 ? '+' : '';
+          return `${ev.metricLabel}: ${ev.currentValue} ${ev.unit} (Baz: ${ev.baselineValue} ${ev.unit}, ${sign}${ev.changePercent}%, Z=${zSign}${ev.zScore}σ)`;
+        });
+        const realEvidenceSuffix =
+          triggerStatParts.length > 0 ? ` Gerçek Ölçüm Kanıtı: ${triggerStatParts.join(' • ')}.` : '';
 
         generatedInsights.push({
           createdAt: Date.now(),
           date: latestDate,
           severity: rule.severity,
-          biomarkerType: bio.type,
+          biomarkerType: rule.id,
           title: `Potansiyel ${rule.title} Olasılığı`,
-          body: rule.personalizedDeviationStatement,
+          body: `${rule.personalizedDeviationStatement}${realEvidenceSuffix}`,
           suggestedAction: rule.ethicalDisclaimer,
           evidence: evidenceList,
           dismissed: false,
           provisional: !isFinalized,
           finalized: isFinalized,
         });
+        addedBiomarkerTypes.add(rule.id);
+        if (mappedRuleKey) addedBiomarkerTypes.add(mappedRuleKey);
       }
     }
   }
 
   if (generatedInsights.length === 0) {
-    const mobEv = await buildEvidence('mobility_index');
-    const wpmEv = await buildEvidence('typing_wpm');
+    const candidateEvidenceKeys: MetricKey[] = [
+      'mobility_index',
+      'typing_wpm',
+      'screen_on_time',
+      'session_duration',
+      'touch_interaction_frequency',
+      'cognitive_fatigue_score',
+    ];
+    const evResults = await Promise.all(candidateEvidenceKeys.map((k) => buildEvidence(k)));
+    const evidenceList = evResults.filter(Boolean).slice(0, 4) as EvidenceItem[];
+    const realSnap = formatRealSnapshotSummary();
+
     generatedInsights.push({
       createdAt: Date.now(),
       date: latestDate,
@@ -236,12 +320,12 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       biomarkerType: 'healthy_balance',
       title: isLearning ? `Kişisel Baz Hattı Oluşturuluyor (${sampleDays}/14 Gün)` : 'Kişisel Baz Hattı ve Günlük Değerlendirme',
       body: isLearning
-        ? 'Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor. 14 günlük stabil baz hattınız oluştuktan sonra kişiselleştirilmiş içgörüler ve anomali analizleri üretilecektir.'
-        : 'Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz başarıyla incelendi. Belirgin bir risk faktörü veya tükenmişlik sapması tespit edilmedi.',
+        ? `Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor (${sampleDays}/14 gün).${realSnap} 14 günlük stabil baz hattınız tamamlandığında sapma analizleri derinleşecektir.`
+        : `Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz incelendi. Belirgin bir kritik eşik sapması tespit edilmedi.${realSnap}`,
       suggestedAction: isLearning
-        ? 'Cihazınızı her zamanki gibi doğal akışında kullanımaya devam edebilirsiniz.'
+        ? 'Cihazınızı her zamanki gibi doğal akışında kullanmaya devam edebilirsiniz.'
         : 'Doğal ritminizi korumak için gününüze dengeli molalar eklemeye devam edebilirsiniz.',
-      evidence: [mobEv, wpmEv].filter(Boolean) as EvidenceItem[],
+      evidence: evidenceList,
       dismissed: false,
       provisional: !isFinalized,
       finalized: isFinalized,

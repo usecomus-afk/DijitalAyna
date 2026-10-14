@@ -76,12 +76,37 @@ class LightSensorCollector {
     }
   }
 
+  async flush(): Promise<void> {
+    if (this.sensorInstance && typeof this.sensorInstance.illuminance === 'number' && !isNaN(this.sensorInstance.illuminance)) {
+      await this.logLight(this.sensorInstance.illuminance, 'web-api');
+      return;
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { ScreenBrightness } = await import('@capacitor-community/screen-brightness');
+        const { brightness } = await ScreenBrightness.getBrightness();
+        if (typeof brightness === 'number' && !isNaN(brightness) && brightness >= 0) {
+          await this.logLight(brightness * 1000, 'screen-brightness-proxy');
+        }
+      } catch (e) {
+        // ignore if unavailable
+      }
+    }
+  }
+
   private async logLight(lux: number, source: 'web-api' | 'screen-brightness-proxy' = 'web-api'): Promise<void> {
+    const cleanLux = Math.max(0, Math.round(lux));
+    const hour = new Date().getHours();
+    const isNight = hour >= 23 || hour < 6;
+    const violation = isNight && cleanLux > 700 ? 1 : 0;
+
     await db.logSensorEvent({
       type: 'light',
       timestamp: Date.now(),
       payload: {
-        light_ambient_lux: Math.max(0, Math.round(lux)),
+        light_ambient_lux: cleanLux,
+        night_light_violations: violation,
       },
       provenance: {
         source,

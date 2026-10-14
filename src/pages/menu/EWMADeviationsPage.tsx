@@ -26,6 +26,8 @@ interface Row {
 
 const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1));
 
+const EXCLUDED_EWMA_KEYS: MetricKey[] = ['gaming_duration', 'camera_interaction_count'];
+
 export const EWMADeviationsPage: React.FC = () => {
   const navigate = useNavigate();
   const { baselineDayCount } = useAppStore();
@@ -36,11 +38,13 @@ export const EWMADeviationsPage: React.FC = () => {
   const rows = useMemo<Row[]>(() => {
     const latest = new Map<string, { value: number; date: string }>();
     for (const m of dailyMetrics) {
+      if (EXCLUDED_EWMA_KEYS.includes(m.metricKey)) continue;
       const prev = latest.get(m.metricKey);
       if (!prev || m.date > prev.date) latest.set(m.metricKey, { value: m.value, date: m.date });
     }
 
     return baselines
+      .filter((b) => !EXCLUDED_EWMA_KEYS.includes(b.metricKey))
       .map((b) => {
         const def = METRIC_DEFINITIONS[b.metricKey];
         const l = latest.get(b.metricKey);

@@ -5,7 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { useAppStore } from '../../store/useAppStore';
 import { analyzeMedicationImpact } from '../../engine/medicationAnalytics';
-import { buildDoctorReportText, ReportMetricStat } from '../../services/reportBuilder';
+import { buildDoctorReportText, generateRealReportAwarenessNotes, PinnedInsight, ReportMetricStat } from '../../services/reportBuilder';
 import { shareContent } from '../../services/shareService';
 
 interface DoctorShareWizardProps {
@@ -35,7 +35,10 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
   const moods = useLiveQuery(() => db.moodReports.toArray()) || [];
   const medications = useLiveQuery(() => db.medications.toArray()) || [];
   const baselines = useLiveQuery(() => db.baselines.toArray()) || [];
+  const insights = useLiveQuery(() => db.insights.toArray()) || [];
   const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) || [];
+  const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
+  const pinnedInsights: PinnedInsight[] = Array.isArray(pinnedItem?.value) ? pinnedItem.value : [];
 
   const realChartData = useMemo(() => {
     const cutoff = new Date();
@@ -109,17 +112,34 @@ export const DoctorShareWizard: React.FC<DoctorShareWizardProps> = ({
             .join('\n\n')
         : undefined;
 
+    const sampleDays = new Set(dailyMetrics.map((m) => m.date)).size;
+    const effectiveDayCount = Math.max(baselineDayCount, sampleDays);
+    const awarenessNotes = generateRealReportAwarenessNotes({
+      stats: filteredStats,
+      insights,
+      moods,
+      surveys,
+      medImpactReports: selectedData.medication ? medReports : [],
+      effectiveDayCount,
+      rangeDays,
+    });
+    const clinicalNotesText = awarenessNotes
+      .map((n) => `• ${n.title}: ${n.body}${n.sources && n.sources.length > 0 ? `\n  Kaynak: ${n.sources.join('; ')}` : ''}`)
+      .join('\n');
+
     const latestSurvey = surveys[0];
     const reportText = buildDoctorReportText({
       patientName: userProfile.name || 'Danışan',
       rangeDays,
       generatedAt: new Date(),
       baselineStatus:
-        baselineDayCount >= 14
-          ? `${baselineDayCount} günlük kişisel baz hattı tamamlandı`
-          : `Baz hattı öğrenme sürecinde (${baselineDayCount}/14 gün)`,
+        effectiveDayCount >= 14
+          ? `${effectiveDayCount} günlük kişisel baz hattı tamamlandı`
+          : `Baz hattı öğrenme sürecinde (${effectiveDayCount}/14 gün)`,
       stats: filteredStats,
       medicationSection: medSection,
+      pinnedInsights,
+      clinicalNotes: clinicalNotesText,
       clinicalSurveyScores: latestSurvey
         ? {
             gad7Score: latestSurvey.gad7Score,

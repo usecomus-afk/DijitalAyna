@@ -27,6 +27,7 @@ class KeystrokeTracker {
     this.isListening = true;
     window.addEventListener('keydown', this.handleKeyDown, { capture: true, passive: true });
     window.addEventListener('keyup', this.handleKeyUp, { capture: true, passive: true });
+    window.addEventListener('beforeinput', this.handleBeforeInput as EventListener, { capture: true, passive: true });
   }
 
   stop(): void {
@@ -34,6 +35,7 @@ class KeystrokeTracker {
     this.isListening = false;
     window.removeEventListener('keydown', this.handleKeyDown, { capture: true });
     window.removeEventListener('keyup', this.handleKeyUp, { capture: true });
+    window.removeEventListener('beforeinput', this.handleBeforeInput as EventListener, { capture: true });
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
@@ -63,7 +65,7 @@ class KeystrokeTracker {
 
     if (this.lastKeyDownTime > 0) {
       const iki = now - this.lastKeyDownTime;
-      if (iki < 5000) {
+      if (iki >= 15 && iki < 5000) {
         this.ikiList.push(iki);
         if (iki > 1500) {
           this.pauseCount++;
@@ -90,7 +92,48 @@ class KeystrokeTracker {
     });
 
     if (this.flushTimer) clearTimeout(this.flushTimer);
-    this.flushTimer = setTimeout(() => this.flush(), 3000);
+    this.flushTimer = setTimeout(() => this.flush(), 2000);
+  };
+
+  private handleBeforeInput = (event: InputEvent) => {
+    const now = Date.now();
+    if (now - this.lastKeyDownTime < 45) {
+      if (event.inputType === 'deleteContentBackward' || event.inputType === 'deleteWordBackward') {
+        this.backspaceCount = Math.max(1, this.backspaceCount);
+      }
+      return;
+    }
+
+    if (this.sessionStartTime === 0) {
+      this.sessionStartTime = now;
+    }
+
+    if (this.lastKeyDownTime > 0) {
+      const iki = now - this.lastKeyDownTime;
+      if (iki >= 15 && iki < 5000) {
+        this.ikiList.push(iki);
+        if (iki > 1500) {
+          this.pauseCount++;
+        }
+      }
+    }
+    this.lastKeyDownTime = now;
+    this.totalKeystrokes++;
+
+    const isBackspace = event.inputType === 'deleteContentBackward' || event.inputType === 'deleteWordBackward';
+    if (isBackspace) {
+      this.backspaceCount++;
+    }
+
+    TelemetryPipeline.getInstance().ingestKeystroke({
+      eventType: isBackspace ? 'BACKSPACE' : 'KEY_DOWN',
+      durationMs: 85,
+      interKeyDelayMs: this.ikiList.length > 0 ? this.ikiList[this.ikiList.length - 1] : 120,
+      timestamp: now,
+    });
+
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = setTimeout(() => this.flush(), 2000);
   };
 
   private handleKeyUp = (event: KeyboardEvent) => {
@@ -113,15 +156,16 @@ class KeystrokeTracker {
   };
 
   getRecentMetrics(): KeystrokeMetricsSummary | null {
-    if (this.totalKeystrokes < 3) return null;
+    if (this.totalKeystrokes < 1) return null;
 
-    const sessionDurationMin = Math.max(0.05, (Date.now() - this.sessionStartTime) / 60000);
+    const activeSpanMs = Math.max(1500, (this.lastKeyDownTime || Date.now()) - this.sessionStartTime);
+    const sessionDurationMin = Math.max(0.03, activeSpanMs / 60000);
     const avgIki = this.ikiList.length > 0
       ? this.ikiList.reduce((a, b) => a + b, 0) / this.ikiList.length
       : 220;
     const avgHold = this.holdTimes.length > 0
       ? this.holdTimes.reduce((a, b) => a + b, 0) / this.holdTimes.length
-      : 85;
+      : Math.max(55, Math.min(180, Math.round(avgIki * 0.42)));
 
     const wordsTyped = this.totalKeystrokes / 5;
     const wpm = Math.min(140, Math.max(10, Math.round(wordsTyped / sessionDurationMin)));
@@ -140,7 +184,6 @@ class KeystrokeTracker {
   async flush(): Promise<void> {
     const metrics = this.getRecentMetrics();
     if (!metrics) {
-      this.reset();
       return;
     }
 
@@ -155,7 +198,7 @@ class KeystrokeTracker {
         typing_iki: metrics.ikiMs,
         typing_backspace_rate: metrics.backspaceRate,
         typing_pause_count: metrics.pauseCount,
-        hold_time_ms: metrics.holdTimeMs,
+        typing_hold_time: metrics.holdTimeMs,
       },
       provenance: {
         source: 'web-api',

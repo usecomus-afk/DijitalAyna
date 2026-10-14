@@ -45,6 +45,17 @@ class BatterySensorCollector {
     }
   }
 
+  async flush(): Promise<void> {
+    if (!this.isRunning && typeof window !== 'undefined') {
+      if (!Capacitor.isNativePlatform() && typeof navigator !== 'undefined' && 'getBattery' in navigator && !this.batteryObj) {
+        try {
+          this.batteryObj = await (navigator as any).getBattery();
+        } catch {}
+      }
+    }
+    await this.logBattery();
+  }
+
   private handleBatteryChange = () => {
     this.logBattery();
   };
@@ -58,7 +69,7 @@ class BatterySensorCollector {
       source = 'native-sensor';
       try {
         const info = await Device.getBatteryInfo();
-        if (typeof info.batteryLevel === 'number' && !isNaN(info.batteryLevel)) {
+        if (typeof info.batteryLevel === 'number' && !isNaN(info.batteryLevel) && info.batteryLevel >= 0) {
           level = Math.round(info.batteryLevel * 100);
           charging = info.isCharging ? 1 : 0;
         }
@@ -67,7 +78,7 @@ class BatterySensorCollector {
       }
     } else if (this.batteryObj) {
       source = 'web-api';
-      if (typeof this.batteryObj.level === 'number' && !isNaN(this.batteryObj.level)) {
+      if (typeof this.batteryObj.level === 'number' && !isNaN(this.batteryObj.level) && this.batteryObj.level >= 0) {
         level = Math.round(this.batteryObj.level * 100);
         charging = this.batteryObj.charging ? 1 : 0;
       }

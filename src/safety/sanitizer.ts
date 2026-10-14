@@ -15,7 +15,7 @@ export function sanitizeSensorEvent(
     return null;
   }
 
-  const validTypes: SensorType[] = ['motion', 'typing', 'touch', 'session', 'light', 'battery', 'network', 'voice'];
+  const validTypes: SensorType[] = ['motion', 'typing', 'touch', 'session', 'light', 'battery', 'network', 'voice', 'sleep'];
   if (!rawEvent.type || !validTypes.includes(rawEvent.type)) {
     console.warn(`[Sanitizer] Rejected event with invalid type: ${rawEvent.type}`);
     return null;

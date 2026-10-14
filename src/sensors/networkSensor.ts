@@ -39,6 +39,11 @@ class NetworkSensorCollector {
     window.removeEventListener('offline', this.handleNetworkChange);
   }
 
+  async flush(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    await this.logNetwork();
+  }
+
   private handleNetworkChange = () => {
     this.logNetwork();
   };
@@ -62,7 +67,12 @@ class NetworkSensorCollector {
       timestamp: Date.now(),
       payload: {
         network_online: isOnline,
-      }
+      },
+      provenance: {
+        source: Capacitor.isNativePlatform() ? 'native-sensor' : 'web-api',
+        confidence: 1.0,
+        timestamp: Date.now(),
+      },
     });
   }
 }

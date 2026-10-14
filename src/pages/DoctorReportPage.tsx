@@ -20,7 +20,7 @@ import {
 import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
 import { calculateZScore } from '../engine/anomaly';
 import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
-import { PinnedInsight } from '../services/reportBuilder';
+import { PinnedInsight, generateRealReportAwarenessNotes } from '../services/reportBuilder';
 import { BaselineEngine } from '../engine/BaselineEngine';
 import { sensorCapabilities } from '../sensors/capabilities';
 import { sensorManager } from '../sensors/SensorManager';
@@ -30,6 +30,9 @@ import { TimeSlot, Medication } from '../types/medication';
 import { notificationService } from '../services/notificationService';
 
 export type MetricDisplayStatus = 'active' | 'permission_required' | 'unsupported' | 'waiting_data' | 'self_report_required';
+
+/** Excluded from the EWMA Baseline Deviation Table per clinical report specification */
+export const EXCLUDED_EWMA_REPORT_KEYS: MetricKey[] = ['gaming_duration', 'camera_interaction_count'];
 
 const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
   morning: '🌅 Sabah',
@@ -67,6 +70,12 @@ export function getMetricStatusType(key: MetricKey, hasData: boolean): MetricDis
   if (key === 'gaming_duration') {
     return 'self_report_required';
   }
+  if ((key === 'battery_level' || key === 'is_charging') && sensorCapabilities.getCapability('battery') === 'unsupported') {
+    return 'unsupported';
+  }
+  if (key === 'light_ambient_lux' && sensorCapabilities.getCapability('light') === 'unsupported') {
+    return 'unsupported';
+  }
   return 'waiting_data';
 }
 
@@ -78,13 +87,13 @@ function getUnavailableReason(key: MetricKey): string {
     case 'typing_backspace_rate':
     case 'typing_pause_count':
     case 'typing_hold_time':
-      return 'Uygulama içi yazım kaydı bekleniyor';
+      return 'Uygulama içi klavye/metin girişi bekleniyor';
     case 'touch_scroll_velocity':
     case 'touch_interaction_frequency':
-      return 'Uygulama içi dokunma/kaydırma kaydı bekleniyor';
+      return 'Uygulama içi dokunma/kaydırma etkileşimi bekleniyor';
     case 'session_duration':
     case 'screen_on_time':
-      return 'Aktif oturum süresi henüz kaydedilmedi';
+      return 'Aktif oturum süresi hesaplanıyor';
     case 'night_usage_minutes':
       return '02:00–04:00 gece penceresinde kullanım kaydı saptanmadı';
     case 'mobility_index':
@@ -102,10 +111,12 @@ function getUnavailableReason(key: MetricKey): string {
     case 'camera_interaction_count':
       return 'Kamera izni bekleniyor';
     case 'light_ambient_lux':
-      return 'Ekran parlaklığı vekili üzerinden ortam ışığı kaydı bekleniyor';
+      return 'Ekran parlaklığı vekili üzerinden ortam ışığı kaydı bekleniyor (yalnızca iOS/Android native desteklenir)';
+    case 'night_light_violations':
+      return 'Gece ışık maruziyeti sensör kaydı bekleniyor';
     case 'battery_level':
     case 'is_charging':
-      return 'Pil telemetrisi kaydedilemedi (iOS WebKit kısıtı)';
+      return 'Pil telemetrisi bu tarayıcı/simülatör ortamında desteklenmiyor';
     case 'network_online':
       return 'Ağ bağlantı telemetrisi kaydedilemedi';
     case 'voice_pitch_variance':
@@ -114,9 +125,9 @@ function getUnavailableReason(key: MetricKey): string {
     case 'gaming_duration':
       return 'iOS Sandbox kısıtı nedeniyle öz-bildirim gereklidir';
     case 'cognitive_fatigue_score':
-      return 'Bilişsel yorgunluk analizi için 14 günlük baz hattı bekleniyor';
+      return 'Bilişsel yorgunluk analizi için aktif oturum/yazım/dokunma verisi bekleniyor';
     case 'impulse_risk_index':
-      return 'Gece kullanım ve agresif dokunma verisi yetersiz';
+      return 'Dürtüsel risk analizi için aktif oturum/dokunma/gece verisi bekleniyor';
     default:
       return 'Sensör verisi mevcut değil';
   }
@@ -148,6 +159,7 @@ export const DoctorReportPage: React.FC = () => {
   const medications = useLiveQuery(() => db.medications.toArray()) || [];
   const todaysLogs = useLiveQuery(() => db.medicationLogs.where('date').equals(todayStr).toArray()) || [];
   const moods = useLiveQuery(() => db.moodReports.toArray()) || [];
+  const surveys = useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) || [];
   const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
   const pinnedInsights: PinnedInsight[] = Array.isArray(pinnedItem?.value) ? pinnedItem.value : [];
 
@@ -164,7 +176,15 @@ export const DoctorReportPage: React.FC = () => {
 
   const [capStatuses, setCapStatuses] = useState(() => sensorCapabilities.getAllCapabilities());
   useEffect(() => {
-    sensorManager.evaluateNow().catch(() => {});
+    const syncActiveSensors = async () => {
+      try {
+        await sensorManager.flushAndCollectAll();
+        await sensorManager.evaluateNow();
+      } catch {
+        // Ignore transient evaluation errors
+      }
+    };
+    syncActiveSensors();
     return sensorCapabilities.addListener((c) => setCapStatuses({ ...c }));
   }, []);
 
@@ -189,6 +209,12 @@ export const DoctorReportPage: React.FC = () => {
 
   const unavailableText = (st: { key: MetricKey; status: MetricDisplayStatus; unavailableReason: string }): string => {
     if (st.status === 'waiting_data') {
+      if (st.key.startsWith('typing_')) {
+        return 'Sensör Aktif, İzin Gerekmez. Klavye ritim sensörü dinlemededir; uygulama içinde metin girişi yapıldığında gerçek zamanlı hesaplanır.';
+      }
+      if (st.key.startsWith('touch_')) {
+        return 'Sensör Aktif, İzin Gerekmez. Dokunma ve kaydırma etkileşiminiz gerçekleştiğinde otomatik hesaplanır.';
+      }
       return 'Sensör Aktif, İzin Gerekmez. Bu sensör aktiftir. Kişisel bazal çizginizin hesaplanabilmesi için günlük kullanım verileri toplanmaktadır.';
     }
     if (st.status === 'permission_required' && isPermissionGranted(st.key)) {
@@ -224,7 +250,7 @@ export const DoctorReportPage: React.FC = () => {
     }
   };
 
-  // Compute summary stats for the report - all indicators with strict Zero-Mock transparency
+  // Compute summary stats for the report - all indicators (excluding gaming_duration & camera_interaction_count) with strict Zero-Mock transparency
   const reportStats = useMemo(() => {
     const realBaselineMap = new Map(
       baselines.filter((b) => (b.sampleCount ?? 0) > 0).map((b) => [b.metricKey, b])
@@ -250,7 +276,9 @@ export const DoctorReportPage: React.FC = () => {
       unavailableReason: string;
     }[] = [];
 
-    const allKeys = Object.keys(METRIC_DEFINITIONS) as MetricKey[];
+    const allKeys = (Object.keys(METRIC_DEFINITIONS) as MetricKey[]).filter(
+      (k) => !EXCLUDED_EWMA_REPORT_KEYS.includes(k)
+    );
 
     for (const key of allKeys) {
       const def = METRIC_DEFINITIONS[key];
@@ -320,6 +348,19 @@ export const DoctorReportPage: React.FC = () => {
   const medImpactReports = useMemo(() => {
     return medications.map((m) => analyzeMedicationImpact(m, dailyMetrics, baselines, moods));
   }, [medications, dailyMetrics, baselines, moods]);
+
+  // Compute real-data-driven awareness notes
+  const awarenessNotes = useMemo(() => {
+    return generateRealReportAwarenessNotes({
+      stats: reportStats,
+      insights,
+      moods,
+      surveys,
+      medImpactReports,
+      effectiveDayCount,
+      rangeDays: selectedRange,
+    });
+  }, [reportStats, insights, moods, surveys, medImpactReports, effectiveDayCount, selectedRange]);
 
   const toggleTakeDose = async (medId: number) => {
     const existing = todaysLogs.find((l) => l.medicationId === medId);
@@ -520,7 +561,7 @@ export const DoctorReportPage: React.FC = () => {
           </div>
           <div className="text-[11px] text-teal-800 bg-teal-50 px-3 py-1 rounded-xl border border-teal-200 flex items-center gap-1.5 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{activeCount} / 21 Gösterge Aktif ({unavailableCount} Gösterge İçin İzin veya Donanım Desteği Gerekli)</span>
+            <span>{activeCount} / {reportStats.length} Gösterge Aktif ({unavailableCount} Gösterge İçin İzin veya Etkileşim Bekleniyor)</span>
           </div>
         </div>
       </div>
@@ -545,7 +586,7 @@ export const DoctorReportPage: React.FC = () => {
             <div><strong>Rapor Tarihi:</strong> {new Date().toLocaleDateString('tr-TR')}</div>
             <div><strong>Danışan / Kullanıcı:</strong> {userProfile.name}</div>
             {userProfile.email && <div><strong>E-posta:</strong> {userProfile.email}</div>}
-            <div><strong>İncelenen Pencere:</strong> Son {selectedRange} Gün ({activeCount}/21 Gösterge Aktif)</div>
+            <div><strong>İncelenen Pencere:</strong> Son {selectedRange} Gün ({activeCount}/{reportStats.length} Gösterge Aktif)</div>
           </div>
         </div>
 
@@ -950,14 +991,14 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         )}
 
-        {/* 5. Complete Metrics Table (All 21 Indicators with Strict Zero-Mock Transparency) */}
+        {/* 5. Complete Metrics Table (All 27 Indicators with Strict Zero-Mock Transparency) */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
               {medications.length > 0 ? '5.' : '4.'} Sayısal Göstergeler & EWMA Baz Hattı Sapma Tablosu ({reportStats.length} Gösterge)
             </h4>
             <span className="text-[11px] text-comus-sand-dark font-medium">
-              <strong className="text-emerald-700 font-bold">{activeCount}</strong> / 21 Gösterge Aktif • <span className="text-amber-800 font-bold">{unavailableCount}</span> İzin/Sensör Bekleniyor
+              <strong className="text-emerald-700 font-bold">{activeCount}</strong> / {reportStats.length} Gösterge Aktif • <span className="text-amber-800 font-bold">{unavailableCount}</span> İzin/Etkileşim Bekleniyor
             </span>
           </div>
 
@@ -1005,7 +1046,11 @@ export const DoctorReportPage: React.FC = () => {
                           : st.status === 'self_report_required'
                           ? 'Öz-Bildirim Gerekli'
                           : st.status === 'unsupported'
-                          ? 'Desteklenmiyor'
+                          ? 'Cihaz/Tarayıcı Kısıtı'
+                          : st.key.startsWith('typing_')
+                          ? 'Klavye Girişi Bekleniyor'
+                          : st.key.startsWith('touch_')
+                          ? 'Dokunma Bekleniyor'
                           : isLearning ? `Öğrenme Sürecinde (${effectiveDayCount}/14 Gün)` : 'Veri Bekleniyor'}
                       </span>
                       {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
@@ -1013,7 +1058,7 @@ export const DoctorReportPage: React.FC = () => {
                           onClick={() => handleRequestPermission(st.key)}
                           className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
                         >
-                          {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : st.key === 'camera_interaction_count' ? 'Kamera İzni İste' : 'İzin Ver'}
+                          {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : 'İzin Ver'}
                         </button>
                       )}
                       {!st.hasData && st.status === 'self_report_required' && (
@@ -1150,7 +1195,11 @@ export const DoctorReportPage: React.FC = () => {
                               : st.status === 'self_report_required'
                               ? 'Öz-Bildirim Gerekli'
                               : st.status === 'unsupported'
-                              ? 'Desteklenmiyor'
+                              ? 'Cihaz/Tarayıcı Kısıtı'
+                              : st.key.startsWith('typing_')
+                              ? 'Klavye Girişi Bekleniyor'
+                              : st.key.startsWith('touch_')
+                              ? 'Dokunma Bekleniyor'
                               : isLearning ? `Öğrenme Sürecinde (${effectiveDayCount}/14 Gün)` : 'Veri Bekleniyor'}
                           </span>
                           {!st.hasData && st.status === 'permission_required' && !isPermissionGranted(st.key) && (
@@ -1158,7 +1207,7 @@ export const DoctorReportPage: React.FC = () => {
                               onClick={() => handleRequestPermission(st.key)}
                               className="px-2 py-0.5 rounded text-[10px] font-bold bg-comus-navy text-white hover:bg-comus-navy-dark active:scale-95 transition-all shadow-xs"
                             >
-                              {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : st.key === 'camera_interaction_count' ? 'Kamera İzni İste' : 'İzin Ver'}
+                              {st.key === 'mobility_index' ? 'İzin Ver / Sağlığı Bağla' : 'İzin Ver'}
                             </button>
                           )}
                           {!st.hasData && st.status === 'self_report_required' && (
@@ -1179,28 +1228,52 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 6. Insights Summary */}
+        {/* 6. System-Generated Awareness Notes (Real Data Driven) */}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy mb-2">
-            {medications.length > 0 ? '6.' : '5.'} Sistem Tarafından Üretilen Farkındalık Notları
-          </h4>
-          <div className="space-y-2">
-            {isLearning ? (
-              <div className="p-3.5 rounded-xl bg-comus-surface border border-comus-sand-light/20 text-xs text-comus-sand-dark">
-                Henüz baz hattı öğrenme aşamasında ({effectiveDayCount}/14 Gün). 14 günlük stabil baz hattı tamamlandıktan sonra kişisel farkındalık notları oluşturulacaktır.
-              </div>
-            ) : insights.length > 0 ? (
-              insights.slice(0, 4).map((ins, i) => (
-                <div key={i} className="p-3 rounded-xl bg-comus-surface border border-comus-sand-light/20 text-xs">
-                  <div className="font-semibold text-comus-navy mb-0.5">{ins.title}</div>
-                  <div className="text-comus-sand-dark leading-relaxed">{ins.body}</div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-comus-navy">
+              {medications.length > 0 ? '6.' : '5.'} Sistem Tarafından Üretilen Farkındalık Notları
+            </h4>
+            <span className="text-[10.5px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
+              Gerçek Telemetri &amp; Öz-Bildirim Verilerine Dayalı ({awarenessNotes.length} Not)
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {awarenessNotes.map((note) => {
+              const badgeStyles =
+                note.severity === 'warning'
+                  ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+                  : note.severity === 'attention'
+                  ? 'bg-amber-50/70 border-amber-200 text-amber-950'
+                  : 'bg-comus-surface border-comus-sand-light/30 text-comus-navy';
+              const tagLabel =
+                note.category === 'phenotype'
+                  ? 'Fenotip & Erken Farkındalık'
+                  : note.category === 'telemetry'
+                  ? 'Sensör & EWMA Telemetri'
+                  : note.category === 'mood'
+                  ? 'Öz-Bildirim Duygudurum'
+                  : note.category === 'survey'
+                  ? 'Klinik Tarama Ölçeği'
+                  : 'İlaç & Tedavi Yanıtı';
+
+              return (
+                <div key={note.id} className={`p-3.5 rounded-2xl border text-xs space-y-1 ${badgeStyles}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-bold text-comus-navy">{note.title}</div>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/80 border border-comus-sand-light/40 text-comus-sand-dark">
+                      {tagLabel}
+                    </span>
+                  </div>
+                  <div className="text-comus-sand-dark leading-relaxed">{note.body}</div>
+                  {note.sources && note.sources.length > 0 && (
+                    <div className="text-[10px] italic text-stone-500 pt-0.5">
+                      Bilimsel Dayanak: {note.sources.join('; ')}
+                    </div>
+                  )}
                 </div>
-              ))
-            ) : (
-              <div className="p-3.5 rounded-xl bg-comus-surface border border-comus-sand-light/20 text-xs text-comus-sand-dark">
-                Henüz kritik sapma veya içgörü notu kaydedilmedi. Tüm sensörler dengeli aralıkta seyrediyor.
-              </div>
-            )}
+              );
+            })}
           </div>
         </div>
 

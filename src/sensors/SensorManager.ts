@@ -97,10 +97,13 @@ class SensorManager {
    */
   async flushAndCollectAll(): Promise<void> {
     await Promise.allSettled([
-      motionSensor.flush(),
-      touchSensor.flush(),
-      typingSensor.flush(),
-      keystrokeTracker.flush(),
+      this.isEnabled('motion') ? motionSensor.flush() : Promise.resolve(),
+      this.isEnabled('touch') ? touchSensor.flush() : Promise.resolve(),
+      this.isEnabled('typing') ? typingSensor.flush() : Promise.resolve(),
+      this.isEnabled('typing') ? keystrokeTracker.flush() : Promise.resolve(),
+      this.isEnabled('session') ? sessionSensor.flush() : Promise.resolve(),
+      this.isEnabled('light') ? lightSensor.flush() : Promise.resolve(),
+      this.isEnabled('network') ? networkSensor.flush() : Promise.resolve(),
       this.isEnabled('location') ? mobilityService.syncMobilityBiomarkers() : Promise.resolve(),
       this.isEnabled('battery') ? deviceBatteryService.recordTelemetrySample() : Promise.resolve(),
     ]);
@@ -123,12 +126,23 @@ class SensorManager {
   private async persistTelemetryFeatures(features: DailyPhenotypeFeatures): Promise<void> {
     const metricMapping: Partial<Record<MetricKey, number>> = {};
 
-    if (features.typingSpeedWpm != null && features.typingSpeedWpm > 0) metricMapping.typing_wpm = features.typingSpeedWpm;
-    if (features.meanFlightTimeMs != null && features.meanFlightTimeMs > 0) metricMapping.typing_iki = Math.round(features.meanFlightTimeMs);
-    if (features.backspaceRate != null && features.backspaceRate > 0) metricMapping.typing_backspace_rate = Math.round(features.backspaceRate * 10) / 10;
+    if (features.typingSpeedWpm != null && features.typingSpeedWpm > 0) {
+      metricMapping.typing_wpm = features.typingSpeedWpm;
+      if (features.meanFlightTimeMs != null && features.meanFlightTimeMs > 0) {
+        metricMapping.typing_iki = Math.round(features.meanFlightTimeMs);
+      }
+      if (features.meanHoldTimeMs != null && features.meanHoldTimeMs > 0) {
+        metricMapping.typing_hold_time = Math.round(features.meanHoldTimeMs);
+      }
+      if (features.backspaceRate != null && features.backspaceRate >= 0) {
+        metricMapping.typing_backspace_rate = Math.round(features.backspaceRate * 10) / 10;
+      }
+    }
     if (features.nocturnalScreenMinutes > 0) metricMapping.night_usage_minutes = features.nocturnalScreenMinutes;
-    if (features.totalScreenOnMinutes > 0) metricMapping.screen_on_time = features.totalScreenOnMinutes;
-    if (features.tremorVariance != null && features.tremorVariance > 0) metricMapping.tremor_variance = features.tremorVariance;
+    if (features.totalScreenOnMinutes > 0 && features.totalScreenOnMinutes !== 180) {
+      metricMapping.screen_on_time = features.totalScreenOnMinutes;
+    }
+    if (features.tremorVariance != null && features.tremorVariance >= 0) metricMapping.tremor_variance = features.tremorVariance;
     if (features.activityIntensityScore > 0) metricMapping.mobility_index = features.activityIntensityScore;
 
     for (const [key, val] of Object.entries(metricMapping)) {

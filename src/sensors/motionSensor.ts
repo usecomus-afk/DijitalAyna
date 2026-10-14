@@ -10,6 +10,7 @@ class MotionSensorCollector {
   private lastSampleTime = 0;
   private intervalTimer: any = null;
   private nativeListenerHandle: PluginListenerHandle | null = null;
+  private hasInitialFlush = false;
 
   async requestPermission(): Promise<boolean> {
     const granted = await sensorCapabilities.requestMotionPermission();
@@ -42,13 +43,14 @@ class MotionSensorCollector {
     if (this.isRunning || typeof window === 'undefined') return;
     this.isRunning = true;
     this.accelMagnitudes = [];
+    this.hasInitialFlush = false;
 
     // 1. Native iOS / Android Capacitor Motion Integration
     if (Capacitor.isNativePlatform()) {
       try {
         this.nativeListenerHandle = await Motion.addListener('accel', (event) => {
           const now = Date.now();
-          if (now - this.lastSampleTime < 100) return; // 10Hz throttle
+          if (now - this.lastSampleTime < 50) return; // 20Hz throttle
           this.lastSampleTime = now;
 
           const acc = event.accelerationIncludingGravity || event.acceleration;
@@ -66,6 +68,11 @@ class MotionSensorCollector {
 
           // Forward to Telemetry Pipeline
           TelemetryPipeline.getInstance().ingestAccelerometer({ x, y, z, timestamp: now });
+
+          if (!this.hasInitialFlush && this.accelMagnitudes.length >= 5) {
+            this.hasInitialFlush = true;
+            this.flush();
+          }
         });
       } catch (e) {
         console.warn('[MotionSensor] Native motion listener error:', e);
@@ -99,11 +106,12 @@ class MotionSensorCollector {
       this.intervalTimer = null;
     }
     this.flush();
+    this.accelMagnitudes = [];
   }
 
   private handleMotion = (event: DeviceMotionEvent) => {
     const now = Date.now();
-    if (now - this.lastSampleTime < 100) return; // Throttle to 10Hz
+    if (now - this.lastSampleTime < 50) return; // Throttle to 20Hz
     this.lastSampleTime = now;
 
     const acc = event.accelerationIncludingGravity || event.acceleration;
@@ -121,12 +129,17 @@ class MotionSensorCollector {
 
     // Forward to Telemetry Pipeline
     TelemetryPipeline.getInstance().ingestAccelerometer({ x, y, z, timestamp: now });
+
+    if (!this.hasInitialFlush && this.accelMagnitudes.length >= 5) {
+      this.hasInitialFlush = true;
+      this.flush();
+    }
   };
 
   async flush(): Promise<void> {
-    // STRICT ZERO MOCK POLICY: If no genuine accelerometer readings were recorded, do NOT log arbitrary numbers
+    // STRICT ZERO MOCK POLICY: If no genuine accelerometer readings were recorded, do NOT log arbitrary numbers.
+    // Keep partial buffer (< 5 samples) intact until enough samples arrive.
     if (this.accelMagnitudes.length < 5) {
-      this.accelMagnitudes = [];
       return;
     }
 
