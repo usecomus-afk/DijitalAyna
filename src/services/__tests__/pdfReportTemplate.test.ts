@@ -302,9 +302,32 @@ describe('Standardized Doctor Report PDF Template & Sharing Pipeline (STD-DMI-CL
       files: [sampleFile],
     });
     expect(res.success).toBe(true);
-    // If navigator.share fallback is reached in test env, it must NEVER pass `files` on native Capacitor
+    // In Capacitor ShareWeb fallback (Node test env), Share.share calls navigator.share with text only (no files)
     if (webShareSpy.mock.calls.length > 0) {
       expect(webShareSpy.mock.calls[0][0].files).toBeUndefined();
     }
+  });
+
+  it('6. ensures BetaAccessGateView has empty placeholder and DoctorReportPage shares text directly without PDF', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const betaGateSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/BetaAccessGateView.tsx'),
+      'utf-8'
+    );
+    expect(betaGateSrc).toContain('placeholder=""');
+    expect(betaGateSrc).not.toContain('placeholder="Örn:');
+    expect(betaGateSrc).not.toContain('BETA26');
+    expect(betaGateSrc).toContain('DUTY1618');
+
+    const doctorReportSrc = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/pages/DoctorReportPage.tsx'),
+      'utf-8'
+    );
+    expect(doctorReportSrc).not.toContain('shareDoctorReportPdf');
+    expect(doctorReportSrc).not.toContain('generateDoctorReportPdfFile');
+    expect(doctorReportSrc).not.toContain('DoctorShareWizard');
+    expect(doctorReportSrc).toContain('await shareContent({');
   });
 });

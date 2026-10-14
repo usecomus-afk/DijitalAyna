@@ -75,7 +75,7 @@ export const InsightsTab: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 bg-comus-navy text-white py-3 rounded-2xl font-medium text-sm transition-transform active:scale-95 hover:bg-comus-navy/90 cursor-pointer"
           >
             {alreadyPinned ? <Check className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-            {alreadyPinned ? 'Rapora Eklendi — Raporu Aç' : 'Hekim Paylaşım Raporuna Ekle (PDF)'}
+            {alreadyPinned ? 'Rapora Eklendi — Raporu Aç' : 'Hekim Paylaşım Raporuna Ekle'}
           </button>
           {error && (
             <p role="alert" className="mt-2 text-xs font-medium text-rose-600">

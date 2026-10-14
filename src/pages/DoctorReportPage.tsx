@@ -1,5 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import React, { useState, useMemo, useEffect } from 'react';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import {
@@ -11,6 +10,9 @@ import {
   FileText,
 } from 'lucide-react';
 import { METRIC_DEFINITIONS, MetricKey } from '../types/sensor';
+import { DailyMetric, BaselineState, Insight, MoodReport } from '../types/engine';
+import { Medication } from '../types/medication';
+import { ClinicalSurveyResult } from '../data/clinicalSurveys';
 import { calculateZScore } from '../engine/anomaly';
 import { analyzeMedicationImpact } from '../engine/medicationAnalytics';
 import {
@@ -19,10 +21,9 @@ import {
   buildDoctorReportText,
   ReportMetricStat,
 } from '../services/reportBuilder';
-import { copyTextToClipboard } from '../services/shareService';
+import { copyTextToClipboard, shareContent } from '../services/shareService';
 import { BaselineEngine } from '../engine/BaselineEngine';
 import { sensorCapabilities } from '../sensors/capabilities';
-import { DoctorShareWizard } from '../components/doctor/DoctorShareWizard';
 
 export type MetricDisplayStatus =
   | 'active'
@@ -129,26 +130,51 @@ export const DoctorReportPage: React.FC = () => {
   const { userProfile, baselineDayCount } = useAppStore();
   const [selectedRange, setSelectedRange] = useState<7 | 14 | 30>(14);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
-  const [isShareWizardOpen, setIsShareWizardOpen] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
-  const dailyMetrics = useLiveQuery(() => db.dailyMetrics.toArray()) ?? EMPTY_ARRAY;
-  const baselines = useLiveQuery(() => db.baselines.toArray()) ?? EMPTY_ARRAY;
-  const insights = useLiveQuery(() => db.insights.toArray()) ?? EMPTY_ARRAY;
-  const medications = useLiveQuery(() => db.medications.toArray()) ?? EMPTY_ARRAY;
-  const moods = useLiveQuery(() => db.moodReports.toArray()) ?? EMPTY_ARRAY;
-  const surveys =
-    useLiveQuery(() => db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray()) ??
-    EMPTY_ARRAY;
-  const pinnedItem = useLiveQuery(() => db.settings.get('doctor_report_pinned'));
-  const pinnedInsights = useMemo<PinnedInsight[]>(
-    () => (Array.isArray(pinnedItem?.value) ? pinnedItem.value : EMPTY_ARRAY),
-    [pinnedItem?.value]
-  );
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetric[]>(EMPTY_ARRAY);
+  const [baselines, setBaselines] = useState<BaselineState[]>(EMPTY_ARRAY);
+  const [insights, setInsights] = useState<Insight[]>(EMPTY_ARRAY);
+  const [medications, setMedications] = useState<Medication[]>(EMPTY_ARRAY);
+  const [moods, setMoods] = useState<MoodReport[]>(EMPTY_ARRAY);
+  const [surveys, setSurveys] = useState<ClinicalSurveyResult[]>(EMPTY_ARRAY);
+  const [pinnedInsights, setPinnedInsights] = useState<PinnedInsight[]>(EMPTY_ARRAY);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      db.dailyMetrics.toArray(),
+      db.baselines.toArray(),
+      db.insights.toArray(),
+      db.medications.toArray(),
+      db.moodReports.toArray(),
+      db.clinicalSurveyResults.orderBy('timestamp').reverse().toArray(),
+      db.settings.get('doctor_report_pinned'),
+    ])
+      .then(([dm, bl, ins, meds, md, sv, pinned]) => {
+        if (!isMounted) return;
+        setDailyMetrics(dm || EMPTY_ARRAY);
+        setBaselines(bl || EMPTY_ARRAY);
+        setInsights(ins || EMPTY_ARRAY);
+        setMedications(meds || EMPTY_ARRAY);
+        setMoods(md || EMPTY_ARRAY);
+        setSurveys(sv || EMPTY_ARRAY);
+        setPinnedInsights(Array.isArray(pinned?.value) ? pinned.value : EMPTY_ARRAY);
+      })
+      .catch(() => {
+        // ignore transient read errors
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const removePinnedInsight = async (addedAt: number) => {
+    const nextPinned = pinnedInsights.filter((p) => p.addedAt !== addedAt);
+    setPinnedInsights(nextPinned);
     await db.settings.put({
       key: 'doctor_report_pinned',
-      value: pinnedInsights.filter((p) => p.addedAt !== addedAt),
+      value: nextPinned,
     });
   };
 
@@ -290,11 +316,7 @@ export const DoctorReportPage: React.FC = () => {
     ]
   );
 
-  const handleShareReport = () => {
-    setIsShareWizardOpen(true);
-  };
-
-  const handleCopyReportSummary = async () => {
+  const buildCurrentReportText = () => {
     const baselineStatus =
       effectiveDayCount >= 14
         ? `${effectiveDayCount} günlük kişisel EWMA baz hattı tamamlandı`
@@ -310,7 +332,7 @@ export const DoctorReportPage: React.FC = () => {
       .join('\n');
 
     const latestSurvey = surveys.length > 0 ? surveys[0] : undefined;
-    const text = buildDoctorReportText({
+    return buildDoctorReportText({
       patientName: userProfile.name || 'Danışan',
       rangeDays: selectedRange,
       generatedAt: new Date(),
@@ -329,7 +351,37 @@ export const DoctorReportPage: React.FC = () => {
           }
         : undefined,
     });
+  };
 
+  const handleShareReport = async () => {
+    if (isSharing) return;
+    setIsSharing(true);
+    setShareFeedback(null);
+    try {
+      const reportTitle = `Dijital Mental İkizim Hekim Raporu — ${userProfile.name || 'Danışan'} (Son ${selectedRange} Gün)`;
+      const text = buildCurrentReportText();
+      const res = await shareContent({
+        title: reportTitle,
+        text,
+      });
+      if (res.message) {
+        setShareFeedback(res.message);
+        setTimeout(() => setShareFeedback(null), 5000);
+      }
+    } catch {
+      const text = buildCurrentReportText();
+      await copyTextToClipboard(text);
+      setShareFeedback(
+        'Klinik hekim raporu panoya kopyalandı! Doktorunuza mesaj veya e-posta olarak gönderebilirsiniz.'
+      );
+      setTimeout(() => setShareFeedback(null), 5000);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyReportSummary = async () => {
+    const text = buildCurrentReportText();
     await copyTextToClipboard(text);
     setShareFeedback(
       'Klinik hekim raporu panoya kopyalandı! Doktorunuza mesaj veya e-posta olarak gönderebilirsiniz.'
@@ -364,8 +416,9 @@ export const DoctorReportPage: React.FC = () => {
             </button>
             <button
               type="button"
+              disabled={isSharing}
               onClick={handleShareReport}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-comus-copper hover:bg-comus-copper-dark text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all cursor-pointer disabled:opacity-60"
             >
               <Share2 className="w-4 h-4 shrink-0" />
               <span className="whitespace-nowrap">Doktorumla Paylaş</span>
@@ -482,22 +535,6 @@ export const DoctorReportPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Doctor Share Wizard Modal */}
-      {isShareWizardOpen && (
-        <DoctorShareWizard
-          isOpen={isShareWizardOpen}
-          onClose={() => setIsShareWizardOpen(false)}
-          stats={reportStats}
-          rangeDays={selectedRange}
-          medImpactReports={medImpactReports}
-          moods={moods}
-          surveys={surveys}
-          awarenessNotes={awarenessNotes}
-          pinnedInsights={pinnedInsights}
-          effectiveDayCount={effectiveDayCount}
-        />
-      )}
     </div>
   );
 };

@@ -216,8 +216,8 @@ export async function shareContent(options: ShareOptions): Promise<ShareResult> 
     }
   }
 
-  // 3. Try Web Share API with plain text (Mobile Safari, Chrome Mobile, Chrome Desktop)
-  if (typeof navigator !== 'undefined' && navigator.share) {
+  // 3. Try Web Share API with plain text (Mobile Safari, Chrome Mobile, Chrome Desktop - non-native only)
+  if (!Capacitor.isNativePlatform() && typeof navigator !== 'undefined' && navigator.share) {
     try {
       const safeFallbackUrl =
         typeof window !== 'undefined' && /^https?:\/\//i.test(window.location.href)

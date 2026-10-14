@@ -108,7 +108,7 @@ export const BetaAccessGate: React.FC<BetaAccessGateProps> = ({ children }) => {
                   if (errorMessage) setErrorMessage('');
                 }}
                 maxLength={12}
-                placeholder="Örn: DUTY1618"
+                placeholder=""
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck="false"
