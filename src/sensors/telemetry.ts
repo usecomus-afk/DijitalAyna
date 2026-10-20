@@ -179,7 +179,7 @@ export class TelemetryPipeline {
       totalSocialInteractions: totalCalls,
 
       tremorVariance: tremorVar !== null ? Math.round(tremorVar * 100) / 100 : null,
-      activityIntensityScore: Math.round(Math.min(100, (totalDist / 100) + (rg / 50))),
+      activityIntensityScore: totalDist !== null || rg !== null ? Math.round(Math.min(100, ((totalDist ?? 0) / 100) + ((rg ?? 0) / 50))) : 0,
     };
 
     // PRIVACY POLICY ENFORCEMENT: FLUSH RAW BUFFERS

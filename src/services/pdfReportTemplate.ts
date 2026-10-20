@@ -904,7 +904,7 @@ const TURKISH_PDF_CHAR_MAP: Record<string, number> = {
   'ö': 246,
   'Ü': 220,
   'ü': 252,
-  'Â': 194,
+  '': 194,
   'â': 226,
   'Î': 206,
   'î': 238,

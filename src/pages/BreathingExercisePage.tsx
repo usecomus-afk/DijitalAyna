@@ -261,21 +261,21 @@ export const BreathingExercisePage: React.FC = () => {
       </div>
 
       {/* Main Zero-Gravity Breathing Chamber */}
-      <div className="relative flex-1 min-h-0 rounded-[2.25rem] bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#0f172a] p-5 sm:p-7 flex flex-col items-center justify-between overflow-hidden shadow-2xl border border-indigo-500/20">
+      <div className="relative flex-1 min-h-0 rounded-[2.25rem] bg-gradient-to-br from-[#FFF9F5] via-[#FDF3EC] to-[#F5E6DA] p-5 sm:p-7 flex flex-col items-center justify-between overflow-hidden shadow-soft-lg border-2 border-comus-copper/25">
         {/* Ambient Deep Space Background Glows */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-indigo-500/15 blur-3xl" />
-          <div className="absolute -bottom-24 -right-20 w-80 h-80 rounded-full bg-teal-400/10 blur-3xl" />
+          <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-comus-copper/15 blur-3xl" />
+          <div className="absolute -bottom-24 -right-20 w-80 h-80 rounded-full bg-comus-sage/15 blur-3xl" />
         </div>
 
         {/* Top Status Pill */}
-        <div className="relative z-10 w-full flex items-center justify-between gap-2 text-xs text-indigo-200/80 shrink-0">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
-            <Wind className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-            <span className="leading-tight">{selectedPattern.subtitle}</span>
+        <div className="relative z-10 w-full flex items-center justify-between gap-2 text-xs text-comus-navy/80 shrink-0 font-medium">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/85 backdrop-blur-md border border-comus-copper/20 shadow-xs">
+            <Wind className="w-3.5 h-3.5 text-comus-copper shrink-0" />
+            <span className="leading-tight text-comus-navy">{selectedPattern.subtitle}</span>
           </span>
-          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 font-medium shrink-0">
-            <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl bg-white/85 backdrop-blur-md border border-comus-copper/20 shadow-xs font-semibold text-comus-navy shrink-0">
+            <Sparkles className="w-3 h-3 text-comus-copper shrink-0" />
             <span>{completedCycles} Döngü</span>
           </span>
         </div>
@@ -299,10 +299,10 @@ export const BreathingExercisePage: React.FC = () => {
               <div
                 className={`absolute -inset-6 rounded-full blur-2xl transition-colors duration-1000 ${
                   phase === 'inhale'
-                    ? 'bg-teal-400/35'
+                    ? 'bg-comus-sage/40'
                     : phase === 'hold'
-                    ? 'bg-indigo-400/45'
-                    : 'bg-sky-400/25'
+                    ? 'bg-comus-copper/45'
+                    : 'bg-teal-400/35'
                 }`}
               />
 
@@ -310,21 +310,21 @@ export const BreathingExercisePage: React.FC = () => {
               <div
                 className={`organic-sphere absolute -inset-2.5 border transition-colors duration-1000 ${
                   phase === 'inhale'
-                    ? 'border-teal-300/40 bg-teal-400/10'
+                    ? 'border-comus-sage/40 bg-comus-sage/15'
                     : phase === 'hold'
-                    ? 'border-indigo-300/50 bg-indigo-400/15'
-                    : 'border-sky-300/30 bg-sky-400/10'
+                    ? 'border-comus-copper/45 bg-comus-copper/15'
+                    : 'border-teal-400/40 bg-teal-300/15'
                 }`}
               />
 
               {/* Core Glowing Sphere */}
               <div
-                className={`organic-sphere w-full h-full shadow-[0_0_60px_rgba(99,102,241,0.55)] border border-white/30 backdrop-blur-md transition-colors duration-1000 ${
+                className={`organic-sphere w-full h-full shadow-[0_12px_45px_rgba(192,103,79,0.3)] border-2 border-white/70 backdrop-blur-md transition-colors duration-1000 ${
                   phase === 'inhale'
-                    ? 'bg-gradient-to-br from-teal-300/80 via-cyan-500/75 to-indigo-600/85'
+                    ? 'bg-gradient-to-br from-[#7DA690] via-[#5A826D] to-[#3E5C4C]'
                     : phase === 'hold'
-                    ? 'bg-gradient-to-br from-indigo-300/85 via-violet-500/80 to-teal-500/85'
-                    : 'bg-gradient-to-br from-sky-400/70 via-indigo-600/75 to-slate-800/85'
+                    ? 'bg-gradient-to-br from-[#D4836E] via-[#C0674F] to-[#9E4F39]'
+                    : 'bg-gradient-to-br from-[#5A826D] via-[#2E5380] to-[#1E3A5F]'
                 }`}
               >
                 {/* Specular 3D Highlight */}
@@ -347,10 +347,10 @@ export const BreathingExercisePage: React.FC = () => {
         {/* Calming Phase Command Text & Controls */}
         <div className="relative z-10 w-full flex flex-col items-center text-center space-y-4">
           <div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-wide transition-all duration-500">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-comus-navy tracking-wide transition-all duration-500">
               {phaseLabel}
             </h2>
-            <p className="text-xs sm:text-sm text-indigo-200/80 mt-1.5 max-w-xs mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-comus-navy/70 mt-1.5 max-w-xs mx-auto leading-relaxed font-medium">
               {phaseSubtext}
             </p>
           </div>
@@ -359,7 +359,7 @@ export const BreathingExercisePage: React.FC = () => {
             <button
               type="button"
               onClick={handleTogglePlay}
-              className="px-6 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-md flex items-center gap-2 transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-2xl bg-comus-navy hover:bg-comus-navy-light text-white text-xs sm:text-sm font-semibold shadow-soft flex items-center gap-2 transition-all cursor-pointer"
             >
               {isRunning ? (
                 <>
@@ -376,7 +376,7 @@ export const BreathingExercisePage: React.FC = () => {
             <button
               type="button"
               onClick={handleReset}
-              className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-indigo-200 border border-white/15 backdrop-blur-md transition-all cursor-pointer"
+              className="p-2.5 rounded-2xl bg-white hover:bg-comus-surface text-comus-navy border border-comus-sand-light/40 shadow-xs transition-all cursor-pointer"
               title="Sıfırla"
             >
               <RotateCcw className="w-4 h-4" />

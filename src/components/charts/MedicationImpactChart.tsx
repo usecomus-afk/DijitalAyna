@@ -99,7 +99,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
   const activeScheduleLabel = activeMed ? formatMedicationSchedule(activeMed) : '';
 
   const formatPct = (val: number | null) => {
-    if (val === null) return 'â€”';
+    if (val === null) return '—';
     return `${val > 0 ? '+' : ''}${val}%`;
   };
 
@@ -113,11 +113,11 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
               <Activity className="w-4 h-4" />
             </div>
             <h3 className="font-serif font-bold text-lg text-comus-navy leading-tight">
-              Ä°laÃ§ Etki & Zaman Serisi Bindirme Analizi
+              İlaç Etki & Zaman Serisi Bindirme Analizi
             </h3>
           </div>
           <p className="text-xs text-comus-sand-dark mt-0.5">
-            Ä°laÃ§ kullanÄ±mÄ±na baÅŸlama tarihi, kullanÄ±m zamanÄ± ve dozaj bilgileriyle ilaÃ§ Ã¶ncesi/sonrasÄ± 1, 3 ve 6 aylÄ±k dijital biyobelirteÃ§ karÅŸÄ±laÅŸtÄ±rmasÄ±
+            İlaç kullanımına başlama tarihi, kullanım zamanı ve dozaj bilgileriyle ilaç öncesi/sonrası 1, 3 ve 6 aylık dijital biyobelirteç karşılaştırması
           </p>
         </div>
 
@@ -149,7 +149,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                   : 'text-comus-sand-dark hover:text-comus-navy'
               }`}
             >
-              Gece KullanÄ±mÄ±
+              Gece Kullanımı
             </button>
             <button
               type="button"
@@ -160,7 +160,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                   : 'text-comus-sand-dark hover:text-comus-navy'
               }`}
             >
-              YazÄ±m HÄ±zÄ±
+              Yazım Hızı
             </button>
             <button
               type="button"
@@ -206,10 +206,10 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             <Calendar className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
-                Ä°laÃ§ KullanÄ±mÄ±na BaÅŸlama Tarihi (T0)
+                İlaç Kullanımına Başlama Tarihi (T0)
               </div>
               <div className="font-mono font-bold text-comus-navy mt-0.5">
-                {activeMed.startDate} ({impactReport.daysActive}. GÃ¼n)
+                {activeMed.startDate} ({impactReport.daysActive}. Gün)
               </div>
             </div>
           </div>
@@ -217,7 +217,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             <Clock className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
-                KullanÄ±m ZamanÄ± & Vakti
+                Kullanım Zamanı & Vakti
               </div>
               <div className="font-semibold text-comus-navy mt-0.5">{activeScheduleLabel}</div>
             </div>
@@ -226,10 +226,10 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             <Pill className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
-                Ä°laÃ§ AdÄ± & Dozaj Bilgisi
+                İlaç Adı & Dozaj Bilgisi
               </div>
               <div className="font-bold text-comus-navy mt-0.5">
-                {activeMed.name} â€” <span className="font-mono text-teal-900">{activeDosageLabel}</span>
+                {activeMed.name} — <span className="font-mono text-teal-900">{activeDosageLabel}</span>
               </div>
             </div>
           </div>
@@ -274,20 +274,20 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                           <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold ${
                             isPostMed ? 'bg-teal-500 text-white' : 'bg-white/20 text-white/80'
                           }`}>
-                            {isPostMed ? `${activeMed.name} (${activeDosageLabel}) DÃ¶nemi` : 'Ä°laÃ§ Ã–ncesi DÃ¶nem'}
+                            {isPostMed ? `${activeMed.name} (${activeDosageLabel}) Dönemi` : 'İlaç Öncesi Dönem'}
                           </span>
                         )}
                       </div>
                       {activeMed && (
                         <div className="text-[10px] text-teal-200">
-                          BaÅŸlangÄ±Ã§: {activeMed.startDate} â€¢ {activeScheduleLabel}
+                          Başlangıç: {activeMed.startDate} • {activeScheduleLabel}
                         </div>
                       )}
                       <div className="text-comus-copper-light">
                         Ruh Hali: <strong className="font-bold">{data.moodScore ? `${data.moodScore} / 5` : 'Girilmedi'}</strong>
                       </div>
                       <div className="text-white">
-                        {activeDef.label}: <strong className="font-bold">{data.metricValue !== undefined ? `${data.metricValue} ${activeDef.unit}` : 'KayÄ±t yok'}</strong>
+                        {activeDef.label}: <strong className="font-bold">{data.metricValue !== undefined ? `${data.metricValue} ${activeDef.unit}` : 'Kayıt yok'}</strong>
                       </div>
                     </div>
                   );
@@ -324,7 +324,7 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                 strokeDasharray="4 4"
                 strokeWidth={2}
                 label={{
-                  value: `ğŸ’Š ${activeMed.name} (${activeDosageLabel}) â€¢ T0: ${activeMed.startDate}`,
+                  value: `ğŸ’Š ${activeMed.name} (${activeDosageLabel}) • T0: ${activeMed.startDate}`,
                   position: 'insideTopLeft',
                   fill: '#0F766E',
                   fontSize: 11,
@@ -367,15 +367,15 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             <div className="flex items-center gap-2">
               <Pill className="w-4 h-4 text-teal-700 shrink-0" />
               <h4 className="font-serif font-bold text-sm text-teal-950">
-                {impactReport.medication.name} ({impactReport.formattedDosage}) â€” Tedavi Etki & KarÅŸÄ±laÅŸtÄ±rmalÄ± Dijital BiyobelirteÃ§ler Analizi
+                {impactReport.medication.name} ({impactReport.formattedDosage}) — Tedavi Etki & Karşılaştırmalı Dijital Biyobelirteçler Analizi
               </h4>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] font-semibold text-teal-900 bg-white/80 border border-teal-200 px-2.5 py-0.5 rounded-full">
-                BaÅŸlangÄ±Ã§: {impactReport.medication.startDate} â€¢ {impactReport.formattedSchedule}
+                Başlangıç: {impactReport.medication.startDate} • {impactReport.formattedSchedule}
               </span>
               <span className="text-[11px] font-semibold text-teal-800 bg-teal-100/80 px-2.5 py-0.5 rounded-full">
-                KullanÄ±m SÃ¼resi: {impactReport.daysActive}. GÃ¼n
+                Kullanım Süresi: {impactReport.daysActive}. Gün
               </span>
             </div>
           </div>
@@ -412,7 +412,11 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                     </span>
                   </div>
                   <div className="text-[10px] text-comus-sand-dark mt-0.5 tabular-nums">
-                    Ã–ncesi: {d.preAvg !== null ? `${d.preAvg}` : 'â€”'} â†’ {d.postAvg !== null ? `${d.postAvg} ${d.unit}` : 'â€”'}
+                    {d.preAvg === null ? (
+                      'Yeni Veri: ' + (d.postAvg !== null ? (d.metricKey === 'homestay_ratio' ? '%' + Math.round(d.postAvg > 1 ? d.postAvg : d.postAvg * 100) : d.postAvg + ' ' + d.unit) : '—')
+                    ) : (
+                      'Öncesi: ' + (d.metricKey === 'homestay_ratio' ? '%' + Math.round(d.preAvg > 1 ? d.preAvg : d.preAvg * 100) : d.preAvg) + ' → ' + (d.postAvg !== null ? (d.metricKey === 'homestay_ratio' ? '%' + Math.round(d.postAvg > 1 ? d.postAvg : d.postAvg * 100) : d.postAvg + ' ' + d.unit) : '—')
+                    )}
                   </div>
                 </div>
               );
@@ -424,10 +428,10 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
             <div className="space-y-2 pt-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <h5 className="text-xs font-bold uppercase tracking-wider text-teal-950">
-                  Ä°laÃ§ Ã–ncesi Son 1 Ay, 3 Ay, 6 Ay vs Ä°laÃ§ SonrasÄ± KarÅŸÄ±laÅŸtÄ±rmalÄ± Dijital BiyobelirteÃ§ler Tablosu
+                  İlaç Öncesi Son 1 Ay, 3 Ay, 6 Ay vs İlaç Sonrası Karşılaştırmalı Dijital Biyobelirteçler Tablosu
                 </h5>
                 <span className="text-[10px] text-teal-800 font-medium">
-                  Ã–ncesi KayÄ±tlÄ± GÃ¼n: 1A ({impactReport.pre1MonthSampleDays}g) â€¢ 3A ({impactReport.pre3MonthsSampleDays}g) â€¢ 6A ({impactReport.pre6MonthsSampleDays}g) | SonrasÄ±: {impactReport.postSampleDays}g
+                  Öncesi Kayıtlı Gün: 1A ({impactReport.pre1MonthSampleDays}g) • 3A ({impactReport.pre3MonthsSampleDays}g) • 6A ({impactReport.pre6MonthsSampleDays}g) | Sonrası: {impactReport.postSampleDays}g
                 </span>
               </div>
 
@@ -435,12 +439,12 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                 <table className="w-full text-left text-[11px] border-collapse">
                   <thead>
                     <tr className="bg-teal-100/60 text-teal-950 font-semibold border-b border-teal-200/70">
-                      <th className="p-2.5">Dijital BiyobelirteÃ§</th>
-                      <th className="p-2.5 text-right">Ã–ncesi Son 1 Ay (30G)</th>
-                      <th className="p-2.5 text-right">Ã–ncesi Son 3 Ay (90G)</th>
-                      <th className="p-2.5 text-right">Ã–ncesi Son 6 Ay (180G)</th>
-                      <th className="p-2.5 text-right">Ä°laÃ§ SonrasÄ± (1A / 3A / 6A & Genel)</th>
-                      <th className="p-2.5 text-right">DeÄŸiÅŸim (Delta % 1A / 3A / 6A)</th>
+                      <th className="p-2.5">Dijital Biyobelirteç</th>
+                      <th className="p-2.5 text-right">Öncesi Son 1 Ay (30G)</th>
+                      <th className="p-2.5 text-right">Öncesi Son 3 Ay (90G)</th>
+                      <th className="p-2.5 text-right">Öncesi Son 6 Ay (180G)</th>
+                      <th className="p-2.5 text-right">İlaç Sonrası (1A / 3A / 6A & Genel)</th>
+                      <th className="p-2.5 text-right">Değişim (Delta % 1A / 3A / 6A)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-teal-100">
@@ -452,28 +456,28 @@ export const MedicationImpactChart: React.FC<MedicationImpactChartProps> = ({
                         <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
                           {row.pre1Month.avg !== null
                             ? `${row.pre1Month.avg} ${row.unit} (${row.pre1Month.sampleCount}g)`
-                            : 'KayÄ±t yok (â€”)'}
+                            : 'Kayıt yok (—)'}
                         </td>
                         <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
                           {row.pre3Months.avg !== null
                             ? `${row.pre3Months.avg} ${row.unit} (${row.pre3Months.sampleCount}g)`
-                            : 'KayÄ±t yok (â€”)'}
+                            : 'Kayıt yok (—)'}
                         </td>
                         <td className="p-2.5 text-right font-mono tabular-nums text-comus-sand-dark">
                           {row.pre6Months.avg !== null
                             ? `${row.pre6Months.avg} ${row.unit} (${row.pre6Months.sampleCount}g)`
-                            : 'KayÄ±t yok (â€”)'}
+                            : 'Kayıt yok (—)'}
                         </td>
                         <td className="p-2.5 text-right font-mono tabular-nums font-semibold text-comus-navy">
                           {row.postOverall.avg !== null ? (
                             <div>
                               <div>Genel: {row.postOverall.avg} {row.unit} ({row.postOverall.sampleCount}g)</div>
                               <div className="text-[10px] font-normal text-comus-sand-dark">
-                                1A: {row.post1Month.avg !== null ? `${row.post1Month.avg}` : 'â€”'} | 3A: {row.post3Months.avg !== null ? `${row.post3Months.avg}` : 'â€”'} | 6A: {row.post6Months.avg !== null ? `${row.post6Months.avg}` : 'â€”'}
+                                1A: {row.post1Month.avg !== null ? `${row.post1Month.avg}` : '—'} | 3A: {row.post3Months.avg !== null ? `${row.post3Months.avg}` : '—'} | 6A: {row.post6Months.avg !== null ? `${row.post6Months.avg}` : '—'}
                               </div>
                             </div>
                           ) : (
-                            'KayÄ±t yok (â€”)'
+                            'Kayıt yok (—)'
                           )}
                         </td>
                         <td className="p-2.5 text-right font-mono tabular-nums font-bold">

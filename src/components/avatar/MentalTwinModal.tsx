@@ -63,10 +63,10 @@ export const MentalTwinModal: React.FC = () => {
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper block">
-                KiÅŸisel Zihin YansÄ±masÄ±
+                Kişisel Zihin Yansıması
               </span>
               <h3 className="font-serif font-bold text-lg sm:text-xl text-comus-navy leading-tight">
-                {userProfile.name}â€™in Dijital Mental Ä°kizi
+                {userProfile.name}’in Dijital Mental İkizi
               </h3>
             </div>
           </div>
@@ -87,7 +87,7 @@ export const MentalTwinModal: React.FC = () => {
                 </span>
                 <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
-                  Erken FarkÄ±ndalÄ±k & Kritik EÅŸik UyarÄ±sÄ±
+                  Erken Farkındalık & Kritik EŞik Uyarısı
                 </span>
               </div>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
@@ -100,12 +100,12 @@ export const MentalTwinModal: React.FC = () => {
                 <div key={alert.id} className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1">
                   <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
-                      {alert.potentialStateLabel || `Potansiyel ${alert.title} OlasÄ±lÄ±ÄŸÄ±`}
+                      {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
                     </h4>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
                       {alert.insightType === 'anxietySleep'
-                        ? `Son 7 GÃ¼nde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
-                        : `ArdÄ±ÅŸÄ±k ${alert.consecutiveDays || alert.requiredDays || 3} GÃ¼n Kritik EÅŸik`}
+                        ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                        : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik EŞik`}
                     </span>
                   </div>
                   {alert.statisticalSummary && (
@@ -125,7 +125,7 @@ export const MentalTwinModal: React.FC = () => {
         {/* Avatar Display Arena (Custom 3D Avatar Image) */}
         <div className={`relative z-10 rounded-3xl p-6 border border-white/60 shadow-inner flex flex-col items-center justify-center text-center ${bgBase} backdrop-blur-sm transition-all duration-500`}>
           {/* 3D Rendered Avatar Card */}
-          <div className="relative w-44 h-44 sm:w-52 sm:h-52 mb-3 flex items-center justify-center">
+          <div className="relative w-48 h-48 sm:w-56 sm:h-56 mb-3.5 flex items-center justify-center">
             {/* Glowing Aura Ring */}
             <div
               className="absolute inset-0 rounded-3xl blur-2xl opacity-60 transition-all duration-700 animate-pulse"
@@ -157,14 +157,14 @@ export const MentalTwinModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Ä°ncele Toggle Button */}
+        {/* İncele Toggle Button */}
         <div className="relative z-10 mt-4 flex justify-center">
           <button
             type="button"
             onClick={() => setIsDetailsExpanded((prev) => !prev)}
             className="w-full sm:w-auto min-w-[180px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light text-xs font-semibold transition-all shadow-soft cursor-pointer"
           >
-            <span>{isDetailsExpanded ? 'AyrÄ±ntÄ±larÄ± Gizle' : 'Ä°ncele'}</span>
+            <span>{isDetailsExpanded ? 'Ayrıntıları Gizle' : 'İncele'}</span>
             {isDetailsExpanded ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -180,10 +180,10 @@ export const MentalTwinModal: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-comus-navy">
                   <Cpu className="w-4 h-4 text-comus-copper shrink-0" />
-                  <span>BiyobelirteÃ§ & SensÃ¶r Sentezi (Duygusal Denge Ä°ndeksi)</span>
+                  <span>Biyobelirteç & Sensör Sentezi (Duygusal Denge İndeksi)</span>
                 </div>
                 <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-white border border-comus-sand-light/40 text-comus-navy">
-                  Ä°ndeks: {affectiveIndex}/100
+                  İndeks: {affectiveIndex}/100
                 </span>
               </div>
 
@@ -194,7 +194,7 @@ export const MentalTwinModal: React.FC = () => {
               <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
                 <span className="text-comus-sand-dark flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline" />
-                  <span>15 mikro-biyobelirteÃ§ baz hattÄ± ile otomatik analiz edildi.</span>
+                  <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
                 </span>
                 <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
                   {resolveSynthesisBadge(hasIndex ? affectiveIndex : null, phenoLabel, earlyAwarenessAlerts.length > 0)}
@@ -207,7 +207,7 @@ export const MentalTwinModal: React.FC = () => {
               <div className="p-2.5 rounded-2xl bg-comus-surface border border-comus-sand-light/20">
                 <div className="text-[10px] text-comus-sand-dark flex items-center justify-center gap-1 mb-0.5">
                   <Keyboard className="w-3 h-3 text-comus-copper" />
-                  <span>YazÄ±m AkÄ±ÅŸÄ±</span>
+                  <span>Yazım Akışı</span>
                 </div>
                 <div className="font-semibold text-comus-navy font-mono text-xs">
                   {sensorStatus.typing} WPM

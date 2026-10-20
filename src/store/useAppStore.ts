@@ -3,6 +3,7 @@ import { UserProfile, UserSettings } from '../types/user';
 import { db } from '../db';
 import { sensorManager } from '../sensors/SensorManager';
 import { ensureInitialCalibration } from '../engine/seedCalibration';
+import { purgeCorruptedHistoricalRecords } from '../db/migrations';
 import { signOutGoogle, subscribeToAuthState, checkRedirectAuth } from '../auth/firebaseAuth';
 import { notificationService } from '../services/notificationService';
 import { cloudSyncService } from '../services/cloudSyncService';
@@ -97,6 +98,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       // 2. Ensure initial healthy digital phenotyping baseline exists
+      await purgeCorruptedHistoricalRecords();
       await ensureInitialCalibration();
 
       // Count distinct dates in dailyMetrics to compute real baseline learning day

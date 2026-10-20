@@ -27,12 +27,14 @@ export class LocationFeatureExtractor {
    * Computes Radius of Gyration ($r_g$) in meters:
    * $$r_g = \sqrt{\frac{1}{N} \sum_{i=1}^N (\mathbf{r}_i - \mathbf{r}_{center})^2}$$
    */
-  static radiusOfGyration(locations: LocationEvent[]): number {
-    if (locations.length <= 1) return 0;
+  static radiusOfGyration(locations: LocationEvent[]): number | null {
+    if (locations.length === 0) return null;
+    if (locations.length === 1) return 0;
 
-    // Filter by acceptable accuracy (e.g. <= 100 meters)
+    // Filter by acceptable accuracy (e.g. <= 150 meters)
     const valid = locations.filter((l) => l.accuracy <= 150);
-    if (valid.length <= 1) return 0;
+    if (valid.length === 0) return null;
+    if (valid.length === 1) return 0;
 
     // Center of mass (Mean latitude & longitude)
     const centerLat = valid.reduce((acc, l) => acc + l.latitude, 0) / valid.length;
@@ -196,9 +198,9 @@ export class LocationFeatureExtractor {
   /**
    * Calculates total cumulative path distance in meters
    */
-  static totalDistanceTraveled(locations: LocationEvent[]): number {
+  static totalDistanceTraveled(locations: LocationEvent[]): number | null {
     const valid = locations.filter((l) => l.accuracy <= 150);
-    if (valid.length <= 1) return 0;
+    if (valid.length <= 1) return null;
 
     const sorted = [...valid].sort((a, b) => a.timestamp - b.timestamp);
     let totalMeters = 0;

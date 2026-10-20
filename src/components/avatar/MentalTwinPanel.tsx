@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
 import { useViewportScrollLock } from '../../hooks/useViewportScrollLock';
@@ -25,7 +25,7 @@ export const MentalTwinPanel: React.FC = () => {
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
 
-  // Lock vertical scrolling until "Ä°ncele" is clicked
+  // Lock vertical scrolling until "İncele" is clicked
   useViewportScrollLock(!isDetailsExpanded);
 
   const {
@@ -56,14 +56,14 @@ export const MentalTwinPanel: React.FC = () => {
 
   const handleShareDetails = async () => {
     const res = await shareContent({
-      title: `${userProfile.name || 'KullanÄ±cÄ±'} â€” Dijital Mental Ä°kiz Analizi`,
+      title: `${userProfile.name || 'Kullanıcı'} — Dijital Mental İkiz Analizi`,
       text: [
         `Durum: ${modalTitle} (${energyText})`,
-        `YansÄ±ma: "${dialogue}"`,
-        `BiyobelirteÃ§ Sentezi (Ä°ndeks ${affectiveIndex}/100): ${synthesisCopy.text}`,
-        `SensÃ¶r Ã–zeti: YazÄ±m ${sensorStatus.typing ?? 'â€”'} WPM â€¢ Hareketlilik ${sensorStatus.mobility ?? 'â€”'} Puan â€¢ Gece Ekran ${sensorStatus.night ?? 'â€”'} dk`,
+        `Yansıma: "${dialogue}"`,
+        `Biyobelirteç Sentezi (İndeks ${affectiveIndex}/100): ${synthesisCopy.text}`,
+        `Sensör Özeti: Yazım ${sensorStatus.typing ?? '—'} WPM • Hareketlilik ${sensorStatus.mobility ?? '—'} Puan • Gece Ekran ${sensorStatus.night ?? '—'} dk`,
         '',
-        'â€” Dijital Mental Ä°kizim',
+        '— Dijital Mental İkizim',
       ].join('\n'),
     });
     setShareFeedback(res.message);
@@ -90,10 +90,10 @@ export const MentalTwinPanel: React.FC = () => {
             </div>
             <div className="min-w-0">
               <span className="text-[10px] sm:text-[11px] uppercase font-bold tracking-widest text-comus-copper block">
-                KiÅŸisel Zihin YansÄ±masÄ±
+                Kişisel Zihin Yansıması
               </span>
               <h3 className="font-serif font-bold text-lg sm:text-xl text-comus-navy leading-tight truncate">
-                {userProfile.name}â€™in Dijital Mental Ä°kizi
+                {userProfile.name}’in Dijital Mental İkizi
               </h3>
             </div>
           </div>
@@ -103,14 +103,14 @@ export const MentalTwinPanel: React.FC = () => {
           </span>
         </div>
 
-        {/* Avatar Display Arena â€” Stretches proportionally to fill middle viewport */}
+        {/* Avatar Display Arena — Stretches proportionally to fill middle viewport */}
         <div
-          className={`relative z-10 rounded-3xl p-5 sm:p-6 my-3 border border-white/60 shadow-inner flex flex-col items-center justify-evenly text-center ${bgBase} backdrop-blur-sm transition-all duration-500 ${
+          className={`relative z-10 rounded-3xl p-4 sm:p-5 my-2.5 border border-white/60 shadow-inner flex flex-col items-center justify-between text-center ${bgBase} backdrop-blur-sm transition-all duration-500 ${
             isDetailsExpanded ? '' : 'flex-1 min-h-0'
           }`}
         >
-          {/* 3D Rendered Avatar Card */}
-          <div className="relative w-40 h-40 sm:w-52 sm:h-52 flex items-center justify-center shrink-0">
+          {/* 3D Rendered Avatar Card (Hero Enlargement) */}
+          <div className="relative w-48 h-48 sm:w-56 sm:h-56 max-h-[36vh] aspect-square flex items-center justify-center shrink-0 my-1">
             {/* Glowing Aura Ring */}
             <div
               className="absolute inset-0 rounded-3xl blur-2xl opacity-60 transition-all duration-700 animate-pulse"
@@ -126,7 +126,7 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           {/* Subtitle & Affective Balance Gauge */}
-          <div className="flex flex-wrap items-center justify-center gap-2 my-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-2 my-1 shrink-0">
             <span className="text-xs sm:text-sm font-semibold text-comus-navy">{modalSubtitle}</span>
             <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-white/85 border border-comus-sand-light/30 text-comus-sand-dark font-bold">
               {energyText}
@@ -134,15 +134,15 @@ export const MentalTwinPanel: React.FC = () => {
           </div>
 
           {/* Twin Speech Bubble */}
-          <div className="relative bg-white/95 rounded-2xl p-4 sm:p-5 border border-comus-sand-light/30 shadow-soft text-left w-full max-w-lg">
+          <div className="relative bg-white/95 rounded-2xl p-3.5 sm:p-4 border border-comus-sand-light/30 shadow-soft text-left w-full max-w-lg shrink-0 my-1">
             <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rotate-45 border-t border-l border-comus-sand-light/30" />
-            <p className="text-xs sm:text-sm text-comus-navy leading-relaxed italic font-serif">
+            <p className="text-xs sm:text-sm text-comus-navy leading-relaxed italic font-serif line-clamp-3 sm:line-clamp-none">
               "{dialogue}"
             </p>
           </div>
         </div>
 
-        {/* Ä°ncele Toggle Button */}
+        {/* İncele Toggle Button */}
         <div className="relative z-10 shrink-0 flex justify-center">
           <button
             type="button"
@@ -150,7 +150,7 @@ export const MentalTwinPanel: React.FC = () => {
             onClick={() => setIsDetailsExpanded((prev) => !prev)}
             className="w-full py-3 px-6 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light text-xs sm:text-sm font-semibold transition-all shadow-soft flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>{isDetailsExpanded ? 'AyrÄ±ntÄ±larÄ± Gizle' : 'Ä°ncele'}</span>
+            <span>{isDetailsExpanded ? 'Ayrıntıları Gizle' : 'İncele'}</span>
             {isDetailsExpanded ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -175,7 +175,7 @@ export const MentalTwinPanel: React.FC = () => {
                     </span>
                     <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
-                      Erken FarkÄ±ndalÄ±k & Kritik EÅŸik UyarÄ±sÄ±
+                      Erken Farkındalık & Kritik EŞik Uyarısı
                     </span>
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
@@ -186,7 +186,7 @@ export const MentalTwinPanel: React.FC = () => {
                 <div className="space-y-3">
                   {earlyAwarenessAlerts.map((alert, idx) => {
                     const cleanedBody = (alert.notificationBody || '').replace(
-                      /\s*Kesin tÄ±bbi teÅŸhis deÄŸildir; erken farkÄ±ndalÄ±k iÃ§in uzman bir doktorla gÃ¶rÃ¼ÅŸmenizde fayda olabilir\.?/gi,
+                      /\s*Kesin tıbbi teşhis değildir; erken farkındalık için uzman bir doktorla görüşmenizde fayda olabilir\.?/gi,
                       ''
                     );
                     const distinctAction = getDistinctSuggestedAction(alert.id, {
@@ -199,18 +199,18 @@ export const MentalTwinPanel: React.FC = () => {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-1.5">
                           <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
-                            {alert.potentialStateLabel || `Potansiyel ${alert.title} OlasÄ±lÄ±ÄŸÄ±`}
+                            {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
                           </h4>
                           <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200">
                             {alert.insightType === 'anxietySleep'
-                              ? `Son 7 GÃ¼nde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
-                              : `ArdÄ±ÅŸÄ±k ${alert.consecutiveDays || alert.requiredDays || 3} GÃ¼n Kritik EÅŸik`}
+                              ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                              : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik EŞik`}
                           </span>
                         </div>
 
                         {alert.statisticalSummary && (
                           <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2.5 py-1 rounded-lg border border-rose-100">
-                            ğŸ“Š BiyobelirteÃ§ Ä°statistiÄŸi: {alert.statisticalSummary}
+                            ğŸ“Š Biyobelirteç İstatistiği: {alert.statisticalSummary}
                           </div>
                         )}
 
@@ -221,7 +221,7 @@ export const MentalTwinPanel: React.FC = () => {
                         <div className="p-2.5 rounded-xl bg-comus-copper-subtle/35 border border-comus-copper/20 text-[11px] text-comus-navy">
                           <span className="font-bold text-comus-copper-dark inline-flex items-center gap-1 mr-1">
                             <Compass className="w-3 h-3 text-comus-copper inline" />
-                            Ã–zel Ã–neri:
+                            Özel Öneri:
                           </span>
                           <span>{distinctAction}</span>
                         </div>
@@ -239,7 +239,7 @@ export const MentalTwinPanel: React.FC = () => {
                 </div>
 
                 <div className="mt-2.5 pt-2 border-t border-rose-200/60 text-[10px] text-rose-900/80 italic font-medium">
-                  * Bu uyarÄ± kesin bir tÄ±bbi teÅŸhis deÄŸildir; biyobelirteÃ§ istatistiklerinize dayalÄ± olarak &ldquo;potansiyel&rdquo; ve &ldquo;olabilir&rdquo; kapsamÄ±nda erken farkÄ±ndalÄ±k saÄŸlamak amacÄ±yla sunulmuÅŸtur.
+                  * Bu uyarı kesin bir tıbbi teşhis değildir; biyobelirteç istatistiklerinize dayalı olarak &ldquo;potansiyel&rdquo; ve &ldquo;olabilir&rdquo; kapsamında erken farkındalık sağlamak amacıyla sunulmuştur.
                 </div>
               </div>
             )}
@@ -253,7 +253,7 @@ export const MentalTwinPanel: React.FC = () => {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-600" />
                   </span>
                   <span className="text-[11px] font-bold text-amber-900 animate-pulse">
-                    Erken FarkÄ±ndalÄ±k Ã–ngÃ¶rÃ¼sÃ¼: {phenoLabel}
+                    Erken Farkındalık Öngörüsü: {phenoLabel}
                   </span>
                 </div>
                 <p className="text-[11px] text-amber-950/90 leading-relaxed">
@@ -267,10 +267,10 @@ export const MentalTwinPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-comus-navy">
                   <Cpu className="w-4 h-4 text-comus-copper shrink-0" />
-                  <span>BiyobelirteÃ§ & SensÃ¶r Sentezi (Duygusal Denge Ä°ndeksi)</span>
+                  <span>Biyobelirteç & Sensör Sentezi (Duygusal Denge İndeksi)</span>
                 </div>
                 <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-white border border-comus-sand-light/40 text-comus-navy">
-                  Ä°ndeks: {affectiveIndex}/100
+                  İndeks: {affectiveIndex}/100
                 </span>
               </div>
 
@@ -281,7 +281,7 @@ export const MentalTwinPanel: React.FC = () => {
               <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
                 <span className="text-comus-sand-dark flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline" />
-                  <span>15 mikro-biyobelirteÃ§ baz hattÄ± ile otomatik analiz edildi.</span>
+                  <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
                 </span>
                 <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
                   {resolveSynthesisBadge(
@@ -298,10 +298,10 @@ export const MentalTwinPanel: React.FC = () => {
               <div className="p-2.5 rounded-2xl bg-comus-surface border border-comus-sand-light/20">
                 <div className="text-[10px] text-comus-sand-dark flex items-center justify-center gap-1 mb-0.5">
                   <Keyboard className="w-3 h-3 text-comus-copper" />
-                  <span>YazÄ±m AkÄ±ÅŸÄ±</span>
+                  <span>Yazım Akışı</span>
                 </div>
                 <div className="font-semibold text-comus-navy font-mono text-xs">
-                  {sensorStatus.typing ?? 'â€”'} WPM
+                  {sensorStatus.typing ?? '—'} WPM
                 </div>
               </div>
 
@@ -311,7 +311,7 @@ export const MentalTwinPanel: React.FC = () => {
                   <span>Hareketlilik</span>
                 </div>
                 <div className="font-semibold text-comus-navy font-mono text-xs">
-                  {sensorStatus.mobility ?? 'â€”'} Puan
+                  {sensorStatus.mobility ?? '—'} Puan
                 </div>
               </div>
 
@@ -321,7 +321,7 @@ export const MentalTwinPanel: React.FC = () => {
                   <span>Gece Uykusu</span>
                 </div>
                 <div className="font-semibold text-comus-navy font-mono text-xs">
-                  {sensorStatus.night ?? 'â€”'} dk ekran
+                  {sensorStatus.night ?? '—'} dk ekran
                 </div>
               </div>
             </div>
@@ -334,7 +334,7 @@ export const MentalTwinPanel: React.FC = () => {
                   <span>{shareFeedback}</span>
                 </span>
               ) : (
-                <span>Ä°stediÄŸiniz zaman bu ayrÄ±ntÄ±larÄ± doktorunuzla veya yakÄ±nÄ±nÄ±zla paylaÅŸabilirsiniz.</span>
+                <span>İstediğiniz zaman bu ayrıntıları doktorunuzla veya yakınınızla paylaşabilirsiniz.</span>
               )}
               <button
                 type="button"
@@ -342,7 +342,7 @@ export const MentalTwinPanel: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-comus-surface hover:bg-comus-sand-subtle text-comus-navy border border-comus-sand-light/40 font-semibold transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5 text-comus-copper" />
-                <span>AyrÄ±ntÄ±larÄ± PaylaÅŸ</span>
+                <span>Ayrıntıları PaylaŞ</span>
               </button>
             </div>
           </div>

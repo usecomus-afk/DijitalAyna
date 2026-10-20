@@ -244,14 +244,18 @@ class MobilityService {
         },
       });
 
-      // Update mobility score in dailyMetrics if present
-      const mobilityScore = Math.min(100, Math.round((metrics.radiusOfGyrationKm * 20) + (100 - (metrics.homestayPercentage ?? 50)) * 0.5));
-      const homestayRatio = (metrics.homestayPercentage ?? 50) / 100;
-      const metricsToSave = [
-        { key: 'mobility_index', val: mobilityScore },
-        { key: 'homestay_ratio', val: homestayRatio },
-        { key: 'mobility_radius', val: metrics.radiusOfGyrationKm }
-      ];
+      // Update mobility score in dailyMetrics ONLY if valid non-null GPS metrics exist
+      // If homestayPercentage is null, we NEVER write homestay_ratio (avoids false social isolation alerts)
+      const homestayRatio = metrics.homestayPercentage !== null ? metrics.homestayPercentage : null;
+      const mobilityRadius = metrics.radiusOfGyrationKm !== null ? metrics.radiusOfGyrationKm : null;
+      const mobilityScore = metrics.radiusOfGyrationKm !== null && metrics.homestayPercentage !== null
+        ? Math.min(100, Math.round((metrics.radiusOfGyrationKm * 20) + (100 - metrics.homestayPercentage) * 0.5))
+        : null;
+
+      const metricsToSave: Array<{ key: string; val: number }> = [];
+      if (mobilityScore !== null) metricsToSave.push({ key: 'mobility_index', val: mobilityScore });
+      if (homestayRatio !== null) metricsToSave.push({ key: 'homestay_ratio', val: homestayRatio });
+      if (mobilityRadius !== null) metricsToSave.push({ key: 'mobility_radius', val: mobilityRadius });
 
       for (const m of metricsToSave) {
         const existing = await db.dailyMetrics

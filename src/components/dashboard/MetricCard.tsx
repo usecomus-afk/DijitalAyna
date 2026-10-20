@@ -145,7 +145,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                   )}
                 </div>
               ) : (
-                <span className="text-stone-500 italic">Yeterli ölçüm verisi bulunmuyor</span>
+                <span className="text-stone-500 italic">{actionLabel ? "İzin bekleniyor" : "Yeterli ölçüm toplanıyor..."}</span>
               )}
             </div>
 

@@ -57,8 +57,10 @@ export class ClinicalPhenotypeClassifier {
     const zSessionEntropy = getZ('session_switching_entropy');
 
     // 1. Check Depressive Phenotype State
+    const hasValidMobilityData = zScores['homestay_ratio'] !== undefined && zScores['homestay_ratio'] !== null;
     const isDepressive =
-      (zHomestay >= 1.6 || zLocationEntropy <= -1.4) &&
+      hasValidMobilityData &&
+      (zHomestay >= 1.6 || (zScores['location_entropy'] !== undefined && zLocationEntropy <= -1.4)) &&
       (zFlightTime >= 1.4 || zSocialRatio <= -1.4 || zNocturnal >= 1.2);
 
     if (isDepressive) {
@@ -369,11 +371,14 @@ export class ClinicalPhenotypeClassifier {
         const zRadius = zScores['mobility_radius'] ?? 0;
         const zSol = zScores['sleep_sol'] ?? 0;
 
+        const hasGpsData = homestayPct !== undefined && homestayPct !== null && !isNaN(homestayPct) && zScores['homestay_ratio'] !== undefined;
+        if (!hasGpsData) return { status: 'normal' };
+
         const isHomestayHigh = zHomestay >= 2.0 || homestayPct >= 85;
         const isRadiusRestricted = zRadius <= -2.0;
         const isSolHigh = zSol >= 1.8;
 
-        if (isSolHigh || (isHomestayHigh && isRadiusRestricted) || homestayPct >= 85 || (zHomestay >= 1.6 && zRadius <= -2.0)) {
+        if ((isHomestayHigh && isRadiusRestricted) || (zHomestay >= 1.6 && zRadius <= -2.0) || (isSolHigh && isHomestayHigh)) {
           const radSigma = formatSignedSigma(zRadius <= 0 ? zRadius : -2.1);
           const statSummary = `Ardışık ${daysCount} Gün • Evde Kalış: %${Math.round(homestayPct)} • Hareket Yarıçapı: ${radSigma}`;
           return {

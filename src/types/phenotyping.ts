@@ -51,11 +51,11 @@ export interface CallLogMetadataEvent {
 export interface DailyPhenotypeFeatures {
   date: string; // YYYY-MM-DD
   // Mobility Features (Beiwe / Purple Robot)
-  radiusOfGyrationMeters: number;
-  locationEntropy: number;
-  normalizedLocationEntropy: number;
-  homestayRatio: number;
-  totalDistanceMeters: number;
+  radiusOfGyrationMeters: number | null;
+  locationEntropy: number | null;
+  normalizedLocationEntropy: number | null;
+  homestayRatio: number | null;
+  totalDistanceMeters: number | null;
   stationaryClustersCount: number;
 
   // Keystroke Dynamics (BiAffect)

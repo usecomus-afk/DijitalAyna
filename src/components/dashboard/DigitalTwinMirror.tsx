@@ -70,7 +70,7 @@ export const DigitalTwinMirror: React.FC<DigitalTwinMirrorProps> = ({ anomalies,
             <img
               src={mirrorIcon}
               alt="Mental İkiz Aynası"
-              className="w-full h-auto max-h-[200px] object-contain drop-shadow-sm"
+              className="w-full h-auto max-h-[240px] sm:max-h-[280px] object-contain drop-shadow-sm"
             />
           </div>
 
