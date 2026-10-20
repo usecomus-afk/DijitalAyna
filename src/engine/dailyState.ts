@@ -61,7 +61,12 @@ export function applyDailyStateToInsight(insight: Insight, state: DailyState): I
   };
 }
 
-/** Text + badge for the "Biyobelirteç & Sensör Sentezi" card of the mirror modal. */
+/**
+ * Text + badge for the "Biyobelirteç & Sensör Sentezi" card of the mirror modal.
+ * Deterministic resolution: If index < 50 or negative divergence is detected,
+ * badge MUST reflect non-balanced state ("Düşük Ritim • Hafif Sapma" or "Zihinsel Yük • Belirgin Sapma"),
+ * and NEVER "Dengeli".
+ */
 export function getSynthesisCopy(balanceIndex: number): { text: string; badge: string } {
   if (balanceIndex >= 60) {
     return {
@@ -71,6 +76,32 @@ export function getSynthesisCopy(balanceIndex: number): { text: string; badge: s
   }
   return {
     text: 'Aktif hissiyat bildiriminiz ve etkileşim sinyalleriniz zihinsel yük artışına ve içe çekilme eğilimine işaret ediyor.',
-    badge: balanceIndex <= STRAIN_INDEX_THRESHOLD ? 'Zihinsel Yük • Belirgin Sapma' : 'Düşük Ritim • Hafif Sapma',
+    badge:
+      balanceIndex <= STRAIN_INDEX_THRESHOLD
+        ? 'Zihinsel Yük • Belirgin Sapma'
+        : 'Düşük Ritim • Hafif Sapma',
   };
+}
+
+/**
+ * Unified badge resolution ensuring synthesis badge and narrative always evaluate to identical severity tier.
+ * Prevents contradiction in image_7 (Index: 48/100, narrative: "Zihinsel yük artışı ve içe çekilme eğilimi" vs Badge: "Dengeli").
+ */
+export function resolveSynthesisBadge(
+  balanceIndex: number | null,
+  phenoLabel: string,
+  hasAlerts: boolean
+): string {
+  if (balanceIndex !== null && balanceIndex < BALANCED_INDEX_THRESHOLD) {
+    return balanceIndex <= STRAIN_INDEX_THRESHOLD
+      ? 'Yüksek Bilişsel Yük'
+      : 'Dikkat Gerektiren Sirkadiyen Sapma';
+  }
+  if (hasAlerts && phenoLabel && !phenoLabel.includes('Dengeli')) {
+    return phenoLabel;
+  }
+  if (balanceIndex !== null && balanceIndex < 60) {
+    return 'Düşük Ritim • Hafif Sapma';
+  }
+  return 'Dengeli Davranışsal & Sirkadiyen Ritim';
 }

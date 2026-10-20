@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useAppStore } from '../store/useAppStore';
 import { InsightCard } from '../components/insights/InsightCard';
 import { HolisticAwarenessSummaryCard } from '../components/insights/HolisticAwarenessSummaryCard';
 import { MetricCard } from '../components/dashboard/MetricCard';
-import { calculateZScore } from '../engine/anomaly';
+import { calculateZScore, calculateModifiedZScore } from '../engine/anomaly';
 import { AnomalyResult } from '../types/engine';
 import { healthService } from '../services/native/healthService';
 import { Disclaimer } from '../components/common/Disclaimer';
@@ -23,7 +23,7 @@ export const InsightsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
-  // Lock vertical scrolling until "İncele" is clicked
+  // Lock vertical scrolling until "Ä°ncele" is clicked
   useViewportScrollLock(!isDetailsExpanded);
 
   const insights = useLiveQuery(() => db.insights.toArray()) || [];
@@ -60,17 +60,19 @@ export const InsightsPage: React.FC = () => {
       for (const t of todays) {
         const base = bMap.get(t.metricKey);
         if (base) {
-          const z = calculateZScore(t.value, base.ewmaMean, base.ewmaStd);
+          const center = base.median ?? base.ewmaMean;
+          const dispersion = base.mad ?? base.ewmaStd;
+          const z = calculateModifiedZScore(t.value, center, dispersion, t.metricKey);
           const dev =
-            base.ewmaMean !== 0
-              ? Math.round(((t.value - base.ewmaMean) / base.ewmaMean) * 100)
+            center !== 0
+              ? Math.round(((t.value - center) / center) * 100)
               : 0;
           anoms.push({
             metricKey: t.metricKey,
             date: maxDate,
             currentValue: t.value,
-            baselineMean: base.ewmaMean,
-            baselineStd: base.ewmaStd,
+            baselineMean: base.median ?? base.ewmaMean,
+            baselineStd: base.mad ?? base.ewmaStd,
             zScore: z,
             isAnomaly: Math.abs(z) >= 2.0,
             deviationPercent: dev,
@@ -103,11 +105,11 @@ export const InsightsPage: React.FC = () => {
     return { hasData, curr, base, z, dev, hist, unavailableReason };
   };
 
-  const mobility = getMetricData('mobility_index', '[Veri Alınamıyor / İzin Bekleniyor]');
-  const typing = getMetricData('typing_wpm', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
-  const backspace = getMetricData('typing_backspace_rate', '[Kayıt Yok - Uygulama içi yazım yapılmadı]');
-  const night = getMetricData('night_usage_minutes', '[Kayıt Yok - Gece kullanımı yok]');
-  const touch = getMetricData('touch_interaction_frequency', '[Kayıt Yok - Etkileşim yok]');
+  const mobility = getMetricData('mobility_index', '[Veri AlÄ±namÄ±yor / Ä°zin Bekleniyor]');
+  const typing = getMetricData('typing_wpm', '[KayÄ±t Yok - Uygulama iÃ§i yazÄ±m yapÄ±lmadÄ±]');
+  const backspace = getMetricData('typing_backspace_rate', '[KayÄ±t Yok - Uygulama iÃ§i yazÄ±m yapÄ±lmadÄ±]');
+  const night = getMetricData('night_usage_minutes', '[KayÄ±t Yok - Gece kullanÄ±mÄ± yok]');
+  const touch = getMetricData('touch_interaction_frequency', '[KayÄ±t Yok - EtkileÅŸim yok]');
 
   const sampleDays = useMemo(
     () => new Set(dailyMetrics.map((m) => m.date)).size,
@@ -163,7 +165,7 @@ export const InsightsPage: React.FC = () => {
 
   return (
     <div className={`space-y-4 animate-fadeIn ${isDetailsExpanded ? 'pb-20' : ''}`}>
-      {/* Holistic "KÜÇÜK BİR FARKINDALIK ÖNERİSİ" Summary + "İncele" Button */}
+      {/* Holistic "KÃœÃ‡ÃœK BÄ°R FARKINDALIK Ã–NERÄ°SÄ°" Summary + "Ä°ncele" Button */}
       <HolisticAwarenessSummaryCard
         summary={holisticSummary}
         isExpanded={isDetailsExpanded}
@@ -175,7 +177,7 @@ export const InsightsPage: React.FC = () => {
           {/* Filters */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <span className="text-xs font-semibold text-comus-sand-dark">
-              Tüm Farkındalık Kartları ({filteredInsights.length})
+              TÃ¼m FarkÄ±ndalÄ±k KartlarÄ± ({filteredInsights.length})
             </span>
             <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-comus-sand-light/30 shadow-soft text-xs">
               <button
@@ -186,7 +188,7 @@ export const InsightsPage: React.FC = () => {
                     : 'text-comus-sand-dark hover:text-comus-navy'
                 }`}
               >
-                Tümü ({filteredInsights.length})
+                TÃ¼mÃ¼ ({filteredInsights.length})
               </button>
               <button
                 onClick={() => setFilter('high')}
@@ -196,7 +198,7 @@ export const InsightsPage: React.FC = () => {
                     : 'text-comus-sand-dark hover:text-rose-600'
                 }`}
               >
-                Öncelikli
+                Ã–ncelikli
               </button>
               <button
                 onClick={() => setFilter('medium')}
@@ -227,14 +229,14 @@ export const InsightsPage: React.FC = () => {
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="font-serif font-bold text-lg text-comus-navy">
-                Kişisel Ritim Öğreniliyor ({effectiveDayCount}/14 Gün)
+                KiÅŸisel Ritim Ã–ÄŸreniliyor ({effectiveDayCount}/14 GÃ¼n)
               </h3>
               <p className="text-xs sm:text-sm text-comus-sand-dark max-w-md mx-auto leading-relaxed">
-                Kişiselleştirilmiş davranışsal içgörüler ve anomali uyarıları, 14 günlük stabil baz hattınız tamamlandıktan sonra aktif hale gelecektir.
+                KiÅŸiselleÅŸtirilmiÅŸ davranÄ±ÅŸsal iÃ§gÃ¶rÃ¼ler ve anomali uyarÄ±larÄ±, 14 gÃ¼nlÃ¼k stabil baz hattÄ±nÄ±z tamamlandÄ±ktan sonra aktif hale gelecektir.
               </p>
               <div className="max-w-xs mx-auto pt-2">
                 <div className="flex justify-between text-xs text-comus-sand-dark mb-1 font-medium">
-                  <span>Öğrenim İlerlemesi</span>
+                  <span>Ã–ÄŸrenim Ä°lerlemesi</span>
                   <span className="font-mono font-bold">
                     %{Math.min(100, Math.round((Math.max(1, effectiveDayCount) / 14) * 100))}
                   </span>
@@ -255,19 +257,19 @@ export const InsightsPage: React.FC = () => {
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <h3 className="font-serif font-bold text-lg text-comus-navy mb-1">
-                {dailyState.isStrained ? 'Hassas Bir Gün' : 'Her Şey Dengede Görünüyor'}
+                {dailyState.isStrained ? 'Hassas Bir GÃ¼n' : 'Her Åey Dengede GÃ¶rÃ¼nÃ¼yor'}
               </h3>
               <p className="text-xs sm:text-sm text-comus-sand-dark max-w-sm mx-auto">
                 {dailyState.isStrained
-                  ? 'Pasif sensörlerde öncelikli bir anomali yok; ancak aktif bildirimin zihinsel yük gösteriyor. Bugün kendine nazik davranabilirsin.'
-                  : 'Şu anda baz hattından belirgin bir sapma veya öncelikli anomali bulunmuyor.'}
+                  ? 'Pasif sensÃ¶rlerde Ã¶ncelikli bir anomali yok; ancak aktif bildirimin zihinsel yÃ¼k gÃ¶steriyor. BugÃ¼n kendine nazik davranabilirsin.'
+                  : 'Åu anda baz hattÄ±ndan belirgin bir sapma veya Ã¶ncelikli anomali bulunmuyor.'}
               </p>
             </div>
           )}
 
           <div className="pt-2">
             <h2 className="font-serif font-bold text-xl text-comus-navy mb-4">
-              Anlık Fenotip Verileri
+              AnlÄ±k Fenotip Verileri
             </h2>
             {/* 4 Core Metric Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -284,7 +286,7 @@ export const InsightsPage: React.FC = () => {
                 history={mobility.hist}
                 hasData={mobility.hasData}
                 unavailableReason={mobility.unavailableReason}
-                actionLabel="İzin Ver"
+                actionLabel="Ä°zin Ver"
                 onActionClick={async () => {
                   const res = await healthService.requestHealthPermissions();
                   if (res.granted) {
@@ -300,12 +302,12 @@ export const InsightsPage: React.FC = () => {
                     store.setEmergencyModalOpen(false);
                   }
                 }}
-                description="İvmeölçer & fiziksel aktivite endeksi"
+                description="Ä°vmeÃ¶lÃ§er & fiziksel aktivite endeksi"
               />
 
-              {/* 2. Yazım Dinamiği (Typing) */}
+              {/* 2. YazÄ±m DinamiÄŸi (Typing) */}
               <MetricCard
-                title="Yazım Dinamiği & Akıcılık"
+                title="YazÄ±m DinamiÄŸi & AkÄ±cÄ±lÄ±k"
                 metricKey="typing_wpm"
                 icon={Keyboard}
                 currentValue={typing.curr}
@@ -318,12 +320,12 @@ export const InsightsPage: React.FC = () => {
                 unavailableReason={typing.unavailableReason}
                 description={
                   backspace.hasData
-                    ? `Tuş aralığı & hata oranı (%${backspace.curr})`
-                    : 'Uygulama içi tuş vuruş akıcılığı'
+                    ? `TuÅŸ aralÄ±ÄŸÄ± & hata oranÄ± (%${backspace.curr})`
+                    : 'Uygulama iÃ§i tuÅŸ vuruÅŸ akÄ±cÄ±lÄ±ÄŸÄ±'
                 }
               />
 
-              {/* 3. Ekran Ritmi & Gece Kullanımı */}
+              {/* 3. Ekran Ritmi & Gece KullanÄ±mÄ± */}
               <MetricCard
                 title="Sirkadiyen Ekran Ritmi"
                 metricKey="night_usage_minutes"
@@ -336,12 +338,12 @@ export const InsightsPage: React.FC = () => {
                 history={night.hist}
                 hasData={night.hasData}
                 unavailableReason={night.unavailableReason}
-                description="02:00–04:00 gece dinlenme penceresi kullanımı"
+                description="02:00â€“04:00 gece dinlenme penceresi kullanÄ±mÄ±"
               />
 
-              {/* 4. Etkileşim Yoğunluğu (Touch) */}
+              {/* 4. EtkileÅŸim YoÄŸunluÄŸu (Touch) */}
               <MetricCard
-                title="Etkileşim Yoğunluğu"
+                title="EtkileÅŸim YoÄŸunluÄŸu"
                 metricKey="touch_interaction_frequency"
                 icon={Smartphone}
                 currentValue={touch.curr}
@@ -352,7 +354,7 @@ export const InsightsPage: React.FC = () => {
                 history={touch.hist}
                 hasData={touch.hasData}
                 unavailableReason={touch.unavailableReason}
-                description="Kaydırma hızı ve ekran etkileşim sıklığı"
+                description="KaydÄ±rma hÄ±zÄ± ve ekran etkileÅŸim sÄ±klÄ±ÄŸÄ±"
               />
             </div>
           </div>
@@ -367,3 +369,4 @@ export const InsightsPage: React.FC = () => {
     </div>
   );
 };
+

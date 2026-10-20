@@ -116,17 +116,22 @@ class SessionSensorCollector {
     this.ensureDateReset();
     if (!this.isVisible && this.sessionStartTime === 0) return;
 
+    this.ensureDateReset();
     const now = Date.now();
-    const activeElapsedMinutes =
-      this.sessionStartTime > 0 ? Math.max(0.1, (now - this.sessionStartTime) / 60000) : 0.1;
+    // Protect against corrupt epoch timestamps or sessionStartTime <= 0
+    let activeElapsedMinutes = 0.1;
+    if (this.sessionStartTime > 0 && now >= this.sessionStartTime) {
+      const elapsedMs = Math.min(360 * 60 * 1000, now - this.sessionStartTime);
+      activeElapsedMinutes = Math.max(0.1, Math.min(360, elapsedMs / 60000));
+    }
 
-    const totalScreenOnMinutes = Math.round((this.completedSessionsMinutes + activeElapsedMinutes) * 10) / 10;
+    const totalScreenOnMinutes = Math.min(1440, Math.round((this.completedSessionsMinutes + activeElapsedMinutes) * 10) / 10);
     const totalSessions = this.completedSessionCount + 1;
-    const avgSessionDuration = Math.round((totalScreenOnMinutes / totalSessions) * 10) / 10;
+    const avgSessionDuration = Math.min(360, Math.round((totalScreenOnMinutes / totalSessions) * 10) / 10);
 
     const hour = new Date(now).getHours();
     const activeNightMinutes = hour >= 2 && hour < 4 ? activeElapsedMinutes : 0;
-    const totalNightMinutes = Math.round((this.completedNightMinutes + activeNightMinutes) * 10) / 10;
+    const totalNightMinutes = Math.min(360, Math.round((this.completedNightMinutes + activeNightMinutes) * 10) / 10);
 
     await db.logSensorEvent({
       type: 'session',
@@ -148,19 +153,23 @@ class SessionSensorCollector {
     if (this.sessionStartTime === 0) return;
     this.ensureDateReset();
     const now = Date.now();
-    const durationMinutes = Math.max(0, (now - this.sessionStartTime) / 60000);
+    let durationMinutes = 0;
+    if (this.sessionStartTime > 0 && now >= this.sessionStartTime) {
+      const elapsedMs = Math.min(360 * 60 * 1000, now - this.sessionStartTime);
+      durationMinutes = Math.max(0, Math.min(360, elapsedMs / 60000));
+    }
     if (durationMinutes >= 0.05) {
-      this.completedSessionsMinutes += durationMinutes;
+      this.completedSessionsMinutes = Math.min(1440, this.completedSessionsMinutes + durationMinutes);
       this.completedSessionCount += 1;
       const hour = new Date(now).getHours();
       if (hour >= 2 && hour < 4) {
-        this.completedNightMinutes += durationMinutes;
+        this.completedNightMinutes = Math.min(360, this.completedNightMinutes + durationMinutes);
       }
 
-      const totalScreenOnMinutes = Math.round(this.completedSessionsMinutes * 10) / 10;
+      const totalScreenOnMinutes = Math.min(1440, Math.round(this.completedSessionsMinutes * 10) / 10);
       const avgSessionDuration =
-        Math.round((this.completedSessionsMinutes / Math.max(1, this.completedSessionCount)) * 10) / 10;
-      const totalNightMinutes = Math.round(this.completedNightMinutes * 10) / 10;
+        Math.min(360, Math.round((this.completedSessionsMinutes / Math.max(1, this.completedSessionCount)) * 10) / 10);
+      const totalNightMinutes = Math.min(360, Math.round(this.completedNightMinutes * 10) / 10);
 
       await db.logSensorEvent({
         type: 'session',

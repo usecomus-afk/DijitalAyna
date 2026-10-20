@@ -163,7 +163,6 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       'night_usage_minutes',
       'cognitive_fatigue_score',
       'impulse_risk_index',
-      'battery_level',
     ];
     const items: string[] = [];
     for (const k of priorityKeys) {
@@ -181,7 +180,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       }
     }
     return items.length > 0
-      ? ` Gerçek Cihaz Ölçümleri (${todaysRealMetrics.length} aktif gösterge): ${items.join(' • ')}.`
+      ? ` GerÃ§ek Cihaz Ã–lÃ§Ã¼mleri (${todaysRealMetrics.length} aktif gÃ¶sterge): ${items.join(' • ')}.`
       : '';
   };
 
@@ -201,8 +200,8 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       date: latestDate,
       severity: clinAlert.severity,
       biomarkerType: clinAlert.id,
-      badgeLabel: `Kritik Eşik • ${clinAlert.consecutiveDays || clinAlert.requiredDays || 3} Gün`,
-      title: clinAlert.potentialStateLabel || `Potansiyel ${clinAlert.title} Olasılığı`,
+      badgeLabel: `Kritik EÅŸik • ${clinAlert.consecutiveDays || clinAlert.requiredDays || 3} GÃ¼n`,
+      title: clinAlert.potentialStateLabel || `Potansiyel ${clinAlert.title} OlasÄ±lÄ±ÄŸÄ±`,
       body: `${clinAlert.personalizedDeviationStatement}${clinAlert.statisticalSummary ? ` (${clinAlert.statisticalSummary})` : ''}`,
       suggestedAction: getDistinctSuggestedAction(clinAlert.id, {
         isLearning,
@@ -250,10 +249,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         date: latestDate,
         severity: 'low',
         biomarkerType: 'healthy_balance',
-        title: isLearning ? `Kişisel Baz Hattı Oluşturuluyor (${sampleDays}/14 Gün)` : 'Dengeli ve Kararlı Davranışsal Ritim',
+        title: isLearning ? `KiÅŸisel Baz HattÄ± OluÅŸturuluyor (${sampleDays}/14 GÃ¼n)` : 'Dengeli ve KararlÄ± DavranÄ±ÅŸsal Ritim',
         body: isLearning
-          ? `Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor (${sampleDays}/14 gün).${realSnap} 14 günlük stabil baz hattınız tamamlandığında sapma analizleri derinleşecektir.`
-          : `Yazım akıcılığın, hareketlilik seviyen ve oturum düzenin kişisel EWMA baz hattınla uyumlu ve dengeli seyrediyor.${realSnap}`,
+          ? `Cihaz kullanÄ±m ritminiz ve biyobelirteÃ§leriniz kaydediliyor (${sampleDays}/14 gÃ¼n).${realSnap} 14 gÃ¼nlÃ¼k stabil baz hattÄ±nÄ±z tamamlandÄ±ÄŸÄ±nda sapma analizleri derinleÅŸecektir.`
+          : `YazÄ±m akÄ±cÄ±lÄ±ÄŸÄ±n, hareketlilik seviyen ve oturum dÃ¼zenin kiÅŸisel EWMA baz hattÄ±nla uyumlu ve dengeli seyrediyor.${realSnap}`,
         suggestedAction: getDistinctSuggestedAction('healthy_balance', {
           isLearning,
           variantIndex: sampleDays,
@@ -279,7 +278,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
         const triggerStatParts = evidenceList.map((ev) => {
           const sign = ev.changePercent > 0 ? '+' : '';
           const zSign = ev.zScore > 0 ? '+' : '';
-          return `${ev.metricLabel}: ${ev.currentValue} ${ev.unit} (Baz: ${ev.baselineValue} ${ev.unit}, ${sign}${ev.changePercent}%, Z=${zSign}${ev.zScore}σ)`;
+          return `${ev.metricLabel}: ${ev.currentValue} ${ev.unit} (Baz: ${ev.baselineValue} ${ev.unit}, ${sign}${ev.changePercent}%, Z=${zSign}${ev.zScore}Ïƒ)`;
         });
         const realEvidenceSuffix =
           triggerStatParts.length > 0 ? ` Gerçek Ölçüm Kanıtı: ${triggerStatParts.join(' • ')}.` : '';
@@ -289,7 +288,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
           date: latestDate,
           severity: rule.severity,
           biomarkerType: rule.id,
-          title: `Potansiyel ${rule.title} Olasılığı`,
+          title: `Potansiyel ${rule.title} OlasÄ±lÄ±ÄŸÄ±`,
           body: `${rule.personalizedDeviationStatement}${realEvidenceSuffix}`,
           suggestedAction: getDistinctSuggestedAction(rule.id, {
             isLearning,
@@ -324,10 +323,10 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
       date: latestDate,
       severity: 'low',
       biomarkerType: 'healthy_balance',
-      title: isLearning ? `Kişisel Baz Hattı Oluşturuluyor (${sampleDays}/14 Gün)` : 'Kişisel Baz Hattı ve Günlük Değerlendirme',
+      title: isLearning ? `KiÅŸisel Baz HattÄ± OluÅŸturuluyor (${sampleDays}/14 GÃ¼n)` : 'KiÅŸisel Baz HattÄ± ve GÃ¼nlÃ¼k DeÄŸerlendirme',
       body: isLearning
-        ? `Cihaz kullanım ritminiz ve biyobelirteçleriniz kaydediliyor (${sampleDays}/14 gün).${realSnap} 14 günlük stabil baz hattınız tamamlandığında sapma analizleri derinleşecektir.`
-        : `Cihaz içi etkileşimleriniz, yazım akıcılığınız ve sirkadiyen oturum ritminiz incelendi. Belirgin bir kritik eşik sapması tespit edilmedi.${realSnap}`,
+        ? `Cihaz kullanÄ±m ritminiz ve biyobelirteÃ§leriniz kaydediliyor (${sampleDays}/14 gÃ¼n).${realSnap} 14 gÃ¼nlÃ¼k stabil baz hattÄ±nÄ±z tamamlandÄ±ÄŸÄ±nda sapma analizleri derinleÅŸecektir.`
+        : `Cihaz iÃ§i etkileÅŸimleriniz, yazÄ±m akÄ±cÄ±lÄ±ÄŸÄ±nÄ±z ve sirkadiyen oturum ritminiz incelendi. Belirgin bir kritik eÅŸik sapmasÄ± tespit edilmedi.${realSnap}`,
       suggestedAction: getDistinctSuggestedAction('healthy_balance', {
         isLearning,
         variantIndex: sampleDays + 1,
@@ -340,7 +339,7 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
   }
 
   // Unified Daily State: a "balanced" card must never be stored on a strained day
-  // (active mood / hybrid index low) — keeps the feed consistent with the mirror.
+  // (active mood / hybrid index low) â€” keeps the feed consistent with the mirror.
   try {
     const moodReports = await db.moodReports.orderBy('timestamp').reverse().toArray();
     const { score: recentMoodScore } = calculateRecentMoodScore(moodReports);
@@ -376,3 +375,4 @@ export async function generateInsightsAndAlerts(isFinalized = false): Promise<{
 
   return { insights: generatedInsights, alerts };
 }
+

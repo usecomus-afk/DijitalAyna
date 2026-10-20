@@ -35,8 +35,8 @@ export class KeystrokeFeatureExtractor {
     if (events.length <= 1) return null;
 
     const flightTimes = events
-      .map((e) => e.interKeyDelayMs)
-      .filter((iki) => iki >= 10 && iki <= 4000); // Exclude long multi-minute breaks
+      .map((e) => Math.max(10, Math.min(2000, e.interKeyDelayMs)))
+      .filter((iki) => iki >= 10 && iki <= 2000); // Strict physical clamping [10, 2000] ms
 
     if (flightTimes.length === 0) return null;
 
@@ -107,6 +107,7 @@ export class KeystrokeFeatureExtractor {
     // Characters per minute = (60,000 / totalStrokeTimeMs)
     // WPM = CPM / 5
     const wpm = (60000 / totalStrokeTimeMs) / 5;
-    return Math.round(Math.min(130, Math.max(10, wpm)));
+    // Hard physical clamp [5, 160] WPM
+    return Math.round(Math.min(160, Math.max(5, wpm)));
   }
 }

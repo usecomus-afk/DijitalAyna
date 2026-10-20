@@ -148,11 +148,12 @@ class TouchSensorCollector {
 
     this.cumulativeTouches += this.touchCount;
     const elapsedMinutes = Math.max(0.25, (Date.now() - this.sessionStartTime) / 60000);
-    const freqPerMin = Math.max(1, Math.round(this.cumulativeTouches / elapsedMinutes));
+    // Hard clamp to realistic interactions per minute [0, 600]
+    const freqPerMin = Math.max(1, Math.min(600, Math.round(this.cumulativeTouches / elapsedMinutes)));
 
     if (this.scrollVelocities.length > 0) {
       const avg = this.scrollVelocities.reduce((a, b) => a + b, 0) / this.scrollVelocities.length;
-      this.lastMeasuredScrollVelocity = Math.round(avg);
+      this.lastMeasuredScrollVelocity = Math.max(0, Math.min(5000, Math.round(avg)));
     }
 
     const payload: Record<string, number> = {

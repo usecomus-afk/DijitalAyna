@@ -44,7 +44,9 @@ export class CircadianFeatureExtractor {
       }
     }
 
-    return Math.round(totalNocturnalMs / (60 * 1000));
+    const nocturnalMinutes = Math.round(totalNocturnalMs / (60 * 1000));
+    // Hard clamp: biological rest window cannot exceed 360 minutes (6 hours)
+    return Math.max(0, Math.min(360, nocturnalMinutes));
   }
 
   /**
@@ -115,7 +117,9 @@ export class CircadianFeatureExtractor {
       }
     }
 
-    return Math.round(totalMs / (60 * 1000));
+    const totalMinutes = Math.round(totalMs / (60 * 1000));
+    // Hard clamp to physical limits: max 1440 minutes in a single day
+    return Math.max(0, Math.min(1440, totalMinutes));
   }
 
   /**

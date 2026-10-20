@@ -1,4 +1,4 @@
-import { MetricKey } from './sensor';
+﻿import { MetricKey } from './sensor';
 
 export interface DailyMetric {
   id?: number;
@@ -14,9 +14,11 @@ export interface BaselineState {
   metricKey: MetricKey;
   ewmaMean: number;
   ewmaStd: number;
+  median?: number;
+  mad?: number;
   sampleCount: number;
   lastUpdated: string; // YYYY-MM-DD
-  isEstablished: boolean; // true if >= 7 days of data
+  isEstablished: boolean; // true if >= 14 days of data
 }
 
 export interface AnomalyResult {

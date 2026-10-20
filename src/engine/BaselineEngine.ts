@@ -3,7 +3,8 @@ import { MetricKey, METRIC_DEFINITIONS } from '../types/sensor';
 import { BaselineState, DailyMetric } from '../types/engine';
 
 export const EWMA_LAMBDA = 0.20; // Literature standard exponential smoothing factor (Guth et al., 2025)
-export const MIN_BASELINE_DAYS = 14; // Strictly 14 days required before baseline is established
+export const MIN_BASELINE_DAYS = 14; // Strictly 14 days required before baseline is fully established
+export const MIN_ACTIVE_DAYS_FOR_DEVIATION = 3; // Minimum 3 active days before non-learning state
 export const SPC_L_FACTOR = 2.5; // 2.5 sigma control limit factor
 export const BAYESIAN_PSEUDO_M = 5; // m=5 pseudo-observations for variance shrinkage
 export const EPSILON = 0.001;
@@ -19,7 +20,7 @@ export const CLINICAL_PRIORS: Partial<Record<MetricKey, { priorMean: number; pri
   typing_pause_count: { priorMean: 3, priorStd: 2 },
   typing_hold_time: { priorMean: 120, priorStd: 20 },
   mobility_index: { priorMean: 65, priorStd: 18 },
-  homestay_ratio: { priorMean: 0.6, priorStd: 0.2 },
+  homestay_ratio: { priorMean: 60, priorStd: 20 }, // expressed as percentage [0, 100]%
   mobility_radius: { priorMean: 5, priorStd: 2 },
   tremor_variance: { priorMean: 0.15, priorStd: 0.08 },
   screen_on_time: { priorMean: 180, priorStd: 50 },
@@ -35,7 +36,38 @@ export const CLINICAL_PRIORS: Partial<Record<MetricKey, { priorMean: number; pri
   sleep_waso: { priorMean: 30, priorStd: 15 },
 };
 
-export interface BaselineComputationResult {
+/**
+ * Minimum clinically meaningful variance (Epsilon floor for MAD).
+ * Protects against division by zero or inflated Z-scores when user behaviour is identical across days.
+ */
+export const CLINICAL_MIN_VARIANCE: Partial<Record<MetricKey, number>> = {
+  typing_wpm: 2.0, // Minimum 2.0 WPM variance
+  typing_iki: 15.0, // 15 ms
+  typing_backspace_rate: 1.5, // 1.5%
+  typing_pause_count: 1.0,
+  typing_hold_time: 10.0, // 10 ms
+  mobility_index: 3.0,
+  homestay_ratio: 3.0, // 3%
+  mobility_radius: 0.5, // 0.5 km
+  tremor_variance: 0.02,
+  screen_on_time: 10.0, // 10 min
+  night_usage_minutes: 5.0, // 5 min
+  session_duration: 1.0, // 1 min
+  touch_scroll_velocity: 50.0, // 50 px/s
+  touch_interaction_frequency: 3.0, // 3 touches/min
+  voice_pitch_variance: 2.0,
+  voice_speech_rate: 5.0,
+  sleep_efficiency: 2.0, // 2%
+  sleep_duration: 15.0, // 15 min
+  sleep_sol: 3.0, // 3 min
+  sleep_waso: 5.0, // 5 min
+};
+
+export interface RobustBaselineResult {
+  median: number;
+  mad: number;
+  effectiveMad: number;
+  iqr: number;
   mean: number;
   sampleStd: number;
   shrunkStd: number;
@@ -45,16 +77,96 @@ export interface BaselineComputationResult {
   lcl: number;
 }
 
+export type BaselineComputationResult = RobustBaselineResult;
+
 /**
  * BaselineEngine
- * Single source of truth for EWMA (lambda=0.20), Bayesian variance shrinkage,
- * time-varying statistical process control (SPC) limits, and cold-start protection.
+ * Robust Statistical Baseline & Anomaly Detection Engine
+ * Grounded in non-Gaussian digital phenotyping telemetry:
+ * - Central tendency: Median over rolling active days
+ * - Dispersion: Median Absolute Deviation (MAD) & IQR
+ * - Normalized Score: Modified Z-Score with clinically meaningful epsilon protection
  */
 export class BaselineEngine {
   public static readonly DEFAULT_LAMBDA = EWMA_LAMBDA;
   public static readonly MIN_DAYS = MIN_BASELINE_DAYS;
+  public static readonly MIN_ACTIVE_DAYS = MIN_ACTIVE_DAYS_FOR_DEVIATION;
   public static readonly L_FACTOR = SPC_L_FACTOR;
   public static readonly EPSILON = EPSILON;
+
+  /**
+   * Computes the statistical median of a numeric array
+   */
+  static computeMedian(values: number[]): number {
+    if (values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 !== 0) {
+      return sorted[mid];
+    }
+    return Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 100) / 100;
+  }
+
+  /**
+   * Computes Median Absolute Deviation (MAD):
+   * $$MAD = \text{Median}(|X_i - \text{Median}(X)|)$$
+   */
+  static computeMAD(values: number[], medianVal?: number): number {
+    if (values.length <= 1) return 0;
+    const m = medianVal ?? this.computeMedian(values);
+    const deviations = values.map((v) => Math.abs(v - m));
+    return this.computeMedian(deviations);
+  }
+
+  /**
+   * Computes Interquartile Range (IQR):
+   * $$IQR = Q3 - Q1$$
+   */
+  static computeIQR(values: number[]): { q1: number; q3: number; iqr: number } {
+    if (values.length === 0) return { q1: 0, q3: 0, iqr: 0 };
+    const sorted = [...values].sort((a, b) => a - b);
+    const n = sorted.length;
+
+    const getPercentile = (p: number) => {
+      const idx = (n - 1) * p;
+      const lower = Math.floor(idx);
+      const upper = Math.ceil(idx);
+      const weight = idx - lower;
+      return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+    };
+
+    const q1 = Math.round(getPercentile(0.25) * 100) / 100;
+    const q3 = Math.round(getPercentile(0.75) * 100) / 100;
+    const iqr = Math.round(Math.max(0, q3 - q1) * 100) / 100;
+
+    return { q1, q3, iqr };
+  }
+
+  /**
+   * Calculates Modified Z-score using Boris Iglewicz and David Hoaglin (1993) standard:
+   * $$Modified\_Z = 0.6745 \times \frac{X - \text{Median}}{\max(MAD, \epsilon)}$$
+   *
+   * @param value The observed daily telemetry measurement
+   * @param median Baseline median
+   * @param mad Baseline Median Absolute Deviation
+   * @param metricKey Optional metric key to look up clinically meaningful epsilon
+   * @param customEpsilon Optional custom epsilon override
+   */
+  static calculateModifiedZScore(
+    value: number,
+    median: number,
+    mad: number,
+    metricKey?: MetricKey,
+    customEpsilon?: number
+  ): number {
+    const defaultEpsilon = metricKey ? (CLINICAL_MIN_VARIANCE[metricKey] ?? 0.5) : 0.5;
+    const eps = customEpsilon ?? defaultEpsilon;
+    const effectiveMad = Math.max(mad, eps);
+
+    if (effectiveMad <= 0) return 0;
+    const modZ = (0.6745 * (value - median)) / effectiveMad;
+    return Math.round(modZ * 100) / 100;
+  }
 
   /**
    * Computes EWMA mean and sample variance across chronological values:
@@ -134,22 +246,36 @@ export class BaselineEngine {
   }
 
   /**
-   * Comprehensive baseline computation for a metric history
+   * Comprehensive robust baseline computation over rolling active days
    */
   static computeBaseline(
     values: number[],
     metricKey?: MetricKey
-  ): BaselineComputationResult {
+  ): RobustBaselineResult {
     const n = values.length;
     const isEstablished = n >= MIN_BASELINE_DAYS;
-    const { mean, sampleStd } = this.computeEWMA(values, EWMA_LAMBDA);
-    const shrunkStd = this.computeShrunkStd(sampleStd, n, metricKey, mean);
-    const limits = this.computeTimeVaryingLimits(mean, shrunkStd, n, EWMA_LAMBDA, SPC_L_FACTOR);
+
+    // Rolling window: use up to 28 most recent active days
+    const windowValues = values.slice(-28);
+
+    const median = this.computeMedian(windowValues);
+    const mad = this.computeMAD(windowValues, median);
+    const eps = metricKey ? (CLINICAL_MIN_VARIANCE[metricKey] ?? 0.5) : 0.5;
+    const effectiveMad = Math.max(mad, eps);
+    const { iqr } = this.computeIQR(windowValues);
+
+    const { sampleStd } = this.computeEWMA(windowValues, EWMA_LAMBDA);
+    // const shrunkStd = this.computeShrunkStd(sampleStd, n, metricKey, mean);
+    const limits = this.computeTimeVaryingLimits(median, effectiveMad, n, EWMA_LAMBDA, SPC_L_FACTOR);
 
     return {
-      mean,
+      median,
+      mad,
+      effectiveMad,
+      iqr,
+      mean: median, // Stored as robust median in mean field for seamless compatibility
       sampleStd,
-      shrunkStd,
+      shrunkStd: effectiveMad, // Stored as robust effectiveMad
       sampleCount: n,
       isEstablished,
       ucl: limits.ucl,
@@ -168,8 +294,10 @@ export class BaselineEngine {
     const res = this.computeBaseline(values, metricKey);
     return {
       metricKey,
-      ewmaMean: res.mean,
-      ewmaStd: res.shrunkStd,
+      ewmaMean: res.median,
+      ewmaStd: res.effectiveMad,
+      median: res.median,
+      mad: res.effectiveMad,
       sampleCount: res.sampleCount,
       lastUpdated,
       isEstablished: res.isEstablished,
@@ -177,8 +305,7 @@ export class BaselineEngine {
   }
 
   /**
-   * Calculates Individualized Z-Score using shrunk standard deviation:
-   * $$Z = \frac{X_t - \mu_{baseline}}{\sigma_{\text{shrunk}} + \epsilon}$$
+   * Standard and backwards-compatible Z-Score calculator
    */
   static calculateZScore(
     currentValue: number,
@@ -193,7 +320,7 @@ export class BaselineEngine {
   }
 
   /**
-   * Normalizes a feature vector against established or shrunk baselines
+   * Normalizes a feature vector against established or robust baselines
    */
   static normalizeFeatureVector(
     currentFeatures: Record<string, number>,
@@ -232,7 +359,7 @@ export async function calculateEWMAForMetrics(): Promise<Record<MetricKey, Basel
 
     if (metrics.length === 0) continue;
 
-    // Use established baseline period (slice recent if >= 14 days to prevent anomaly pollution)
+    // Use established baseline period (slice recent if >= 14 days to prevent current anomaly pollution)
     const baselineSeries = metrics.length >= 14
       ? metrics.slice(0, metrics.length - 3)
       : metrics;
@@ -243,8 +370,10 @@ export async function calculateEWMAForMetrics(): Promise<Record<MetricKey, Basel
 
     const baselineState: BaselineState = {
       metricKey: key,
-      ewmaMean: baselineResult.mean,
-      ewmaStd: baselineResult.shrunkStd, // Shrunk standard deviation prevents cold start collapse
+      ewmaMean: baselineResult.median,
+      ewmaStd: baselineResult.effectiveMad,
+      median: baselineResult.median,
+      mad: baselineResult.effectiveMad,
       sampleCount: metrics.length,
       lastUpdated: latestDate,
       isEstablished: metrics.length >= MIN_BASELINE_DAYS,

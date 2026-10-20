@@ -1,5 +1,6 @@
 import { db } from './index';
 import { MetricKey, METRIC_DEFINITIONS } from '../types/sensor';
+import { clampMetricValue } from '../safety/sanitizer';
 
 const LEGACY_PAYLOAD_KEY_MAP: Record<string, MetricKey> = {
   mobility_score: 'mobility_index',
@@ -21,22 +22,22 @@ async function upsertDailyMetricValue(
   metricKey: MetricKey,
   value: number,
   sampleCount: number,
-  min = value,
-  max = value
+  _min = value, _max = value
 ): Promise<void> {
+  const clampedValue = clampMetricValue(metricKey, value);
   const existing = await db.dailyMetrics
     .where('[metricKey+date]')
     .equals([metricKey, date])
     .first();
 
-  const rounded = Math.round(value * 100) / 100;
+  const rounded = Math.round(clampedValue * 100) / 100;
 
   if (existing && existing.id) {
     await db.dailyMetrics.update(existing.id, {
       value: rounded,
       sampleCount,
-      min,
-      max,
+      min: Math.min(existing.min ?? rounded, rounded),
+      max: Math.max(existing.max ?? rounded, rounded),
     });
   } else {
     await db.dailyMetrics.add({
@@ -44,8 +45,8 @@ async function upsertDailyMetricValue(
       metricKey,
       value: rounded,
       sampleCount,
-      min,
-      max,
+      min: rounded,
+      max: rounded,
     });
   }
 }

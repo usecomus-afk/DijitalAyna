@@ -1,7 +1,7 @@
 /**
  * Rolling Baseline & Personalization Normalization Engine
  * Grounded in Personalized Sensing (Mohr et al., 2017; Torous et al., 2018; Guth et al., 2025).
- * Delegated directly to the unified BaselineEngine.
+ * Delegated directly to the unified BaselineEngine with robust Median & MAD statistics.
  */
 import { BaselineEngine, EWMA_LAMBDA, SPC_L_FACTOR, EPSILON } from '../engine/BaselineEngine';
 
@@ -35,6 +35,20 @@ export class RollingBaselineEngine {
     epsilon = RollingBaselineEngine.EPSILON
   ): number {
     return BaselineEngine.calculateZScore(currentValue, baselineMean, baselineStd, epsilon);
+  }
+
+  /**
+   * Calculates Robust Modified Z-Score:
+   * $$Modified\_Z = 0.6745 \times \frac{X - \text{Median}}{\max(MAD, \epsilon)}$$
+   */
+  static calculateModifiedZScore(
+    currentValue: number,
+    median: number,
+    mad: number,
+    metricKey?: any,
+    epsilon?: number
+  ): number {
+    return BaselineEngine.calculateModifiedZScore(currentValue, median, mad, metricKey, epsilon);
   }
 
   /**

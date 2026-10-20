@@ -4,9 +4,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArrowLeft,
   ActivitySquare,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   ChevronDown,
   ChevronUp,
   Share2,
@@ -14,10 +11,11 @@ import {
 } from 'lucide-react';
 import { db } from '../../db';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateZScore, ANOMALY_Z_THRESHOLD } from '../../engine/anomaly';
-import { METRIC_DEFINITIONS, MetricKey } from '../../types/sensor';
+import { calculateModifiedZScore, ANOMALY_Z_THRESHOLD } from '../../engine/anomaly';
+import { METRIC_DEFINITIONS, MetricKey, isPrimaryMentalBiomarker } from '../../types/sensor';
 import { Disclaimer } from '../../components/common/Disclaimer';
 import { shareContent } from '../../services/shareService';
+import { getMetricTrendPresentation } from '../../utils/metricPresentation';
 
 const BASELINE_TARGET_DAYS = 14;
 
@@ -27,8 +25,8 @@ interface Row {
   unit: string;
   current: number | null;
   date: string | null;
-  mean: number;
-  std: number;
+  median: number;
+  mad: number;
   z: number | null;
   dev: number | null;
   sampleCount: number;
@@ -61,15 +59,18 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
     }
 
     return baselines
-      .filter((b) => Boolean(METRIC_DEFINITIONS[b.metricKey]))
+      // Purge secondary hardware noise from mental biomarker view
+      .filter((b) => isPrimaryMentalBiomarker(b.metricKey))
       .map((b) => {
         const def = METRIC_DEFINITIONS[b.metricKey];
         const l = latest.get(b.metricKey);
         const current = l ? l.value : null;
-        const z = current !== null ? calculateZScore(current, b.ewmaMean, b.ewmaStd) : null;
+        const center = b.median ?? b.ewmaMean;
+        const dispersion = b.mad ?? b.ewmaStd;
+        const z = current !== null ? calculateModifiedZScore(current, center, dispersion, b.metricKey) : null;
         const dev =
-          current !== null && b.ewmaMean !== 0
-            ? Math.round(((current - b.ewmaMean) / b.ewmaMean) * 100)
+          current !== null && center !== 0
+            ? Math.round(((current - center) / center) * 100)
             : null;
         return {
           key: b.metricKey,
@@ -77,8 +78,8 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
           unit: def?.unit ?? '',
           current,
           date: l?.date ?? null,
-          mean: b.ewmaMean,
-          std: b.ewmaStd,
+          median: center,
+          mad: dispersion,
           z,
           dev,
           sampleCount: b.sampleCount,
@@ -90,25 +91,27 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
 
   const learnedDays = Math.min(baselineDayCount ?? 0, BASELINE_TARGET_DAYS);
   const progress = Math.round((learnedDays / BASELINE_TARGET_DAYS) * 100);
-  const anomalyCount = rows.filter(
-    (r) => r.z !== null && Math.abs(r.z) >= ANOMALY_Z_THRESHOLD
-  ).length;
+  const isColdStart = learnedDays < 3;
+
+  const anomalyCount = !isColdStart
+    ? rows.filter((r) => r.z !== null && Math.abs(r.z) >= ANOMALY_Z_THRESHOLD && r.sampleCount >= 3).length
+    : 0;
   const balancedCount = Math.max(0, rows.length - anomalyCount);
 
   const handleShareSummary = async () => {
     const lines = [
-      `Sayısal Göstergeler & EWMA Özeti (${learnedDays}/${BASELINE_TARGET_DAYS} gün)`,
+      `Sayısal Göstergeler & Medyan Baz Hattı Özeti (${learnedDays}/${BASELINE_TARGET_DAYS} gün)`,
       `Toplam İzlenen Gösterge: ${rows.length} (${balancedCount} dengede, ${anomalyCount} belirgin sapma)`,
       '',
       ...rows.slice(0, 8).map((r) => {
-        const zStr = r.z !== null ? `${r.z > 0 ? '+' : ''}${r.z.toFixed(2)}σ` : '—';
-        return `• ${r.label}: Son ${r.current !== null ? `${fmt(r.current)} ${r.unit}` : 'Veri yok'} | Baz: ${fmt(r.mean)} ${r.unit} (${zStr})`;
+        const trend = getMetricTrendPresentation(r.key, r.dev, r.z, r.sampleCount);
+        return `• ${r.label}: Son ${r.current !== null ? `${fmt(r.current)} ${r.unit}` : 'Veri yok'} | Baz: ${fmt(r.median)} ${r.unit} (${trend.plainDeviationText})`;
       }),
       '',
       '— Dijital Mental İkizim',
     ];
     const res = await shareContent({
-      title: 'Dijital Mental İkizim — EWMA Göstergeler Özeti',
+      title: 'Dijital Mental İkizim — Sağlam Baz Hattı Göstergeler Özeti',
       text: lines.join('\n'),
     });
     setShareFeedback(res.message);
@@ -127,7 +130,7 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-xl font-bold text-comus-navy">
-              Sayısal Göstergeler &amp; EWMA
+              Sayısal Göstergeler &amp; Sağlam Baz Hattı
             </h1>
           </div>
 
@@ -175,7 +178,7 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
               Kişisel Ritim Özeti
             </h3>
             <p className="text-xs text-comus-sand-dark">
-              Cihaz içi ölçümleriniz kendi kişisel ortalamanızla (EWMA) karşılaştırılır
+              Cihaz içi ölçümleriniz kendi kişisel medyanınız ve sağlam saçılımınızla (MAD) karşılaştırılır
             </p>
           </div>
         </div>
@@ -194,16 +197,20 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
             </div>
           </div>
           <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-100">
-            <div className="text-[11px] text-amber-800">Belirgin Fark</div>
+            <div className="text-[11px] text-amber-800">
+              {isColdStart ? 'Öğreniliyor' : 'Belirgin Fark'}
+            </div>
             <div className="text-sm font-bold text-amber-900 mt-0.5">
-              {anomalyCount} Gösterge
+              {isColdStart ? 'Kalibre ediliyor' : `${anomalyCount} Gösterge`}
             </div>
           </div>
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-comus-navy font-semibold">Kalibrasyon İlerlemesi</span>
+            <span className="text-comus-navy font-semibold">
+              {isColdStart ? 'Baz Hattı Öğrenme Durumu (Baseline_Learning)' : 'Kalibrasyon İlerlemesi'}
+            </span>
             <span className="text-comus-sand-dark">%{progress}</span>
           </div>
           <div className="w-full bg-comus-sand-light/30 rounded-full h-2.5">
@@ -215,11 +222,13 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
           <p className="text-xs text-comus-sand-dark leading-relaxed pt-1">
             {rows.length === 0
               ? 'Henüz hesaplanmış bir baz hattı yok. Uygulamayı birkaç gün kullandıkça göstergeler burada özetlenecektir.'
+              : isColdStart
+              ? `Kişisel baz hattı öğrenme aşamasında (${learnedDays}/${BASELINE_TARGET_DAYS} gün). Anomali alarmları en az 3 aktif gün tamamlandıktan sonra etkinleşir.`
               : learnedDays >= BASELINE_TARGET_DAYS
               ? anomalyCount > 0
-                ? `Baz hattınız aktif. Bugün kişisel ortalamanızdan belirgin farklılık gösteren ${anomalyCount} gösterge saptandı; diğer ${balancedCount} gösterge olağan seyrinde.`
+                ? `Baz hattınız aktif. Bugün kişisel medyanınızdan belirgin farklılık gösteren ${anomalyCount} gösterge saptandı; diğer ${balancedCount} gösterge olağan seyrinde.`
                 : `Baz hattınız aktif ve izlenen tüm (${rows.length}) davranışsal göstergeler kişisel referans aralığınızla uyumlu.`
-              : `Kişisel baz hattınız öğrenilmeye devam ediyor (${learnedDays}/${BASELINE_TARGET_DAYS} gün). Tüm teknik metrikleri ve standart sapma değerlerini görmek için aşağıdan inceleyebilirsiniz.`}
+              : `Kişisel baz hattınız öğrenilmeye devam ediyor (${learnedDays}/${BASELINE_TARGET_DAYS} gün).`}
           </p>
         </div>
 
@@ -246,9 +255,10 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
       {isExpanded && rows.length > 0 && (
         <div className="space-y-3 animate-fadeIn">
           {rows.map((r) => {
-            const isAnomaly = r.z !== null && Math.abs(r.z) >= ANOMALY_Z_THRESHOLD;
-            const Icon =
-              r.z === null || r.z === 0 ? Minus : r.z > 0 ? TrendingUp : TrendingDown;
+            const trend = getMetricTrendPresentation(r.key, r.dev, r.z, r.sampleCount);
+            const isAnomaly = !isColdStart && r.z !== null && Math.abs(r.z) >= ANOMALY_Z_THRESHOLD && r.sampleCount >= 3;
+            const Icon = trend.TrendIcon;
+
             return (
               <div
                 key={r.key}
@@ -260,20 +270,27 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-comus-navy">{r.label}</div>
                     <div className="text-[11px] text-comus-sand-dark mt-0.5">
-                      Baz: {fmt(r.mean)} ± {fmt(r.std)} {r.unit} · {r.sampleCount} gün
-                      {!r.isEstablished && ' · öğreniliyor'}
+                      Medyan: {fmt(r.median)} [MAD: {fmt(r.mad)}] {r.unit} · {r.sampleCount} gün
+                      {r.sampleCount < 3
+                        ? ' · Baseline_Learning'
+                        : !r.isEstablished
+                        ? ' · öğreniliyor'
+                        : ''}
                     </div>
+                    {trend.contextualInsight && (
+                      <div className="text-[11px] text-comus-copper font-medium mt-1">
+                        {trend.contextualInsight}
+                      </div>
+                    )}
                   </div>
                   <div
-                    className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg shrink-0 ${
-                      isAnomaly
-                        ? 'bg-amber-50 text-amber-800'
-                        : 'bg-comus-surface text-comus-navy'
-                    }`}
+                    className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 border ${trend.badgeColorClass}`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     <span>
-                      {r.z === null ? '—' : `${r.z > 0 ? '+' : ''}${r.z.toFixed(2)}σ`}
+                      {r.sampleCount < 3
+                        ? 'Öğreniliyor'
+                        : trend.plainDeviationText}
                     </span>
                   </div>
                 </div>
@@ -285,15 +302,9 @@ export const EWMADeviationsPage: React.FC<EWMADeviationsPageProps> = ({
                     </strong>
                   </span>
                   {r.dev !== null && (
-                    <span
-                      className={
-                        isAnomaly
-                          ? 'text-amber-800 font-semibold'
-                          : 'text-comus-sand-dark'
-                      }
-                    >
+                    <span className={`font-semibold ${trend.textColorClass}`}>
                       {r.dev > 0 ? '+' : ''}
-                      {r.dev}%
+                      {r.dev}% {r.z !== null ? `(Z: ${r.z > 0 ? '+' : ''}${r.z.toFixed(1)})` : ''}
                     </span>
                   )}
                 </div>

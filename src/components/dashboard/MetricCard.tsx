@@ -1,7 +1,8 @@
 import React from 'react';
 import { ResponsiveContainer, AreaChart, Area, ReferenceLine, YAxis, Tooltip } from 'recharts';
-import { LucideIcon, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { LucideIcon, AlertCircle } from 'lucide-react';
 import { MetricKey } from '../../types/sensor';
+import { getMetricTrendPresentation } from '../../utils/metricPresentation';
 
 export interface MetricCardProps {
   title: string;
@@ -18,10 +19,12 @@ export interface MetricCardProps {
   unavailableReason?: string;
   onActionClick?: () => void;
   actionLabel?: string;
+  sampleDays?: number;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
   title,
+  metricKey,
   icon: Icon,
   currentValue,
   baselineValue,
@@ -34,33 +37,37 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   unavailableReason,
   onActionClick,
   actionLabel,
+  sampleDays = 14,
 }) => {
   const isDataAvailable = hasData && currentValue !== null && !isNaN(currentValue);
-  const isAnomaly = isDataAvailable && zScore !== null && Math.abs(zScore) >= 2.0;
-  const isElevated = isDataAvailable && zScore !== null && Math.abs(zScore) >= 1.5;
 
-  let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  let badgeText = 'Aktif / Native';
-  let TrendIcon = Minus;
+  // Decouple mathematical arrow from sentiment color coding using standard presentation layer
+  const trend = getMetricTrendPresentation(
+    metricKey,
+    isDataAvailable ? deviationPercent : null,
+    isDataAvailable ? zScore : null,
+    sampleDays
+  );
+
+  const isAnomaly = isDataAvailable && zScore !== null && Math.abs(zScore) >= 2.0 && sampleDays >= 3;
+  const TrendIcon = trend.TrendIcon;
+
+  let badgeColor = trend.badgeColorClass;
+  let badgeText = isDataAvailable
+    ? isAnomaly
+      ? `${trend.arrowSymbol} ${Math.abs(deviationPercent || 0)}% Sapma`
+      : `${trend.arrowSymbol} ${Math.abs(deviationPercent || 0)}% Değişim`
+    : actionLabel
+    ? 'İzin Bekleniyor'
+    : 'Veri Bekleniyor';
 
   if (!isDataAvailable) {
-    badgeColor = actionLabel ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-stone-100 text-stone-600 border-stone-200';
-    badgeText = actionLabel ? 'İzin Bekleniyor' : 'Veri Bekleniyor';
-    TrendIcon = Minus;
-  } else if ((deviationPercent || 0) > 5) {
-    TrendIcon = TrendingUp;
-  } else if ((deviationPercent || 0) < -5) {
-    TrendIcon = TrendingDown;
-  }
-
-  if (isDataAvailable) {
-    if (isAnomaly) {
-      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
-      badgeText = (zScore || 0) > 0 ? `+${Math.abs(deviationPercent || 0)}% Sapma` : `-${Math.abs(deviationPercent || 0)}% Sapma`;
-    } else if (isElevated) {
-      badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
-      badgeText = `${(deviationPercent || 0) > 0 ? '+' : ''}${deviationPercent}% Değişim`;
-    }
+    badgeColor = actionLabel
+      ? 'bg-amber-50 text-amber-800 border-amber-200'
+      : 'bg-stone-100 text-stone-600 border-stone-200';
+  } else if (sampleDays < 3) {
+    badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
+    badgeText = 'Öğreniliyor';
   }
 
   const chartData = history.map((item) => ({
@@ -77,9 +84,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between gap-2.5 mb-3">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-              isAnomaly ? 'bg-rose-50 text-rose-600' : 'bg-comus-navy-subtle text-comus-navy'
-            }`}>
+            <div
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                isAnomaly ? 'bg-rose-50 text-rose-600' : 'bg-comus-navy-subtle text-comus-navy'
+              }`}
+            >
               <Icon className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -92,7 +101,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             </div>
           </div>
 
-          <div className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 shrink-0 whitespace-nowrap ${badgeColor}`}>
+          <div
+            className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 shrink-0 whitespace-nowrap ${badgeColor}`}
+          >
             {isAnomaly && <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
             <TrendIcon className="w-3 h-3" />
             <span>{badgeText}</span>
@@ -113,7 +124,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             </div>
             <div className="text-xs text-comus-sand-dark mt-0.5">
               {isDataAvailable && baselineValue !== null ? (
-                <>Baz Hattı Normali: <span className="font-medium text-comus-navy">{baselineValue} {unit}</span></>
+                <>
+                  Baz Hattı Normali: <span className="font-medium text-comus-navy">{baselineValue} {unit}</span>
+                </>
               ) : unavailableReason ? (
                 <div className="flex items-center gap-2 flex-wrap mt-1">
                   <span className="text-stone-500 italic">{unavailableReason}</span>
@@ -135,12 +148,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                 <span className="text-stone-500 italic">Yeterli ölçüm verisi bulunmuyor</span>
               )}
             </div>
+
+            {/* Contextual Human Interpretation */}
+            {trend.contextualInsight && (
+              <p className="text-[11px] text-comus-copper font-medium mt-1">
+                {trend.contextualInsight}
+              </p>
+            )}
           </div>
 
           <div className="text-right">
             <div className="text-xs font-mono font-medium text-comus-sand-dark">
-              Z-Skoru: <span className={`font-semibold ${!isDataAvailable ? 'text-stone-400' : isAnomaly ? 'text-rose-600' : 'text-comus-navy'}`}>
-                {isDataAvailable && zScore !== null ? (zScore > 0 ? `+${zScore}` : zScore) : '—'}
+              Durum: <span className={`font-semibold ${trend.textColorClass}`}>
+                {isDataAvailable ? trend.plainDeviationText : '—'}
               </span>
             </div>
           </div>

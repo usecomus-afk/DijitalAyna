@@ -6,6 +6,7 @@ import { lightSensor } from './lightSensor';
 import { batterySensor } from './batterySensor';
 import { networkSensor } from './networkSensor';
 import { healthService } from '../services/native/healthService';
+import { clampMetricValue } from '../safety/sanitizer';
 import { deviceBatteryService } from '../services/native/deviceBatteryService';
 import { mobilityService } from '../services/native/mobilityService';
 import { UserSettings } from '../types/user';
@@ -144,6 +145,7 @@ class SensorManager {
     for (const [key, val] of Object.entries(metricMapping)) {
       if (val === undefined || isNaN(val)) continue;
       const metricKey = key as MetricKey;
+      const clampedVal = clampMetricValue(metricKey, val);
       const existing = await db.dailyMetrics
         .where('[metricKey+date]')
         .equals([metricKey, features.date])
@@ -151,14 +153,14 @@ class SensorManager {
 
       if (existing && existing.id) {
         await db.dailyMetrics.update(existing.id, {
-          value: val,
+          value: clampedVal,
           sampleCount: (existing.sampleCount || 1) + 1,
         });
       } else {
         await db.dailyMetrics.add({
           date: features.date,
           metricKey,
-          value: val,
+          value: clampedVal,
           sampleCount: 1,
         });
       }

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useMentalTwinAvatar } from '../../hooks/useMentalTwinAvatar';
-import { getSynthesisCopy } from '../../engine/dailyState';
+import { getSynthesisCopy, resolveSynthesisBadge } from '../../engine/dailyState';
 import {
   X,
   Sparkles,
@@ -63,10 +63,10 @@ export const MentalTwinModal: React.FC = () => {
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold tracking-widest text-comus-copper block">
-                Kişisel Zihin Yansıması
+                KiÅŸisel Zihin YansÄ±masÄ±
               </span>
               <h3 className="font-serif font-bold text-lg sm:text-xl text-comus-navy leading-tight">
-                {userProfile.name}’in Dijital Mental İkizi
+                {userProfile.name}â€™in Dijital Mental Ä°kizi
               </h3>
             </div>
           </div>
@@ -87,7 +87,7 @@ export const MentalTwinModal: React.FC = () => {
                 </span>
                 <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse shrink-0" />
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 animate-pulse">
-                  Erken Farkındalık & Kritik Eşik Uyarısı
+                  Erken FarkÄ±ndalÄ±k & Kritik EÅŸik UyarÄ±sÄ±
                 </span>
               </div>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600 text-white animate-pulse shrink-0">
@@ -100,17 +100,17 @@ export const MentalTwinModal: React.FC = () => {
                 <div key={alert.id} className="bg-white/95 rounded-xl p-3 border border-rose-200/80 space-y-1">
                   <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <h4 className="font-serif font-bold text-xs sm:text-sm text-rose-950">
-                      {alert.potentialStateLabel || `Potansiyel ${alert.title} Olasılığı`}
+                      {alert.potentialStateLabel || `Potansiyel ${alert.title} OlasÄ±lÄ±ÄŸÄ±`}
                     </h4>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
                       {alert.insightType === 'anxietySleep'
-                        ? `Son 7 Günde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
-                        : `Ardışık ${alert.consecutiveDays || alert.requiredDays || 3} Gün Kritik Eşik`}
+                        ? `Son 7 GÃ¼nde ${alert.consecutiveDays || alert.requiredDays || 3} Gece`
+                        : `ArdÄ±ÅŸÄ±k ${alert.consecutiveDays || alert.requiredDays || 3} GÃ¼n Kritik EÅŸik`}
                     </span>
                   </div>
                   {alert.statisticalSummary && (
                     <div className="text-[11px] font-mono font-semibold text-rose-900 bg-rose-50/70 px-2 py-1 rounded border border-rose-100">
-                      📊 {alert.statisticalSummary}
+                      ğŸ“Š {alert.statisticalSummary}
                     </div>
                   )}
                   <p className="text-[11px] text-comus-navy leading-relaxed">
@@ -157,14 +157,14 @@ export const MentalTwinModal: React.FC = () => {
           </div>
         </div>
 
-        {/* İncele Toggle Button */}
+        {/* Ä°ncele Toggle Button */}
         <div className="relative z-10 mt-4 flex justify-center">
           <button
             type="button"
             onClick={() => setIsDetailsExpanded((prev) => !prev)}
             className="w-full sm:w-auto min-w-[180px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-comus-navy text-white hover:bg-comus-navy-light text-xs font-semibold transition-all shadow-soft cursor-pointer"
           >
-            <span>{isDetailsExpanded ? 'Ayrıntıları Gizle' : 'İncele'}</span>
+            <span>{isDetailsExpanded ? 'AyrÄ±ntÄ±larÄ± Gizle' : 'Ä°ncele'}</span>
             {isDetailsExpanded ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -180,10 +180,10 @@ export const MentalTwinModal: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-comus-navy">
                   <Cpu className="w-4 h-4 text-comus-copper shrink-0" />
-                  <span>Biyobelirteç & Sensör Sentezi (Duygusal Denge İndeksi)</span>
+                  <span>BiyobelirteÃ§ & SensÃ¶r Sentezi (Duygusal Denge Ä°ndeksi)</span>
                 </div>
                 <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-white border border-comus-sand-light/40 text-comus-navy">
-                  İndeks: {affectiveIndex}/100
+                  Ä°ndeks: {affectiveIndex}/100
                 </span>
               </div>
 
@@ -194,10 +194,10 @@ export const MentalTwinModal: React.FC = () => {
               <div className="pt-2 border-t border-comus-sand-light/20 flex flex-wrap items-center justify-between gap-2 text-[11px]">
                 <span className="text-comus-sand-dark flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline" />
-                  <span>15 mikro-biyobelirteç baz hattı ile otomatik analiz edildi.</span>
+                  <span>15 mikro-biyobelirteÃ§ baz hattÄ± ile otomatik analiz edildi.</span>
                 </span>
                 <span className="font-semibold text-comus-navy bg-white px-2 py-0.5 rounded-full border border-comus-sand-light/30">
-                  {earlyAwarenessAlerts.length > 0 ? phenoLabel : hasIndex ? getSynthesisCopy(affectiveIndex).badge : phenoLabel}
+                  {resolveSynthesisBadge(hasIndex ? affectiveIndex : null, phenoLabel, earlyAwarenessAlerts.length > 0)}
                 </span>
               </div>
             </div>
@@ -207,7 +207,7 @@ export const MentalTwinModal: React.FC = () => {
               <div className="p-2.5 rounded-2xl bg-comus-surface border border-comus-sand-light/20">
                 <div className="text-[10px] text-comus-sand-dark flex items-center justify-center gap-1 mb-0.5">
                   <Keyboard className="w-3 h-3 text-comus-copper" />
-                  <span>Yazım Akışı</span>
+                  <span>YazÄ±m AkÄ±ÅŸÄ±</span>
                 </div>
                 <div className="font-semibold text-comus-navy font-mono text-xs">
                   {sensorStatus.typing} WPM
@@ -250,3 +250,4 @@ export const MentalTwinModal: React.FC = () => {
     </div>
   );
 };
+
